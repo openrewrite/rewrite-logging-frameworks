@@ -15,6 +15,7 @@
  */
 package org.openrewrite.logging;
 
+import org.openrewrite.Formatting;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.refactor.ChangeType;
 import org.openrewrite.java.refactor.ImplementInterface;
@@ -59,7 +60,7 @@ public class Log4jLayoutToLogback extends JavaRefactorVisitor {
 
             c = c.withExtends(c.getExtends().withFrom(J.ParameterizedType.build(
                     "ch.qos.logback.core.LayoutBase",
-                    "ch.qos.logback.classic.spi.ILoggingEvent")));
+                    "ch.qos.logback.classic.spi.ILoggingEvent").withFormatting(Formatting.format(" "))));
         }
 
         Optional<J.MethodDecl> ignoresThrowable = c.getMethods().stream()

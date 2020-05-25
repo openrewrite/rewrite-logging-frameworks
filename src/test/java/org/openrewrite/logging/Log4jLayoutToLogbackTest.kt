@@ -3,7 +3,7 @@ package org.openrewrite.logging
 import org.junit.jupiter.api.Test
 import org.openrewrite.java.JavaParser
 
-class Log4JLayoutToLogbackTest : JavaParser(dependenciesFromClasspath("log4j")) {
+class Log4jLayoutToLogbackTest : JavaParser(dependenciesFromClasspath("log4j")) {
     @Test
     fun layoutMigration() {
         val a = parse("""
