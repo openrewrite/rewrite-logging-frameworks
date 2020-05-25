@@ -65,6 +65,9 @@ dependencies {
     implementation("io.micrometer.prometheus:prometheus-rsocket-client:latest.release")
     implementation("io.rsocket:rsocket-transport-netty:1.0.0-RC7")
 
+    implementation("commons-logging:commons-logging:1.2")
+    implementation("org.apache.logging.log4j:log4j-api:latest.release")
+    implementation("log4j:log4j:1.+")
     implementation("ch.qos.logback:logback-classic:1.0.13")
 
     compileOnly("org.projectlombok:lombok:latest.release")
