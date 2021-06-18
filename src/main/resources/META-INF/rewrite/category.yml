@@ -14,7 +14,8 @@
 # limitations under the License.
 #
 ---
-type: specs.openrewrite.org/v1beta/category
-name: logging
-packageName: org.openrewrite.logging
-description: Migrate Java code off Log4J, Apache Commons Logging, JUL, and more, and on to SLF4J.
+#todo
+#type: specs.openrewrite.org/v1beta/category
+#name: logging
+#packageName: org.openrewrite.logging
+#description: Migrate Java code off Log4J, Apache Commons Logging, JUL, and more, and on to SLF4J.
