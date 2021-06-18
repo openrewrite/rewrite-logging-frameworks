@@ -41,7 +41,7 @@ configure<nebula.plugin.release.git.base.ReleasePluginExtension> {
 }
 
 group = "org.openrewrite.recipe"
-description = "Apply consistent logging best practices and migrate between logging frameworks. Automatically."
+description = "Enforce logging best practices and migrate between logging frameworks. Automatically."
 
 repositories {
     if (!project.hasProperty("releasing")) {
