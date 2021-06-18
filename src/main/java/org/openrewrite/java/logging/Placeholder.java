@@ -15,5 +15,38 @@
  */
 package org.openrewrite.java.logging;
 
-public class Placeholder {
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
+import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.search.UsesType;
+
+/**
+ * todo
+ */
+public class Placeholder extends Recipe {
+
+    @Override
+    public String getDisplayName() {
+        return "Placeholder";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Placeholder.";
+    }
+
+    @Override
+    protected TreeVisitor<?, ExecutionContext> getVisitor() {
+        return new PlaceholderVisitor();
+    }
+
+    @Override
+    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
+        return new UsesType<>("org.openrewrite.example.Example");
+    }
+
+    public static class PlaceholderVisitor extends JavaIsoVisitor<ExecutionContext> {
+    }
+
 }
