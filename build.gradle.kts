@@ -83,25 +83,15 @@ val rewriteVersion = if(project.hasProperty("releasing")) {
 }
 
 dependencies {
-    implementation("org.openrewrite:rewrite-java:${rewriteVersion}")
-
-    implementation("com.puppycrawl.tools:checkstyle:latest.release")
-
-    // FIXME the IDE throws "unknown enum constant com.fasterxml.jackson.annotation.JsonTypeInfo.Id.MINIMAL_CLASS sometimes?
-    implementation("com.fasterxml.jackson.core:jackson-annotations:latest.release")
-
-    implementation("commons-cli:commons-cli:1.4")
-
-    implementation("io.micrometer.prometheus:prometheus-rsocket-client:latest.release")
-    implementation("io.rsocket:rsocket-transport-netty:1.0.0-RC7")
-
-    implementation("commons-logging:commons-logging:1.2")
-    implementation("org.apache.logging.log4j:log4j-api:latest.release")
-    implementation("log4j:log4j:1.+")
-    implementation("ch.qos.logback:logback-classic:1.0.13")
-
     compileOnly("org.projectlombok:lombok:latest.release")
     annotationProcessor("org.projectlombok:lombok:latest.release")
+
+    implementation("org.openrewrite:rewrite-java:${rewriteVersion}")
+    implementation("org.openrewrite:rewrite-maven:${rewriteVersion}")
+
+    // eliminates "unknown enum constant DeprecationLevel.WARNING" warnings from the build log
+    // see https://github.com/gradle/kotlin-dsl-samples/issues/1301 for why (okhttp is leaking parts of kotlin stdlib)
+    compileOnly("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 
     testImplementation("org.jetbrains.kotlin:kotlin-reflect")
     testImplementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
@@ -110,7 +100,12 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-params:latest.release")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:latest.release")
 
+    testImplementation("org.openrewrite:rewrite-test:${rewriteVersion}")
+
     testImplementation("org.assertj:assertj-core:latest.release")
+
+    testRuntimeOnly("org.openrewrite:rewrite-java-11:${rewriteVersion}")
+    testRuntimeOnly("org.openrewrite:rewrite-java-8:${rewriteVersion}")
 }
 
 tasks.named<Test>("test") {
