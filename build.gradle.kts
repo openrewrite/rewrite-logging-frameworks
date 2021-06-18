@@ -32,7 +32,7 @@ plugins {
 apply(plugin = "nebula.publish-verification")
 
 rewrite {
-    setRewriteVersion("latest.integration")
+    rewriteVersion = "latest.integration"
     activeRecipe("org.openrewrite.java.format.AutoFormat")
 }
 
@@ -44,7 +44,7 @@ group = "org.openrewrite.recipe"
 description = "Migrates off of old logging frameworks. Automatically."
 
 repositories {
-    if(!project.hasProperty("releasing")) {
+    if (!project.hasProperty("releasing")) {
         mavenLocal()
         maven {
             url = uri("https://oss.sonatype.org/content/repositories/snapshots/")
@@ -76,7 +76,7 @@ configurations.all {
     }
 }
 
-val rewriteVersion = if(project.hasProperty("releasing")) {
+val rewriteVersion = if (project.hasProperty("releasing")) {
     "latest.release"
 } else {
     "latest.integration"
@@ -106,6 +106,17 @@ dependencies {
 
     testRuntimeOnly("org.openrewrite:rewrite-java-11:${rewriteVersion}")
     testRuntimeOnly("org.openrewrite:rewrite-java-8:${rewriteVersion}")
+
+    testRuntimeOnly("commons-logging:commons-logging:1.2")
+    testRuntimeOnly("org.apache.logging.log4j:log4j-api:latest.release")
+    testRuntimeOnly("log4j:log4j:1.+")
+    testRuntimeOnly("ch.qos.logback:logback-classic:1.0.13")
+}
+
+tasks.withType(KotlinCompile::class.java).configureEach {
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
 }
 
 tasks.named<Test>("test") {
@@ -124,15 +135,6 @@ tasks.named<JavaCompile>("compileJava") {
     options.compilerArgs.add("-parameters")
 }
 
-tasks.withType(KotlinCompile::class.java).configureEach {
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
-
-    doFirst {
-        destinationDir.mkdirs()
-    }
-}
 
 configure<ContactsExtension> {
     val j = Contact("jkschneider@gmail.com")
