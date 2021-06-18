@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.openrewrite.java.logging
+package org.openrewrite.java.logging.slf4j
 
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
@@ -29,7 +29,7 @@ class Log4jToSlf4jTest : JavaRecipeTest {
         .build()
 
     override val recipe: Recipe
-        get() = Placeholder()
+        get() = Log4jToSlf4j()
 
     @Test
     fun loggingStatements() = assertChanged(

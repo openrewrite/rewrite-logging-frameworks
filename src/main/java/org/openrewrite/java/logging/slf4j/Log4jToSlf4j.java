@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.openrewrite.java.logging;
+package org.openrewrite.java.logging.slf4j;
 
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
@@ -24,21 +24,21 @@ import org.openrewrite.java.search.UsesType;
 /**
  * todo
  */
-public class Placeholder extends Recipe {
+public class Log4jToSlf4j extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Placeholder";
+        return "Log4jToSlf4j";
     }
 
     @Override
     public String getDescription() {
-        return "Placeholder.";
+        return "Log4jToSlf4j.";
     }
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new PlaceholderVisitor();
+        return new Log4jToSlf4jVisitor();
     }
 
     @Override
@@ -46,7 +46,7 @@ public class Placeholder extends Recipe {
         return new UsesType<>("org.openrewrite.example.Example");
     }
 
-    public static class PlaceholderVisitor extends JavaIsoVisitor<ExecutionContext> {
+    public static class Log4jToSlf4jVisitor extends JavaIsoVisitor<ExecutionContext> {
     }
 
 }

@@ -14,17 +14,14 @@
 # limitations under the License.
 #
 ---
-type: specs.openrewrite.org/v1beta/category
-name: logging
-packageName: org.openrewrite.java.logging
-description: Enforce logging best practices and migrate between logging frameworks.
----
-type: specs.openrewrite.org/v1beta/category
-name: logback
-packageName: org.openrewrite.java.logging.logback
-description: Recipes related to [`logback`](http://logback.qos.ch/documentation.html).
----
-type: specs.openrewrite.org/v1beta/category
-name: SLF4J
-packageName: org.openrewrite.java.logging.slf4j
-description: Recipes related to [Simple Logging Facade for Java (`SLF4J`)](http://www.slf4j.org/).
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.logging.logback.Log4JToLogback
+displayName: Migrate Log4J logging framework to logback
+description: Migrates Log4J logging framework to logback.
+tags:
+  - logging
+  - log4j
+  - logback
+recipeList:
+  - org.openrewrite.java.logging.logback.Log4jAppenderToLogback
+  - org.openrewrite.java.logging.logback.Log4jLayoutToLogback
