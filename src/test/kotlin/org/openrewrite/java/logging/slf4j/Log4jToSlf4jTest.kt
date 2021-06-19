@@ -15,13 +15,11 @@
  */
 package org.openrewrite.java.logging.slf4j
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
-@Disabled
 class Log4jToSlf4jTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
         .logCompilationWarningsAndErrors(true)
@@ -34,7 +32,7 @@ class Log4jToSlf4jTest : JavaRecipeTest {
     @Test
     fun loggingStatements() = assertChanged(
         before = """
-            import org.apache.log4j.*;
+            import org.apache.log4j.Logger;
 
             class A {
                 Logger logger = Logger.getLogger(A.class);
@@ -61,7 +59,8 @@ class Log4jToSlf4jTest : JavaRecipeTest {
                     logger.info("Hello {}, nice to meet you {}", name, name);
                 }
             }
-        """
+        """,
+        skipEnhancedTypeValidation = true // fixme
     )
 
 }
