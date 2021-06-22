@@ -26,7 +26,7 @@ plugins {
     id("nebula.source-jar") version "17.3.2"
     id("nebula.maven-apache-license") version "17.3.2"
 
-    id("org.openrewrite.rewrite") version "latest.release"
+    id("org.openrewrite.rewrite") version "latest.integration"
 }
 
 apply(plugin = "nebula.publish-verification")
