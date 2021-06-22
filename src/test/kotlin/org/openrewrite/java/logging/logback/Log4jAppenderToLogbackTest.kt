@@ -38,17 +38,18 @@ class Log4jAppenderToLogbackTest : JavaRecipeTest {
             import org.apache.log4j.spi.LoggingEvent;
 
             class TrivialAppender extends AppenderSkeleton {
-
                 @Override
-                protected void append(LoggingEvent loggingevent) {
-                    String s = this.layout.format(loggingevent);
+                protected void append(LoggingEvent loggingEvent) {
+                    String s = this.layout.format(loggingEvent);
                     System.out.println(s);
                 }
 
+                @Override
                 public void close() {
                     // nothing to do
                 }
 
+                @Override
                 public boolean requiresLayout() {
                     return true;
                 }
@@ -59,10 +60,9 @@ class Log4jAppenderToLogbackTest : JavaRecipeTest {
             import ch.qos.logback.core.AppenderBase;
 
             class TrivialAppender extends AppenderBase<ILoggingEvent> {
-
                 @Override
-                protected void append(ILoggingEvent loggingevent) {
-                    String s = this.layout.doLayout(loggingevent);
+                protected void append(ILoggingEvent loggingEvent) {
+                    String s = this.layout.doLayout(loggingEvent);
                     System.out.println(s);
                 }
             }

@@ -38,15 +38,17 @@ class Log4jLayoutToLogbackTest : JavaRecipeTest {
             import org.apache.log4j.spi.LoggingEvent;
 
             class TrivialLayout extends Layout {
-
+                @Override
                 public void activateOptions() {
                     // there are no options to activate
                 }
 
+                @Override
                 public String format(LoggingEvent loggingEvent) {
                     return loggingEvent.getRenderedMessage();
                 }
 
+                @Override
                 public boolean ignoresThrowable() {
                     return true;
                 }
@@ -57,7 +59,7 @@ class Log4jLayoutToLogbackTest : JavaRecipeTest {
             import ch.qos.logback.core.LayoutBase;
 
             class TrivialLayout extends LayoutBase<ILoggingEvent> {
-
+                @Override
                 public String doLayout(ILoggingEvent loggingEvent) {
                     return loggingEvent.getMessage();
                 }
@@ -72,14 +74,17 @@ class Log4jLayoutToLogbackTest : JavaRecipeTest {
             import org.apache.log4j.spi.LoggingEvent;
 
             class TrivialLayout extends Layout {
+                @Override
                 public void activateOptions() {
                     System.out.println("starting...");
                 }
 
+                @Override
                 public String format(LoggingEvent loggingEvent) {
                     return loggingEvent.getRenderedMessage();
                 }
 
+                @Override
                 public boolean ignoresThrowable() {
                     return true;
                 }
@@ -91,10 +96,12 @@ class Log4jLayoutToLogbackTest : JavaRecipeTest {
             import ch.qos.logback.core.spi.LifeCycle;
 
             class TrivialLayout extends LayoutBase<ILoggingEvent> implements LifeCycle {
+                @Override
                 public void start() {
                     System.out.println("starting...");
                 }
 
+                @Override
                 public String doLayout(ILoggingEvent loggingEvent) {
                     return loggingEvent.getMessage();
                 }
