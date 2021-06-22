@@ -53,8 +53,8 @@ class ParameterizedLoggingTest : JavaRecipeTest {
             import org.slf4j.Logger;
             import org.slf4j.LoggerFactory;
 
-            class A {
-                Logger logger = LoggerFactory.getLogger(A.class);
+            class Test {
+                Logger logger = LoggerFactory.getLogger(Test.class);
 
                 void asInteger(String numberString) {
                     String name = "Jon";
@@ -72,8 +72,8 @@ class ParameterizedLoggingTest : JavaRecipeTest {
             import org.slf4j.Logger;
             import org.slf4j.LoggerFactory;
 
-            class A {
-                Logger logger = LoggerFactory.getLogger(A.class);
+            class Test {
+                Logger logger = LoggerFactory.getLogger(Test.class);
 
                 void asInteger(String numberString) {
                     String name = "Jon";
