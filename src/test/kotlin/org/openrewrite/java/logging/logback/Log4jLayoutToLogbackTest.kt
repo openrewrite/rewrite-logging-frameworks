@@ -15,13 +15,11 @@
  */
 package org.openrewrite.java.logging.logback
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
-@Disabled
 class Log4jLayoutToLogbackTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
         .logCompilationWarningsAndErrors(true)
@@ -38,6 +36,7 @@ class Log4jLayoutToLogbackTest : JavaRecipeTest {
             import org.apache.log4j.spi.LoggingEvent;
 
             class TrivialLayout extends Layout {
+
                 @Override
                 public void activateOptions() {
                     // there are no options to activate
@@ -59,6 +58,7 @@ class Log4jLayoutToLogbackTest : JavaRecipeTest {
             import ch.qos.logback.core.LayoutBase;
 
             class TrivialLayout extends LayoutBase<ILoggingEvent> {
+
                 @Override
                 public String doLayout(ILoggingEvent loggingEvent) {
                     return loggingEvent.getMessage();
