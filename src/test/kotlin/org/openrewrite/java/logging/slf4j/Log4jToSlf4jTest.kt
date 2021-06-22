@@ -30,17 +30,89 @@ class Log4jToSlf4jTest : JavaRecipeTest {
         get() = Log4jToSlf4j()
 
     @Test
-    fun loggingStatements() = assertChanged(
+    fun migratesLoggerToLoggerFactory() = assertChanged(
         before = """
             import org.apache.log4j.Logger;
 
-            class A {
-                Logger logger = Logger.getLogger(A.class);
+            class Test {
+                Logger logger = Logger.getLogger(Test.class);
+            }
+        """,
+        after = """
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
 
-                void myMethod() {
-                    String name = "Jon";
+            class Test {
+                Logger logger = LoggerFactory.getLogger(Test.class);
+            }
+        """
+    )
+
+    @Test
+    fun migratesFatalToError() = assertChanged(
+        before = """
+            import org.apache.log4j.Logger;
+
+            class Test {
+                Logger logger = Logger.getLogger(Test.class);
+
+                void method() {
                     logger.fatal("uh oh");
+                }
+            }
+        """,
+        after = """
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+
+            class Test {
+                Logger logger = LoggerFactory.getLogger(Test.class);
+
+                void method() {
+                    logger.error("uh oh");
+                }
+            }
+        """
+    )
+
+    @Test
+    fun objectParametersUseToString() = assertChanged(
+        before = """
+            import org.apache.log4j.Logger;
+
+            class Test {
+                Logger logger = Logger.getLogger(Test.class);
+
+                void method() {
                     logger.info(new Object());
+                }
+            }
+        """,
+        after = """
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+
+            class Test {
+                Logger logger = LoggerFactory.getLogger(Test.class);
+
+                void method() {
+                    logger.info(new Object().toString());
+                }
+            }
+        """,
+        skipEnhancedTypeValidation = true // fixme
+    )
+
+    @Test
+    fun usesParameterizedLogging() = assertChanged(
+        before = """
+            import org.apache.log4j.Logger;
+
+            class Test {
+                Logger logger = Logger.getLogger(Test.class);
+
+                void method() {
+                    String name = "Jon";
                     logger.info("Hello " + name + ", nice to meet you " + name);
                 }
             }
@@ -49,18 +121,15 @@ class Log4jToSlf4jTest : JavaRecipeTest {
             import org.slf4j.Logger;
             import org.slf4j.LoggerFactory;
 
-            class A {
-                Logger logger = LoggerFactory.getLogger(A.class);
+            class Test {
+                Logger logger = LoggerFactory.getLogger(Test.class);
 
-                void myMethod() {
+                void method() {
                     String name = "Jon";
-                    logger.error("uh oh");
-                    logger.info(new Object().toString());
                     logger.info("Hello {}, nice to meet you {}", name, name);
                 }
             }
-        """,
-        skipEnhancedTypeValidation = true // fixme
+        """
     )
 
 }

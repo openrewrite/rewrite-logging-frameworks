@@ -27,7 +27,6 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Stack;
@@ -35,29 +34,17 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Use of the traditional Log4J to SLF4J bridge can result in some
- * loss of performance as the Log4j 2 Messages must be formatted
- * before they can be passed to SLF4J.
- * <p>
- * todo
+ * @see <a href="http://www.slf4j.org/migrator.html">SLF4J Migrator</a>
  */
 public class Log4jToSlf4j extends Recipe {
-    private static final MethodMatcher GET_LOGGER_MATCHER = new MethodMatcher("org.apache.log4j.Logger getLogger(..)");
-    private static final MethodMatcher GET_LOGGER_WITH_MANAGER_MATCHER = new MethodMatcher("org.apache.log4j.LogManager getLogger(..)");
-
-    @Override // todo
+    @Override
     public String getDisplayName() {
-        return "Log4jToSlf4j";
-    }
-
-    @Override // todo
-    public String getDescription() {
-        return "TODO.";
+        return "Migrate Log4j to SLF4J";
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new Log4jToSlf4jVisitor();
+    public String getDescription() {
+        return "Use of the traditional Log4J to SLF4J bridge can result in some loss of performance as the Log4j 2 Messages must be formatted before they can be passed to SLF4J.";
     }
 
     @Override
@@ -65,7 +52,15 @@ public class Log4jToSlf4j extends Recipe {
         return new UsesType<>("org.apache.log4j.Logger");
     }
 
-    private class Log4jToSlf4jVisitor extends JavaIsoVisitor<ExecutionContext> {
+    @Override
+    protected TreeVisitor<?, ExecutionContext> getVisitor() {
+        return new Log4jToSlf4jVisitor();
+    }
+
+    private static class Log4jToSlf4jVisitor extends JavaIsoVisitor<ExecutionContext> {
+        private static final MethodMatcher GET_LOGGER_MATCHER = new MethodMatcher("org.apache.log4j.Logger getLogger(..)");
+        private static final MethodMatcher GET_LOGGER_WITH_MANAGER_MATCHER = new MethodMatcher("org.apache.log4j.LogManager getLogger(..)");
+
         private final List<MethodMatcher> logLevelMatchers = Stream.of("trace", "debug", "info", "warn", "error", "fatal")
                 .map(level -> "org.apache.log4j." + (level.equals("trace") ? "Logger" : "Category") +
                         " " + level + "(..)")
