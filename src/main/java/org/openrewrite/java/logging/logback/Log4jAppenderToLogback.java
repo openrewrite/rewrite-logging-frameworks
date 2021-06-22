@@ -36,6 +36,8 @@ import static java.util.stream.Collectors.toList;
 /**
  * Should evaluate what all this does and whether it can be broken down into discrete recipes
  * TODO
+ *
+ * @see <a href="http://logback.qos.ch/manual/migrationFromLog4j.html">Migration from log4j</a>
  */
 public class Log4jAppenderToLogback extends Recipe {
     private static final MethodMatcher MATCHER = new MethodMatcher("org.apache.log4j.Layout format(..)");
