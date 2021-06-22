@@ -5,6 +5,7 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
@@ -21,9 +22,16 @@ public class ParameterizedLogging extends Recipe {
             .map(level -> "org.slf4j.Logger " + level + "(..)")
             .map(MethodMatcher::new)
             .collect(Collectors.toList());
+    private static final ThreadLocal<JavaParser> TEMPLATE_PARSER = ThreadLocal.withInitial(() -> JavaParser.fromJavaVersion().build());
+
     @Override
     public String getDisplayName() {
-        return "TODO";
+        return "Parameterize SLF4J logging statements";
+    }
+
+    @Override
+    public String getDescription() {
+        return "SLF4J supports parameterized logging which can significantly boost logging performance for disabled logging statement.";
     }
 
     @Override
@@ -35,48 +43,35 @@ public class ParameterizedLogging extends Recipe {
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
-            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
-                return super.visitCompilationUnit(cu, executionContext);
-            }
-
-            @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
-                if (logLevelMatchers.stream().anyMatch(it -> it.matches(method))) {
-                    List<Expression> args = method.getArguments();
-                    if (!args.isEmpty()) {
-                        Expression message = args.iterator().next();
+                if (logLevelMatchers.stream().anyMatch(it -> it.matches(method)) && method.getArguments().stream().anyMatch(J.Binary.class::isInstance)) {
+                    final StringBuilder messageBuilder = new StringBuilder("\"");
+                    final List<Expression> newArgList = new ArrayList<>();
+                    for (Expression message : method.getArguments()) {
                         if (message instanceof J.Binary) {
                             MessageAndArguments literalAndArgs = concatenationToLiteral(message,
                                     new MessageAndArguments("", new ArrayList<>()));
-
-                            StringBuilder template = new StringBuilder("\"" + literalAndArgs.message + "\"");
-                            literalAndArgs.arguments.forEach(arg -> template.append(", #{any()}"));
-                            m = m.withTemplate(
-                                    template(template.toString())
-                                            .build(),
-                                    m.getCoordinates().replaceArguments(),
-                                    literalAndArgs.arguments.toArray()
-                            );
+                            messageBuilder.append(literalAndArgs.message);
+                            newArgList.addAll(literalAndArgs.arguments);
+                        } else {
+                            newArgList.add(message);
                         }
                     }
+                    messageBuilder.append("\"");
+                    newArgList.forEach(arg -> messageBuilder.append(", #{any()}"));
+                    m = m.withTemplate(
+                            template(messageBuilder.toString()).javaParser(TEMPLATE_PARSER::get).build(),
+                            m.getCoordinates().replaceArguments(),
+                            newArgList.toArray()
+                    );
                 }
                 return m;
             }
         };
     }
 
-    private static class MessageAndArguments {
-        private String message;
-        private final List<Expression> arguments;
-
-        private MessageAndArguments(String message, List<Expression> arguments) {
-            this.message = message;
-            this.arguments = arguments;
-        }
-    }
-
-    private static MessageAndArguments concatenationToLiteral(Expression message, MessageAndArguments result) {
+    private MessageAndArguments concatenationToLiteral(Expression message, MessageAndArguments result) {
         if (!(message instanceof J.Binary)) {
             result.arguments.add(message);
             return result;
@@ -102,5 +97,15 @@ public class ParameterizedLogging extends Recipe {
         }
 
         return result;
+    }
+
+    private class MessageAndArguments {
+        private final List<Expression> arguments;
+        private String message;
+
+        private MessageAndArguments(String message, List<Expression> arguments) {
+            this.message = message;
+            this.arguments = arguments;
+        }
     }
 }
