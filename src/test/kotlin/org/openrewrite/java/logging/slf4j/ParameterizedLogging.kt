@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.logging.slf4j
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser

@@ -99,7 +99,7 @@ public class ParameterizedLogging extends Recipe {
         return result;
     }
 
-    private class MessageAndArguments {
+    private static class MessageAndArguments {
         private final List<Expression> arguments;
         private String message;
 
