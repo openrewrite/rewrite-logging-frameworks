@@ -83,7 +83,8 @@ class Log4jToSlf4jTest : JavaRecipeTest {
             class Test {
                 Logger logger = Logger.getLogger(Test.class);
 
-                void method() {
+                void method(Test test) {
+                    logger.info(test);
                     logger.info(new Object());
                 }
             }
@@ -95,12 +96,12 @@ class Log4jToSlf4jTest : JavaRecipeTest {
             class Test {
                 Logger logger = LoggerFactory.getLogger(Test.class);
 
-                void method() {
+                void method(Test test) {
+                    logger.info(test.toString());
                     logger.info(new Object().toString());
                 }
             }
-        """,
-        skipEnhancedTypeValidation = true // fixme
+        """
     )
 
     @Test
