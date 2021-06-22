@@ -17,17 +17,20 @@ package org.openrewrite.java.logging.slf4j
 
 import org.junit.jupiter.api.Test
 import org.openrewrite.Recipe
+import org.openrewrite.config.Environment
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
 class Log4jToSlf4jTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
         .logCompilationWarningsAndErrors(true)
-        .classpath("log4j")
+        .classpath("log4j", "slf4j")
         .build()
 
-    override val recipe: Recipe
-        get() = Log4jToSlf4j()
+    override val recipe: Recipe = Environment.builder()
+        .scanRuntimeClasspath("org.openrewrite.java.logging.slf4j")
+        .build()
+        .activateRecipes("org.openrewrite.java.logging.slf4j.SLF4JBestPractices")
 
     @Test
     fun migratesLoggerToLoggerFactory() = assertChanged(
@@ -76,7 +79,7 @@ class Log4jToSlf4jTest : JavaRecipeTest {
     )
 
     @Test
-    fun objectParametersUseToString() = assertChanged(
+    fun objectParametersToString() = assertChanged(
         before = """
             import org.apache.log4j.Logger;
 

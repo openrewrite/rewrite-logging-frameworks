@@ -14,14 +14,48 @@
 # limitations under the License.
 #
 ---
+# fixme
 type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.logging.slf4j.Log4JToSLF4J
-displayName: Migrate Log4J logging framework to SLF4J
-description: Migrates Log4J logging framework to SLF4J.
+name: org.openrewrite.java.logging.slf4j.SLF4JBestPractices
+displayName: SLF4J best practices
+description: Applies best practices to SLF4J logging.
+tags:
+  - logging
+  - slf4j
+recipeList:
+  - org.openrewrite.java.logging.slf4j.Log4jToSLF4J
+  - org.openrewrite.java.logging.slf4j.ParameterizedLogging
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.logging.slf4j.Log4jToSLF4J
+displayName: Migrate Log4j logging framework to SLF4J
+description: Use of the traditional Log4j to SLF4J bridge can result in some loss of performance as the Log4j 2 Messages must be formatted before they can be passed to SLF4J.
 tags:
   - logging
   - log4j
   - slf4j
 recipeList:
-  - org.openrewrite.java.logging.slf4j.Log4jToSlf4j
-  - org.openrewrite.java.logging.slf4j.ParameterizedLogging
+  - org.openrewrite.java.logging.slf4j.Log4jToSlf4jStringifyLoggerParameters
+
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.apache.log4j.Logger getLogger(..)
+      fullyQualifiedTargetTypeName: org.slf4j.LoggerFactory
+      returnType: org.slf4j.Logger
+
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.apache.log4j.LogManager getLogger(..)
+      fullyQualifiedTargetTypeName: org.slf4j.LoggerFactory
+      returnType: org.slf4j.Logger
+
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.apache.log4j.Category fatal(..)
+      newMethodName: error
+
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.apache.log4j.Logger
+      newFullyQualifiedTypeName: org.slf4j.Logger
+
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.apache.log4j.Category
+      newFullyQualifiedTypeName: org.slf4j.Logger
