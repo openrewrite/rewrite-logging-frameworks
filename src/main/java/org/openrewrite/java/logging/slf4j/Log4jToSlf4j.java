@@ -78,6 +78,8 @@ public class Log4jToSlf4j extends Recipe {
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
             J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
             doAfterVisit(new ChangeType("org.apache.log4j.Logger", "org.slf4j.Logger"));
+            doAfterVisit(new ChangeType("org.apache.log4j.Category", "org.slf4j.Logger"));
+            doAfterVisit(new ParameterizedLogging());
             return c;
         }
 
@@ -127,67 +129,15 @@ public class Log4jToSlf4j extends Recipe {
                                             message
                                     );
                                 }
-                            } else if (message instanceof J.Binary) {
-                                MessageAndArguments literalAndArgs = concatenationToLiteral(message,
-                                        new MessageAndArguments("", new ArrayList<>()));
-
-                                StringBuilder template = new StringBuilder("\"" + literalAndArgs.message + "\"");
-                                literalAndArgs.arguments.forEach(arg -> template.append(", #{any()}"));
-                                m = m.withTemplate(
-                                        template(template.toString())
-                                                .build(),
-                                        m.getCoordinates().replaceArguments(),
-                                        literalAndArgs.arguments.toArray()
-                                );
-
                             }
                         }
                     }
                 }
             }
-
             return m;
 
         }
 
-    }
-
-    private static class MessageAndArguments {
-        private String message;
-        private final List<Expression> arguments;
-
-        private MessageAndArguments(String message, List<Expression> arguments) {
-            this.message = message;
-            this.arguments = arguments;
-        }
-    }
-
-    private static MessageAndArguments concatenationToLiteral(Expression message, MessageAndArguments result) {
-        if (!(message instanceof J.Binary)) {
-            result.arguments.add(message);
-            return result;
-        }
-
-        J.Binary concat = (J.Binary) message;
-        if (concat.getLeft() instanceof J.Binary) {
-            concatenationToLiteral(concat.getLeft(), result);
-        } else if (concat.getLeft() instanceof J.Literal) {
-            result.message = ((J.Literal) concat.getLeft()).getValue() + result.message;
-        } else {
-            result.message = "{}" + result.message;
-            result.arguments.add(concat.getLeft());
-        }
-
-        if (concat.getRight() instanceof J.Binary) {
-            concatenationToLiteral(concat.getRight(), result);
-        } else if (concat.getRight() instanceof J.Literal) {
-            result.message += ((J.Literal) concat.getRight()).getValue();
-        } else {
-            result.message += "{}";
-            result.arguments.add(concat.getRight());
-        }
-
-        return result;
     }
 
 }
