@@ -15,12 +15,11 @@
 #
 ---
 type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.logging.slf4j.Log4JToSLF4J
-displayName: Migrate Log4J logging framework to SLF4J
-description: Migrates Log4J logging framework to SLF4J.
+name: org.openrewrite.java.logging.slf4j.SLF4JBestPractices
+displayName: SLF4J best practices
+description: Applies best practices to SLF4J logging.
 tags:
   - logging
-  - log4j
   - slf4j
 recipeList:
   - org.openrewrite.java.logging.slf4j.Log4jToSlf4j

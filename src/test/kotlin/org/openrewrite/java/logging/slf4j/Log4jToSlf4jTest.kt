@@ -76,7 +76,7 @@ class Log4jToSlf4jTest : JavaRecipeTest {
     )
 
     @Test
-    fun objectParametersUseToString() = assertChanged(
+    fun objectParametersToString() = assertChanged(
         before = """
             import org.apache.log4j.Logger;
 
