@@ -119,7 +119,7 @@ public class Log4jToSlf4j extends Recipe {
                             if (!TypeUtils.isOfType(message.getType(), JavaType.Primitive.String)) {
                                 if (message.getType() instanceof JavaType.Class) {
                                     m = m.withTemplate(
-                                            template("#{any(Object)}.toString()").build(),
+                                            template("#{any(java.lang.Object)}.toString()").build(),
                                             m.getCoordinates().replaceArguments(),
                                             message
                                     );
