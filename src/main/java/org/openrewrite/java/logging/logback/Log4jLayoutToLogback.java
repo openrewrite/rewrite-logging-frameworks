@@ -18,36 +18,35 @@ package org.openrewrite.java.logging.logback;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
-
-import java.util.Collection;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
-import static java.util.stream.Collectors.toList;
+import org.openrewrite.java.tree.TypeUtils;
 
 /**
- * Should evaluate what all this does and whether it can be broken down into discrete recipes
- * TODO
- * <p>
+ * {@link Log4jLayoutToLogbackVisitor} operates on the following assumptions:
+ * <ul>
+ *     <li>A logback-classic layout must extend the {@code LayoutBase<ILoggingEvent>} class.</li>
+ *     <li>log4j's format() is renamed to doLayout() in a logback-classic layout.</li>
+ *     <li>LoggingEvent getRenderedMessage() is converted to LoggingEvent getMessage().</li>
+ *     <li>The log4j ignoresThrowable() method is not needed and has no equivalent in logback-classic.</li>
+ *     <li>The activateOptions() method merits further discussion. In log4j, a layout will have its activateOptions() method invoked by log4j configurators, that is PropertyConfigurator or DOMConfigurator just after all the options of the layout have been set. Thus, the layout will have an opportunity to check that its options are coherent and if so, proceed to fully initialize itself.</li>
+ *     <li>In logback-classic, layouts must implement the LifeCycle interface which includes a method called start(). The start() method is the equivalent of log4j's activateOptions() method.</li>
+ * </ul>
  *
- * @see <a href="http://logback.qos.ch/manual/migrationFromLog4j.html">Logback migration guide</a>
+ * @see <a href="http://logback.qos.ch/manual/migrationFromLog4j.html">Migration from log4j</a>
  */
 public class Log4jLayoutToLogback extends Recipe {
-    private static final MethodMatcher MATCHER = new MethodMatcher("org.apache.log4j.spi.LoggingEvent getRenderedMessage()");
-
-    @Override // todo
+    @Override
     public String getDisplayName() {
-        return "Log4jLayoutToLogback";
+        return "Migrate Log4j layout to logback";
     }
 
-    @Override // todo
+    @Override
     public String getDescription() {
-        return "TODO.";
+        return "Migrates custom log4j layout components to logback-classic.";
     }
 
     @Override
@@ -62,85 +61,60 @@ public class Log4jLayoutToLogback extends Recipe {
 
     public static class Log4jLayoutToLogbackVisitor extends JavaIsoVisitor<ExecutionContext> {
         @Override
-        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
-            J.ClassDeclaration c = super.visitClassDeclaration(classDecl, ctx);
-
-            if (c.getExtends() != null
-                    && JavaType.Class.build("org.apache.log4j.Layout").equals(c.getExtends().getType())) {
-                maybeRemoveImport("org.apache.log4j.Layout");
-                maybeRemoveImport("org.apache.log4j.LoggingEvent");
-                maybeAddImport("ch.qos.logback.core.LayoutBase");
-                maybeAddImport("ch.qos.logback.classic.spi.ILoggingEvent");
-
-                doAfterVisit(new ChangeType("org.apache.log4j.spi.LoggingEvent", "ch.qos.logback.classic.spi.ILoggingEvent"));
-
-                c = c.withTemplate(
-                        template("LayoutBase<ILoggingEvent>")
-                                .imports("ch.qos.logback.core.LayoutBase", "ch.qos.logback.classic.spi.ILoggingEvent")
-                                .build(),
-                        c.getCoordinates().replaceExtendsClause()
-                );
-
-                // should not be required, should be covered by maybeAddImport, will evaluate todo
-                doAfterVisit(new AddImport<>("ch.qos.logback.core.LayoutBase", null, false));
-
-            }
-
-            Collection<J.MethodDeclaration> classDeclaredMethods = c.getBody().getStatements().stream()
-                    .filter(J.MethodDeclaration.class::isInstance)
-                    .map(J.MethodDeclaration.class::cast)
-                    .collect(Collectors.toList());
-
-            Optional<J.MethodDeclaration> ignoresThrowable = classDeclaredMethods.stream()
-                    .filter(m -> m.getSimpleName().equals("ignoresThrowable")).findAny();
-
-            Optional<J.MethodDeclaration> activateOptions = classDeclaredMethods.stream()
-                    .filter(m -> m.getSimpleName().equals("activateOptions")).findAny();
-
-            Optional<J.MethodDeclaration> format = classDeclaredMethods.stream()
-                    .filter(m -> m.getSimpleName().equals("format")).findAny();
-
-            if (ignoresThrowable.isPresent() || activateOptions.isPresent() || format.isPresent()) {
-                c = c.withBody(c.getBody().withStatements(c.getBody().getStatements().stream()
-                        .map(statement -> {
-                            if (statement == ignoresThrowable.orElse(null)) {
-                                return null;
-                            } else if (statement == activateOptions.orElse(null)) {
-                                J.MethodDeclaration activateOptionsMethod = (J.MethodDeclaration) statement;
-
-                                if (activateOptionsMethod.getBody() != null &&
-                                        activateOptionsMethod.getBody().getStatements().isEmpty()) {
-                                    return null;
-                                }
-
-                                J.ClassDeclaration classScope = getCursor().firstEnclosing(J.ClassDeclaration.class);
-                                if (classScope != null) {
-                                    doAfterVisit(new ImplementInterface<>(classScope,
-                                            "ch.qos.logback.core.spi.LifeCycle"));
-                                }
-
-                                return activateOptionsMethod.withName(activateOptionsMethod.getName()
-                                        .withName("start"));
-                            } else if (statement == format.orElse(null)) {
-                                J.MethodDeclaration formatMethod = (J.MethodDeclaration) statement;
-                                return formatMethod.withName(formatMethod.getName().withName("doLayout"));
-                            }
-                            return statement;
-                        })
-                        .filter(Objects::nonNull)
-                        .collect(toList())));
-            }
-
-            return c;
+        public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+            doAfterVisit(new ChangeMethodName("org.apache.log4j.Layout format(..)", "doLayout"));
+            doAfterVisit(new ChangeMethodName("org.apache.log4j.spi.LoggingEvent getRenderedMessage()", "getMessage"));
+            return super.visitCompilationUnit(cu, ctx);
         }
 
         @Override
-        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-            J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
-            if (MATCHER.matches(method)) {
-                m = m.withName(m.getName().withName("getMessage"));
+        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+            J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
+
+            if (cd.getExtends() != null && cd.getExtends().getType() != null) {
+                JavaType.FullyQualified fullyQualifiedExtends = TypeUtils.asFullyQualified(cd.getExtends().getType());
+                if (fullyQualifiedExtends != null && "org.apache.log4j.Layout".equals(fullyQualifiedExtends.getFullyQualifiedName())) {
+
+                    maybeRemoveImport("org.apache.log4j.Layout");
+                    maybeRemoveImport("org.apache.log4j.LoggingEvent");
+                    maybeAddImport("ch.qos.logback.core.LayoutBase");
+                    maybeAddImport("ch.qos.logback.classic.spi.ILoggingEvent");
+
+                    doAfterVisit(new ChangeType("org.apache.log4j.spi.LoggingEvent", "ch.qos.logback.classic.spi.ILoggingEvent"));
+
+                    cd = cd.withTemplate(
+                            template("LayoutBase<ILoggingEvent>")
+                                    .imports("ch.qos.logback.core.LayoutBase", "ch.qos.logback.classic.spi.ILoggingEvent")
+                                    .build(),
+                            cd.getCoordinates().replaceExtendsClause()
+                    );
+
+                    // should be covered by maybeAddImport, fixme
+                    doAfterVisit(new AddImport<>("ch.qos.logback.core.LayoutBase", null, false));
+                }
+
+                cd = cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), statement -> {
+                    if (statement instanceof J.MethodDeclaration) {
+                        J.MethodDeclaration method = (J.MethodDeclaration) statement;
+                        if ("ignoresThrowable".equals(method.getSimpleName())) {
+                            return null;
+                        } else if ("activateOptions".equals(method.getSimpleName())) {
+                            if (method.getBody() != null && method.getBody().getStatements().isEmpty()) {
+                                return null;
+                            }
+                            J.ClassDeclaration enclosingClass = getCursor().firstEnclosing(J.ClassDeclaration.class);
+                            assert enclosingClass != null;
+                            doAfterVisit(new ImplementInterface<>(enclosingClass, "ch.qos.logback.core.spi.LifeCycle"));
+                            return method.withName(method.getName().withName("start"));
+                        }
+                    }
+                    return statement;
+                })));
+
             }
-            return m;
+
+            return cd;
+
         }
 
     }
