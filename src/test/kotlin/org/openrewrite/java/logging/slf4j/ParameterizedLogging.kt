@@ -15,22 +15,38 @@
  */
 package org.openrewrite.java.logging.slf4j
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
-@Disabled
 class ParameterizedLoggingTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-        .logCompilationWarningsAndErrors(true)
         .classpath("slf4j")
         .build()
 
     override val recipe: Recipe
         get() = ParameterizedLogging()
 
+    @Test
+    fun noChangeRequired() = assertUnchanged(
+        before = """
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+
+            class A {
+                Logger logger = LoggerFactory.getLogger(A.class);
+
+                void asInteger(String numberString) {
+                    try {
+                        Integer i = Integer.valueOf(numberString);
+                    } catch (NumberFormatException ex) {
+                        logger.warn("Invalid parameter: {}", ex.getMessage(), ex);
+                    }
+                }
+            }
+        """
+    )
     @Test
     fun loggingStatements() = assertChanged(
         before = """
@@ -40,11 +56,11 @@ class ParameterizedLoggingTest : JavaRecipeTest {
             class A {
                 Logger logger = LoggerFactory.getLogger(A.class);
 
-                void myMethod() {
+                void asInteger(String numberString) {
                     String name = "Jon";
                     logger.error("uh oh");
                     try {
-                        Integer i = Integer.valueOf("2");
+                        Integer i = Integer.valueOf(numberString);
                     } catch (NumberFormatException ex) {
                         logger.warn("some big error: " + ex.getMessage(), ex);
                     }
@@ -59,11 +75,11 @@ class ParameterizedLoggingTest : JavaRecipeTest {
             class A {
                 Logger logger = LoggerFactory.getLogger(A.class);
 
-                void myMethod() {
+                void asInteger(String numberString) {
                     String name = "Jon";
                     logger.error("uh oh");
                     try {
-                        Integer i = Integer.valueOf("2");
+                        Integer i = Integer.valueOf(numberString);
                     } catch (NumberFormatException ex) {
                         logger.warn("some big error: {}", ex.getMessage(), ex);
                     }
