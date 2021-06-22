@@ -32,7 +32,7 @@ plugins {
 apply(plugin = "nebula.publish-verification")
 
 rewrite {
-    rewriteVersion = "latest.integration"
+    setRewriteVersion("latest.integration")
     activeRecipe("org.openrewrite.java.format.AutoFormat")
 }
 
