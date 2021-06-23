@@ -22,5 +22,4 @@ tags:
   - logging
   - slf4j
 recipeList:
-  - org.openrewrite.java.logging.slf4j.Log4jToSlf4j
   - org.openrewrite.java.logging.slf4j.ParameterizedLogging
