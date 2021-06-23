@@ -1,1 +1,1 @@
-rootProject.name = "rewrite-logging"
+rootProject.name = "rewrite-logging-frameworks"
