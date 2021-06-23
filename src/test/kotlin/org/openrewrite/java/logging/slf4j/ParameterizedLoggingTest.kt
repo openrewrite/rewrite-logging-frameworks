@@ -15,7 +15,9 @@
  */
 package org.openrewrite.java.logging.slf4j
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.openrewrite.Issue
 import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
@@ -47,6 +49,7 @@ class ParameterizedLoggingTest : JavaRecipeTest {
             }
         """
     )
+
     @Test
     fun loggingStatements() = assertChanged(
         before = """
@@ -84,6 +87,24 @@ class ParameterizedLoggingTest : JavaRecipeTest {
                         logger.warn("some big error: {}", ex.getMessage(), ex);
                     }
                     logger.info("Hello {}, nice to meet you {}", name, name);
+                }
+            }
+        """
+    )
+
+    @Test
+    @Disabled
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/26")
+    fun handlesExpressionParameters() = assertUnchanged(
+        before = """
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+
+            class A {
+                Logger logger = LoggerFactory.getLogger(A.class);
+
+                void method(String topicPartition, double failurePercent) {
+                    logger.debug("Failed processing for partition [{}] at [{}%]", topicPartition, failurePercent * 100);
                 }
             }
         """
