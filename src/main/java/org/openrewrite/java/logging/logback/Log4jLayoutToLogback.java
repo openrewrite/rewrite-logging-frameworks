@@ -41,12 +41,12 @@ import org.openrewrite.java.tree.TypeUtils;
 public class Log4jLayoutToLogback extends Recipe {
     @Override
     public String getDisplayName() {
-        return "Migrate Log4j layout to logback";
+        return "Migrate from Log4j layout";
     }
 
     @Override
     public String getDescription() {
-        return "Migrates custom log4j layout components to logback-classic.";
+        return "Migrates custom Log4j layout components to `logback-classic`.";
     }
 
     @Override

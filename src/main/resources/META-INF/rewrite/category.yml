@@ -15,12 +15,12 @@
 #
 ---
 type: specs.openrewrite.org/v1beta/category
-name: logging
+name: Logging
 packageName: org.openrewrite.java.logging
 description: Enforce logging best practices and migrate between logging frameworks.
 ---
 type: specs.openrewrite.org/v1beta/category
-name: logback
+name: Logback
 packageName: org.openrewrite.java.logging.logback
 description: Recipes related to [`logback`](http://logback.qos.ch/documentation.html).
 ---

@@ -42,12 +42,12 @@ public class Log4jAppenderToLogback extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Migrate Log4j appender to logback";
+        return "Migrate from Log4j";
     }
 
     @Override
     public String getDescription() {
-        return "Migrates custom log4j appender components to logback-classic.";
+        return "Migrates custom Log4j appender components to `logback-classic`.";
     }
 
     @Override
