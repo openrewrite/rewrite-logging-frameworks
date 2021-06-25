@@ -21,6 +21,7 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
@@ -80,7 +81,7 @@ public class ParameterizedLogging extends Recipe {
                 messageBuilder.append("\"");
                 newArgList.forEach(arg -> messageBuilder.append(", #{any()}"));
                 m = m.withTemplate(
-                        template(messageBuilder.toString())
+                        JavaTemplate.builder(this::getCursor, messageBuilder.toString())
                                 .javaParser(TEMPLATE_PARSER::get)
                                 .build(),
                         m.getCoordinates().replaceArguments(),

@@ -83,7 +83,7 @@ public class Log4jLayoutToLogback extends Recipe {
                     doAfterVisit(new ChangeType("org.apache.log4j.spi.LoggingEvent", "ch.qos.logback.classic.spi.ILoggingEvent"));
 
                     cd = cd.withTemplate(
-                            template("LayoutBase<ILoggingEvent>")
+                            JavaTemplate.builder(this::getCursor, "LayoutBase<ILoggingEvent>")
                                     .imports("ch.qos.logback.core.LayoutBase", "ch.qos.logback.classic.spi.ILoggingEvent")
                                     .build(),
                             cd.getCoordinates().replaceExtendsClause()

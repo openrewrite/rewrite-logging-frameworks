@@ -19,10 +19,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
-import org.openrewrite.java.AddImport;
-import org.openrewrite.java.ChangeMethodName;
-import org.openrewrite.java.ChangeType;
-import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
@@ -82,7 +79,7 @@ public class Log4jAppenderToLogback extends Recipe {
                     doAfterVisit(new ChangeType("org.apache.log4j.Layout", "ch.qos.logback.core.LayoutBase"));
 
                     cd = cd.withTemplate(
-                            template("AppenderBase<ILoggingEvent>")
+                            JavaTemplate.builder(this::getCursor, "AppenderBase<ILoggingEvent>")
                                     .imports("ch.qos.logback.core.AppenderBase", "ch.qos.logback.classic.spi.ILoggingEvent")
                                     .build(),
                             cd.getCoordinates().replaceExtendsClause()
