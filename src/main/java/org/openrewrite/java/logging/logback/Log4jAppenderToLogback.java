@@ -39,10 +39,9 @@ import org.openrewrite.java.tree.TypeUtils;
  * @see <a href="http://logback.qos.ch/manual/migrationFromLog4j.html">Migration from log4j</a>
  */
 public class Log4jAppenderToLogback extends Recipe {
-
     @Override
     public String getDisplayName() {
-        return "Migrate from Log4j";
+        return "Migrate from Log4j appender";
     }
 
     @Override

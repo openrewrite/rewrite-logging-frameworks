@@ -93,6 +93,8 @@ dependencies {
     // see https://github.com/gradle/kotlin-dsl-samples/issues/1301 for why (okhttp is leaking parts of kotlin stdlib)
     compileOnly("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 
+    runtimeOnly("org.openrewrite:rewrite-java-11:${rewriteVersion}")
+
     testImplementation("org.jetbrains.kotlin:kotlin-reflect")
     testImplementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 

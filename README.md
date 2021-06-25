@@ -7,4 +7,4 @@
 
 ### What is this?
 
-This project implements a [Rewrite module](https://github.com/openrewrite/rewrite) that performs common Java logging framework tasks, like migrating from Log4J, Apache Commons Logging, and JUL, to SLF4J.
+This project implements a [Rewrite module](https://github.com/openrewrite/rewrite) that performs common Java logging framework tasks, like migrating from Log4j, Apache Commons Logging, and JUL, to SLF4J.
