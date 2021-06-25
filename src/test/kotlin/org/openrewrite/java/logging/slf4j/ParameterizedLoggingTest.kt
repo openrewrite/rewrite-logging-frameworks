@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.logging.slf4j
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.openrewrite.Issue
 import org.openrewrite.Recipe
@@ -24,11 +23,86 @@ import org.openrewrite.java.JavaRecipeTest
 
 class ParameterizedLoggingTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
+        .logCompilationWarningsAndErrors(true)
         .classpath("slf4j")
         .build()
 
     override val recipe: Recipe
         get() = ParameterizedLogging()
+
+    @Test
+    fun basicParameterization() = assertChanged(
+        before = """
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+
+            class Test {
+                Logger logger = LoggerFactory.getLogger(Test.class);
+
+                void method() {
+                    String name = "Jon";
+                    logger.info("Info! Hello " + name + ", nice to meet you " + name);
+                    logger.warn("Warn! Hello " + name + ", nice to meet you " + name);
+                    logger.debug("Debug! Hello " + name + ", nice to meet you " + name);
+                    logger.trace("Trace! Hello " + name + ", nice to meet you " + name);
+                    logger.error("Error! Hello " + name + ", nice to meet you " + name);
+                }
+            }
+        """,
+        after = """
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+
+            class Test {
+                Logger logger = LoggerFactory.getLogger(Test.class);
+
+                void method() {
+                    String name = "Jon";
+                    logger.info("Info! Hello {}, nice to meet you {}", name, name);
+                    logger.warn("Warn! Hello {}, nice to meet you {}", name, name);
+                    logger.debug("Debug! Hello {}, nice to meet you {}", name, name);
+                    logger.trace("Trace! Hello {}, nice to meet you {}", name, name);
+                    logger.error("Error! Hello {}, nice to meet you {}", name, name);
+                }
+            }
+        """
+    )
+
+    @Test
+    fun exceptionArguments() = assertChanged(
+        before = """
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+
+            class Test {
+                Logger logger = LoggerFactory.getLogger(Test.class);
+
+                void asInteger(String numberString) {
+                    try {
+                        Integer i = Integer.valueOf(numberString);
+                    } catch (NumberFormatException ex) {
+                        logger.warn("some big error: " + ex.getMessage(), ex);
+                    }
+                }
+            }
+        """,
+        after = """
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+
+            class Test {
+                Logger logger = LoggerFactory.getLogger(Test.class);
+
+                void asInteger(String numberString) {
+                    try {
+                        Integer i = Integer.valueOf(numberString);
+                    } catch (NumberFormatException ex) {
+                        logger.warn("some big error: {}", ex.getMessage(), ex);
+                    }
+                }
+            }
+        """
+    )
 
     @Test
     fun noChangeRequired() = assertUnchanged(
@@ -51,7 +125,8 @@ class ParameterizedLoggingTest : JavaRecipeTest {
     )
 
     @Test
-    fun loggingStatements() = assertChanged(
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/26")
+    fun argumentsContainingBinaryExpressions() = assertChanged(
         before = """
             import org.slf4j.Logger;
             import org.slf4j.LoggerFactory;
@@ -59,15 +134,8 @@ class ParameterizedLoggingTest : JavaRecipeTest {
             class Test {
                 Logger logger = LoggerFactory.getLogger(Test.class);
 
-                void asInteger(String numberString) {
-                    String name = "Jon";
-                    logger.error("uh oh");
-                    try {
-                        Integer i = Integer.valueOf(numberString);
-                    } catch (NumberFormatException ex) {
-                        logger.warn("some big error: " + ex.getMessage(), ex);
-                    }
-                    logger.info("Hello " + name + ", nice to meet you " + name);
+                void method(String name, double percent) {
+                    logger.debug("Process [" + name + "] is at [" + percent * 100 + "%]");
                 }
             }
         """,
@@ -78,33 +146,8 @@ class ParameterizedLoggingTest : JavaRecipeTest {
             class Test {
                 Logger logger = LoggerFactory.getLogger(Test.class);
 
-                void asInteger(String numberString) {
-                    String name = "Jon";
-                    logger.error("uh oh");
-                    try {
-                        Integer i = Integer.valueOf(numberString);
-                    } catch (NumberFormatException ex) {
-                        logger.warn("some big error: {}", ex.getMessage(), ex);
-                    }
-                    logger.info("Hello {}, nice to meet you {}", name, name);
-                }
-            }
-        """
-    )
-
-    @Test
-    @Disabled
-    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/26")
-    fun handlesExpressionParameters() = assertUnchanged(
-        before = """
-            import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
-
-            class A {
-                Logger logger = LoggerFactory.getLogger(A.class);
-
-                void method(String topicPartition, double failurePercent) {
-                    logger.debug("Failed processing for partition [{}] at [{}%]", topicPartition, failurePercent * 100);
+                void method(String name, double percent) {
+                    logger.debug("Process [{}] is at [{}%]", name, percent * 100);
                 }
             }
         """
