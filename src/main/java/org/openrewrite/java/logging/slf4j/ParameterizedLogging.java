@@ -18,6 +18,7 @@ package org.openrewrite.java.logging.slf4j;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
@@ -33,7 +34,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class ParameterizedLogging extends Recipe {
-    private static final List<MethodMatcher> logLevelMatchers = Stream.of("trace", "debug", "info", "warn", "error", "fatal")
+    private static final List<MethodMatcher> LOG_LEVEL_MATCHERS = Stream.of("trace", "debug", "info", "warn", "error")
             .map(level -> "org.slf4j.Logger " + level + "(..)")
             .map(MethodMatcher::new)
             .collect(Collectors.toList());
@@ -65,19 +66,21 @@ public class ParameterizedLogging extends Recipe {
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
-            if (logLevelMatchers.stream().anyMatch(it -> it.matches(method)) && method.getArguments().stream().anyMatch(J.Binary.class::isInstance)) {
+            if (LOG_LEVEL_MATCHERS.stream().anyMatch(it -> it.matches(method)) &&
+                    method.getArguments().size() <= 2 &&
+                    method.getArguments().stream().anyMatch(J.Binary.class::isInstance)) {
                 final StringBuilder messageBuilder = new StringBuilder("\"");
                 final List<Expression> newArgList = new ArrayList<>();
-                for (Expression message : method.getArguments()) {
-                    if (message instanceof J.Binary) {
-                        MessageAndArguments literalAndArgs = concatenationToLiteral(message,
-                                new MessageAndArguments("", new ArrayList<>()));
+                ListUtils.map(method.getArguments(), (index, message) -> {
+                    if (index == 0 && message instanceof J.Binary) {
+                        MessageAndArguments literalAndArgs = concatenationToLiteral(message, new MessageAndArguments("", new ArrayList<>()));
                         messageBuilder.append(literalAndArgs.message);
                         newArgList.addAll(literalAndArgs.arguments);
                     } else {
                         newArgList.add(message);
                     }
-                }
+                    return message;
+                });
                 messageBuilder.append("\"");
                 newArgList.forEach(arg -> messageBuilder.append(", #{any()}"));
                 m = m.withTemplate(
@@ -100,7 +103,7 @@ public class ParameterizedLogging extends Recipe {
         }
 
         J.Binary concat = (J.Binary) message;
-        if (concat.getLeft() instanceof J.Binary) {
+        if (concat.getLeft() instanceof J.Binary && ((J.Binary) concat.getLeft()).getOperator() == J.Binary.Type.Addition) {
             concatenationToLiteral(concat.getLeft(), result);
         } else if (concat.getLeft() instanceof J.Literal) {
             result.message = ((J.Literal) concat.getLeft()).getValue() + result.message;
@@ -109,7 +112,7 @@ public class ParameterizedLogging extends Recipe {
             result.arguments.add(concat.getLeft());
         }
 
-        if (concat.getRight() instanceof J.Binary) {
+        if (concat.getRight() instanceof J.Binary && ((J.Binary) concat.getRight()).getOperator() == J.Binary.Type.Addition) {
             concatenationToLiteral(concat.getRight(), result);
         } else if (concat.getRight() instanceof J.Literal) {
             result.message += ((J.Literal) concat.getRight()).getValue();
