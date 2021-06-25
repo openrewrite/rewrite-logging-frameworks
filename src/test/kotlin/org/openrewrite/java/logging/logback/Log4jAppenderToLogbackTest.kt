@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.logging.logback
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
@@ -31,7 +30,6 @@ class Log4jAppenderToLogbackTest : JavaRecipeTest {
         get() = Log4jAppenderToLogback()
 
     @Test
-    @Disabled("https://github.com/openrewrite/rewrite/issues/704")
     fun appenderMigration() = assertChanged(
         before = """
             import org.apache.log4j.AppenderSkeleton;
