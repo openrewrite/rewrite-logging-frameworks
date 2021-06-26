@@ -105,6 +105,33 @@ class Log4jToSlf4jTest : JavaRecipeTest {
     )
 
     @Test
+    fun methodInvocationParametersToString() = assertChanged(
+        before = """
+            import org.apache.log4j.Logger;
+
+            class Test {
+                Logger logger = Logger.getLogger(Test.class);
+
+                void method(StringBuilder sb) {
+                    logger.info(new StringBuilder("append0").append("append1").append(sb));
+                }
+            }
+        """,
+        after = """
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+
+            class Test {
+                Logger logger = LoggerFactory.getLogger(Test.class);
+
+                void method(StringBuilder sb) {
+                    logger.info(new StringBuilder("append0").append("append1").append(sb).toString());
+                }
+            }
+        """
+    )
+
+    @Test
     fun usesParameterizedLogging() = assertChanged(
         before = """
             import org.apache.log4j.Logger;
