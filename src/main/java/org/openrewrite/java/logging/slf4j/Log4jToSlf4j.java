@@ -105,7 +105,7 @@ public class Log4jToSlf4j extends Recipe {
                     if (!args.isEmpty()) {
                         Expression message = args.iterator().next();
                         if (!TypeUtils.isString(message.getType())) {
-                            if (message.getType() instanceof JavaType.Class) {
+                            if (message.getType() instanceof JavaType.Class || message.getType() instanceof JavaType.Method) {
                                 m = m.withTemplate(
                                         JavaTemplate.builder(this::getCursor, "#{any(java.lang.Object)}.toString()").build(),
                                         m.getCoordinates().replaceArguments(),
