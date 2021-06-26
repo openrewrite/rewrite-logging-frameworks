@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.logging.slf4j
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.openrewrite.Issue
 import org.openrewrite.Recipe
@@ -63,6 +64,36 @@ class ParameterizedLoggingTest : JavaRecipeTest {
                     logger.debug("Debug! Hello {}, nice to meet you {}", name, name);
                     logger.trace("Trace! Hello {}, nice to meet you {}", name, name);
                     logger.error("Error! Hello {}, nice to meet you {}", name, name);
+                }
+            }
+        """
+    )
+
+    @Test
+    @Disabled
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/30")
+    fun escapeMessageStrings() = assertChanged(
+        before = """
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+
+            class Test {
+                Logger logger = LoggerFactory.getLogger(Test.class);
+
+                void method(String text) {
+                    logger.info("See link #" + text);
+                }
+            }
+        """,
+        after = """
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+
+            class Test {
+                Logger logger = LoggerFactory.getLogger(Test.class);
+
+                void method(String text) {
+                    logger.info("See link #{}", text);
                 }
             }
         """
