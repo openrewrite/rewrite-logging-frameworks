@@ -111,7 +111,6 @@ public class Log4jToSlf4j extends Recipe {
                                 m.getArguments().forEach(arg -> messageBuilder.append(", #{any()}"));
                                 m = m.withTemplate(
                                         JavaTemplate.builder(this::getCursor, messageBuilder.toString())
-                                                .imports("org.slf4j.Logger") // fixme
                                                 .build(),
                                         m.getCoordinates().replaceArguments(),
                                         m.getArguments().toArray()
