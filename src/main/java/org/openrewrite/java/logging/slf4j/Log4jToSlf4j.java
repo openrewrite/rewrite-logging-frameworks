@@ -69,6 +69,7 @@ public class Log4jToSlf4j extends Recipe {
 
         @Override
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+            J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
             doAfterVisit(new ChangeMethodTargetToStatic(
                     "org.apache.log4j.Logger getLogger(..)",
                     "org.slf4j.LoggerFactory",
@@ -92,7 +93,7 @@ public class Log4jToSlf4j extends Recipe {
                     "org.slf4j.Logger"
             ));
             doAfterVisit(new ParameterizedLogging());
-            return super.visitCompilationUnit(cu, ctx);
+            return c;
         }
 
         @Override
@@ -101,15 +102,17 @@ public class Log4jToSlf4j extends Recipe {
 
             for (MethodMatcher matcher : logLevelMatchers) {
                 if (matcher.matches(m)) {
-                    List<Expression> args = method.getArguments();
+                    List<Expression> args = m.getArguments();
                     if (!args.isEmpty()) {
                         Expression message = args.iterator().next();
                         if (!TypeUtils.isString(message.getType())) {
                             if (message.getType() instanceof JavaType.Class || message.getType() instanceof JavaType.Method) {
+                                final StringBuilder messageBuilder = new StringBuilder("\"{}\"");
+                                m.getArguments().forEach(arg -> messageBuilder.append(", #{any()}"));
                                 m = m.withTemplate(
-                                        JavaTemplate.builder(this::getCursor, "#{any(java.lang.Object)}.toString()").build(),
+                                        JavaTemplate.builder(this::getCursor, messageBuilder.toString()).build(),
                                         m.getCoordinates().replaceArguments(),
-                                        message
+                                        m.getArguments().toArray()
                                 );
                             }
                         }
