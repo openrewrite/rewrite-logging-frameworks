@@ -39,8 +39,6 @@ public class ParameterizedLogging extends Recipe {
             .map(MethodMatcher::new)
             .collect(Collectors.toList());
 
-    private static final ThreadLocal<JavaParser> TEMPLATE_PARSER = ThreadLocal.withInitial(() -> JavaParser.fromJavaVersion().build());
-
     @Override
     public String getDisplayName() {
         return "Parameterize SLF4J logging statements";
@@ -85,7 +83,6 @@ public class ParameterizedLogging extends Recipe {
                 newArgList.forEach(arg -> messageBuilder.append(", #{any()}"));
                 m = m.withTemplate(
                         JavaTemplate.builder(this::getCursor, messageBuilder.toString())
-                                .javaParser(TEMPLATE_PARSER::get)
                                 .build(),
                         m.getCoordinates().replaceArguments(),
                         newArgList.toArray()
