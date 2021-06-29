@@ -113,6 +113,10 @@ public class ParameterizedLogging extends Recipe {
         } else if (concat.getRight() instanceof J.Literal) {
             result.message += ((J.Literal) concat.getRight()).getValue();
         } else {
+            // prevent inadvertently appending {} to # to create #{}, which creates an additional JavaTemplate argument
+            if (result.message.endsWith("#")) {
+                result.message += "\\";
+            }
             result.message += "{}";
             result.arguments.add(concat.getRight());
         }
