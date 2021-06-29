@@ -76,7 +76,42 @@ class Log4jToSlf4jTest : JavaRecipeTest {
     )
 
     @Test
-    fun objectParametersToString() = assertChanged(
+    fun migratesExceptions() = assertChanged(
+        before = """
+            import org.apache.log4j.Logger;
+
+            class Test {
+                Logger logger = Logger.getLogger(Test.class);
+
+                void method(String numberString) {
+                    try {
+                        Integer i = Integer.valueOf(numberString);
+                    } catch (Exception e) {
+                        logger.error(e.getMessage(), e);
+                    }
+                }
+            }
+        """,
+        after = """
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+
+            class Test {
+                Logger logger = LoggerFactory.getLogger(Test.class);
+
+                void method(String numberString) {
+                    try {
+                        Integer i = Integer.valueOf(numberString);
+                    } catch (Exception e) {
+                        logger.error("{}", e.getMessage(), e);
+                    }
+                }
+            }
+        """
+    )
+
+    @Test
+    fun objectParameters() = assertChanged(
         before = """
             import org.apache.log4j.Logger;
 
@@ -97,15 +132,15 @@ class Log4jToSlf4jTest : JavaRecipeTest {
                 Logger logger = LoggerFactory.getLogger(Test.class);
 
                 void method(Test test) {
-                    logger.info(test.toString());
-                    logger.info(new Object().toString());
+                    logger.info("{}", test);
+                    logger.info("{}", new Object());
                 }
             }
         """
     )
 
     @Test
-    fun methodInvocationParametersToString() = assertChanged(
+    fun methodInvocationParameters() = assertChanged(
         before = """
             import org.apache.log4j.Logger;
 
@@ -125,7 +160,7 @@ class Log4jToSlf4jTest : JavaRecipeTest {
                 Logger logger = LoggerFactory.getLogger(Test.class);
 
                 void method(StringBuilder sb) {
-                    logger.info(new StringBuilder("append0").append("append1").append(sb).toString());
+                    logger.info("{}", new StringBuilder("append0").append("append1").append(sb));
                 }
             }
         """

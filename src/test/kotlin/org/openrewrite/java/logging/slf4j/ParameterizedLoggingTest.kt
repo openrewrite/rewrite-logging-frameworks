@@ -100,7 +100,43 @@ class ParameterizedLoggingTest : JavaRecipeTest {
     )
 
     @Test
-    fun exceptionArguments() = assertChanged(
+    fun exceptionArgumentsAsConcatenatedString() = assertChanged(
+        before = """
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+
+            class Test {
+                Logger logger = LoggerFactory.getLogger(Test.class);
+
+                void asInteger(String numberString) {
+                    try {
+                        Integer i = Integer.valueOf(numberString);
+                    } catch (NumberFormatException ex) {
+                        logger.debug("some big error: " + ex);
+                    }
+                }
+            }
+        """,
+        after = """
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+
+            class Test {
+                Logger logger = LoggerFactory.getLogger(Test.class);
+
+                void asInteger(String numberString) {
+                    try {
+                        Integer i = Integer.valueOf(numberString);
+                    } catch (NumberFormatException ex) {
+                        logger.debug("some big error: {}", ex);
+                    }
+                }
+            }
+        """
+    )
+
+    @Test
+    fun exceptionArgumentsWithThrowable() = assertChanged(
         before = """
             import org.slf4j.Logger;
             import org.slf4j.LoggerFactory;
