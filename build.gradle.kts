@@ -89,6 +89,7 @@ dependencies {
     implementation("org.openrewrite:rewrite-java:${rewriteVersion}")
     implementation("org.openrewrite:rewrite-maven:${rewriteVersion}")
     runtimeOnly("org.openrewrite:rewrite-java-11:${rewriteVersion}")
+    runtimeOnly("org.openrewrite:rewrite-java-8:${rewriteVersion}") // fixme
 
     // eliminates "unknown enum constant DeprecationLevel.WARNING" warnings from the build log
     // see https://github.com/gradle/kotlin-dsl-samples/issues/1301 for why (okhttp is leaking parts of kotlin stdlib)
@@ -108,10 +109,12 @@ dependencies {
     testRuntimeOnly("org.openrewrite:rewrite-java-11:${rewriteVersion}")
     testRuntimeOnly("org.openrewrite:rewrite-java-8:${rewriteVersion}")
 
-    testRuntimeOnly("commons-logging:commons-logging:1.2")
-    testRuntimeOnly("org.apache.logging.log4j:log4j-api:latest.release")
-    testRuntimeOnly("log4j:log4j:1.+")
-    testRuntimeOnly("ch.qos.logback:logback-classic:1.0.13")
+    // fixme
+    runtimeOnly("commons-logging:commons-logging:1.2")
+    runtimeOnly("org.apache.logging.log4j:log4j-api:latest.release")
+    runtimeOnly("log4j:log4j:1.+")
+    runtimeOnly("org.slf4j:slf4j-api:1.+")
+    runtimeOnly("ch.qos.logback:logback-classic:1.0.13")
 }
 
 tasks.withType(KotlinCompile::class.java).configureEach {
