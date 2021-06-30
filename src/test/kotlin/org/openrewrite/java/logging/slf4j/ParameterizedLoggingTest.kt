@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.logging.slf4j
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.openrewrite.Issue
 import org.openrewrite.Recipe
@@ -63,6 +64,63 @@ class ParameterizedLoggingTest : JavaRecipeTest {
                     logger.debug("Debug! Hello {}, nice to meet you {}", name, name);
                     logger.trace("Trace! Hello {}, nice to meet you {}", name, name);
                     logger.error("Error! Hello {}, nice to meet you {}", name, name);
+                }
+            }
+        """
+    )
+
+    @Test
+    fun concatenateLiteralStrings() = assertChanged(
+        before = """
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+
+            class Test {
+                Logger logger = LoggerFactory.getLogger(Test.class);
+
+                void method() {
+                    logger.info("left" + " " + "right");
+                }
+            }
+        """,
+        after = """
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+
+            class Test {
+                Logger logger = LoggerFactory.getLogger(Test.class);
+
+                void method() {
+                    logger.info("left right");
+                }
+            }
+        """
+    )
+
+    @Test
+    @Disabled
+    fun handleEscapedCharacters() = assertChanged(
+        before = """
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+
+            class Test {
+                Logger logger = LoggerFactory.getLogger(Test.class);
+
+                void method(String str) {
+                    logger.info("\n" + str);
+                }
+            }
+        """,
+        after = """
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+
+            class Test {
+                Logger logger = LoggerFactory.getLogger(Test.class);
+
+                void method(String str) {
+                    logger.info("\n{}", str);
                 }
             }
         """
