@@ -16,7 +16,6 @@
 package org.openrewrite.java.logging;
 
 import org.openrewrite.ExecutionContext;
-import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaParser;
@@ -27,10 +26,7 @@ import org.openrewrite.java.search.FindFields;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 
-import java.util.Collections;
 import java.util.Set;
-
-import static java.util.Collections.singletonList;
 
 public class PrintStackTraceToLogError extends Recipe {
     @Override
@@ -45,21 +41,40 @@ public class PrintStackTraceToLogError extends Recipe {
 
     @Override
     protected JavaVisitor<ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.slf4j.Logger");
+        return new JavaVisitor<ExecutionContext>() {
+            @Override
+            public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
+                doAfterVisit(new UsesType<>("org.slf4j.Logger"));
+                doAfterVisit(new UsesType<>("org.apache.log4j.Category"));
+                return cu;
+            }
+        };
     }
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         MethodMatcher printStackTrace = new MethodMatcher("java.lang.Throwable printStackTrace()");
         return new JavaVisitor<ExecutionContext>() {
-            final JavaTemplate loggerError = JavaTemplate
+            final JavaTemplate slf4jError = JavaTemplate
                     .builder(this::getCursor, "#{any(org.slf4j.Logger)}.error(\"Exception\", #{any(java.lang.Throwable)}")
                     .javaParser(() -> JavaParser.fromJavaVersion()
-                            .dependsOn(singletonList(Parser.Input.fromString("" +
+                            .dependsOn("" +
                                     "package org.slf4j;" +
                                     "public interface Logger {" +
                                     "    void error(String msg, Throwable t);" +
-                                    "}")))
+                                    "}")
+                            .build()
+                    )
+                    .build();
+
+            final JavaTemplate log4jError = JavaTemplate
+                    .builder(this::getCursor, "#{any(org.apache.log4j.Category)}.error(\"Exception\", #{any(java.lang.Throwable)}")
+                    .javaParser(() -> JavaParser.fromJavaVersion()
+                            .dependsOn("" +
+                                    "package org.apache.log4j;" +
+                                    "public interface Category {" +
+                                    "    void error(Object msg, Throwable t);" +
+                                    "}")
                             .build()
                     )
                     .build();
@@ -69,12 +84,19 @@ public class PrintStackTraceToLogError extends Recipe {
                 if (printStackTrace.matches(method)) {
                     J.ClassDeclaration clazz = getCursor().firstEnclosingOrThrow(J.ClassDeclaration.class);
 
-                    Set<J.VariableDeclarations> loggers = FindFields.find(clazz, "org.slf4j.Logger");
-
-                    if(!loggers.isEmpty()) {
-                        return method.withTemplate(loggerError,
+                    Set<J.VariableDeclarations> slf4jLoggers = FindFields.find(clazz, "org.slf4j.Logger");
+                    if (!slf4jLoggers.isEmpty()) {
+                        return method.withTemplate(slf4jError,
                                 method.getCoordinates().replace(),
-                                loggers.iterator().next().getVariables().get(0).getName(),
+                                slf4jLoggers.iterator().next().getVariables().get(0).getName(),
+                                method.getSelect());
+                    }
+
+                    Set<J.VariableDeclarations> log4jLoggers = FindFields.find(clazz, "org.apache.log4j.Category");
+                    if (!log4jLoggers.isEmpty()) {
+                        return method.withTemplate(log4jError,
+                                method.getCoordinates().replace(),
+                                log4jLoggers.iterator().next().getVariables().get(0).getName(),
                                 method.getSelect());
                     }
                 }
