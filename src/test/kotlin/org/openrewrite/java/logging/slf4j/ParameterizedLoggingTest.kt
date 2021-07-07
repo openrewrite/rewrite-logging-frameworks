@@ -98,7 +98,6 @@ class ParameterizedLoggingTest : JavaRecipeTest {
     )
 
     @Test
-    @Disabled
     fun handleEscapedCharacters() = assertChanged(
         before = """
             import org.slf4j.Logger;
@@ -109,6 +108,7 @@ class ParameterizedLoggingTest : JavaRecipeTest {
 
                 void method(String str) {
                     logger.info("\n" + str);
+                    logger.debug("\t" + str);
                 }
             }
         """,
@@ -121,6 +121,7 @@ class ParameterizedLoggingTest : JavaRecipeTest {
 
                 void method(String str) {
                     logger.info("\n{}", str);
+                    logger.debug("\t{}", str);
                 }
             }
         """

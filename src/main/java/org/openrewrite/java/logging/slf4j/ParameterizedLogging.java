@@ -80,8 +80,9 @@ public class ParameterizedLogging extends Recipe {
                 });
                 messageBuilder.append("\"");
                 newArgList.forEach(arg -> messageBuilder.append(", #{any()}"));
+                String templateString  = messageBuilder.toString().replace("\n", "\\\\n").replace("\t", "\\\\t");
                 m = m.withTemplate(
-                        JavaTemplate.builder(this::getCursor, messageBuilder.toString())
+                        JavaTemplate.builder(this::getCursor, templateString)
                                 .build(),
                         m.getCoordinates().replaceArguments(),
                         newArgList.toArray()
