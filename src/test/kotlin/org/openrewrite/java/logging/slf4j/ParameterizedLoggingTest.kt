@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.logging.slf4j
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.openrewrite.Issue
 import org.openrewrite.Recipe
@@ -128,24 +127,6 @@ class ParameterizedLoggingTest : JavaRecipeTest {
     )
 
     @Test
-    @Disabled
-    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/35")
-    fun firstArgumentEmptyString() = assertUnchanged(
-        before = """
-            import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
-
-            class Test {
-                Logger logger = LoggerFactory.getLogger(Test.class);
-
-                void method(Long startTime, Long endTime) {
-                    logger.debug("Time taken {} for indexing taskExecution logs", endTime - startTime);
-                }
-            }
-        """
-    )
-
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/30")
     fun escapeMessageStrings() = assertChanged(
         before = """
@@ -247,7 +228,7 @@ class ParameterizedLoggingTest : JavaRecipeTest {
     )
 
     @Test
-    fun noChangeRequired() = assertUnchanged(
+    fun alreadyParameterizedThrowableArguments() = assertUnchanged(
         before = """
             import org.slf4j.Logger;
             import org.slf4j.LoggerFactory;
@@ -261,6 +242,23 @@ class ParameterizedLoggingTest : JavaRecipeTest {
                     } catch (NumberFormatException ex) {
                         logger.warn("Invalid parameter: {}", ex.getMessage(), ex);
                     }
+                }
+            }
+        """
+    )
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/35")
+    fun alreadyParameterizedBinaryExpressionArguments() = assertUnchanged(
+        before = """
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+
+            class Test {
+                Logger logger = LoggerFactory.getLogger(Test.class);
+
+                void method(Long startTime, Long endTime) {
+                    logger.debug("Time taken {} for indexing taskExecution logs", endTime - startTime);
                 }
             }
         """

@@ -38,61 +38,6 @@ public class ParameterizedLogging extends Recipe {
             .map(MethodMatcher::new)
             .collect(Collectors.toList());
 
-    @Override
-    public String getDisplayName() {
-        return "Parameterize SLF4J logging statements";
-    }
-
-    @Override
-    public String getDescription() {
-        return "SLF4J supports parameterized logging which can significantly boost logging performance for disabled logging statement.";
-    }
-
-    @Override
-    @Nullable
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.slf4j.Logger");
-    }
-
-    @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new ParameterizedLoggingVisitor();
-    }
-
-    private static class ParameterizedLoggingVisitor extends JavaIsoVisitor<ExecutionContext> {
-        @Override
-        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-            J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
-            if (LOG_LEVEL_MATCHERS.stream().anyMatch(it -> it.matches(method)) &&
-                    method.getArguments().size() <= 2 &&
-                    method.getArguments().stream().anyMatch(J.Binary.class::isInstance)) {
-                final StringBuilder messageBuilder = new StringBuilder("\"");
-                final List<Expression> newArgList = new ArrayList<>();
-                ListUtils.map(method.getArguments(), (index, message) -> {
-                    if (index == 0 && message instanceof J.Binary) {
-                        MessageAndArguments literalAndArgs = concatenationToLiteral(message, new MessageAndArguments("", new ArrayList<>()));
-                        messageBuilder.append(literalAndArgs.message);
-                        newArgList.addAll(literalAndArgs.arguments);
-                    } else {
-                        newArgList.add(message);
-                    }
-                    return message;
-                });
-                messageBuilder.append("\"");
-                newArgList.forEach(arg -> messageBuilder.append(", #{any()}"));
-                String templateString  = messageBuilder.toString().replace("\n", "\\\\n").replace("\t", "\\\\t");
-                m = m.withTemplate(
-                        JavaTemplate.builder(this::getCursor, templateString)
-                                .build(),
-                        m.getCoordinates().replaceArguments(),
-                        newArgList.toArray()
-                );
-            }
-            return m;
-        }
-
-    }
-
     private static MessageAndArguments concatenationToLiteral(Expression message, MessageAndArguments result) {
         if (!(message instanceof J.Binary)) {
             result.arguments.add(message);
@@ -123,6 +68,63 @@ public class ParameterizedLogging extends Recipe {
         }
 
         return result;
+    }
+
+    @Override
+    public String getDisplayName() {
+        return "Parameterize SLF4J logging statements";
+    }
+
+    @Override
+    public String getDescription() {
+        return "SLF4J supports parameterized logging which can significantly boost logging performance for disabled logging statement.";
+    }
+
+    @Override
+    @Nullable
+    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
+        return new UsesType<>("org.slf4j.Logger");
+    }
+
+    @Override
+    protected TreeVisitor<?, ExecutionContext> getVisitor() {
+        return new ParameterizedLoggingVisitor();
+    }
+
+    private static class ParameterizedLoggingVisitor extends JavaIsoVisitor<ExecutionContext> {
+        @Override
+        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+            J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
+            if (LOG_LEVEL_MATCHERS.stream().anyMatch(it -> it.matches(method)) &&
+                    !method.getArguments().isEmpty() &&
+                    !(method.getArguments().get(0) instanceof J.Empty) &&
+                    method.getArguments().size() <= 2 &&
+                    method.getArguments().get(0) instanceof J.Binary) {
+                final StringBuilder messageBuilder = new StringBuilder("\"");
+                final List<Expression> newArgList = new ArrayList<>();
+                ListUtils.map(method.getArguments(), (index, message) -> {
+                    if (index == 0 && message instanceof J.Binary) {
+                        MessageAndArguments literalAndArgs = concatenationToLiteral(message, new MessageAndArguments("", new ArrayList<>()));
+                        messageBuilder.append(literalAndArgs.message);
+                        newArgList.addAll(literalAndArgs.arguments);
+                    } else {
+                        newArgList.add(message);
+                    }
+                    return message;
+                });
+                messageBuilder.append("\"");
+                newArgList.forEach(arg -> messageBuilder.append(", #{any()}"));
+                String templateString = messageBuilder.toString().replace("\n", "\\\\n").replace("\t", "\\\\t");
+                m = m.withTemplate(
+                        JavaTemplate.builder(this::getCursor, templateString)
+                                .build(),
+                        m.getCoordinates().replaceArguments(),
+                        newArgList.toArray()
+                );
+            }
+            return m;
+        }
+
     }
 
     private static class MessageAndArguments {
