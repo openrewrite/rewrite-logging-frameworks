@@ -130,20 +130,8 @@ class ParameterizedLoggingTest : JavaRecipeTest {
     @Test
     @Disabled
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/35")
-    fun firstArgumentEmptyString() = assertChanged(
+    fun firstArgumentEmptyString() = assertUnchanged(
         before = """
-            import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
-
-            class Test {
-                Logger logger = LoggerFactory.getLogger(Test.class);
-
-                void method(Long startTime, Long endTime) {
-                    logger.debug("Time taken {} for indexing taskExecution logs", endTime - startTime);
-                }
-            }
-        """,
-        after = """
             import org.slf4j.Logger;
             import org.slf4j.LoggerFactory;
 
