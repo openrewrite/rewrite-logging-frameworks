@@ -92,6 +92,13 @@ public class ParameterizedLogging extends Recipe {
     }
 
     private static class ParameterizedLoggingVisitor extends JavaIsoVisitor<ExecutionContext> {
+        private static String escapeJava(String value) {
+            return value.replace("\"", "\\\\\"")
+                    .replace("\r", "\\\\r")
+                    .replace("\n", "\\\\n")
+                    .replace("\t", "\\\\t");
+        }
+
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
@@ -105,7 +112,7 @@ public class ParameterizedLogging extends Recipe {
                 ListUtils.map(method.getArguments(), (index, message) -> {
                     if (index == 0 && message instanceof J.Binary) {
                         MessageAndArguments literalAndArgs = concatenationToLiteral(message, new MessageAndArguments("", new ArrayList<>()));
-                        messageBuilder.append(literalAndArgs.message);
+                        messageBuilder.append(escapeJava(literalAndArgs.message));
                         newArgList.addAll(literalAndArgs.arguments);
                     } else {
                         newArgList.add(message);
@@ -114,9 +121,8 @@ public class ParameterizedLogging extends Recipe {
                 });
                 messageBuilder.append("\"");
                 newArgList.forEach(arg -> messageBuilder.append(", #{any()}"));
-                String templateString = messageBuilder.toString().replace("\n", "\\\\n").replace("\t", "\\\\t");
                 m = m.withTemplate(
-                        JavaTemplate.builder(this::getCursor, templateString)
+                        JavaTemplate.builder(this::getCursor, messageBuilder.toString())
                                 .build(),
                         m.getCoordinates().replaceArguments(),
                         newArgList.toArray()

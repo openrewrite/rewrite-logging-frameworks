@@ -98,6 +98,8 @@ class ParameterizedLoggingTest : JavaRecipeTest {
     )
 
     @Test
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/36")
+    @Suppress("UnnecessaryStringEscape")
     fun handleEscapedCharacters() = assertChanged(
         before = """
             import org.slf4j.Logger;
@@ -108,7 +110,10 @@ class ParameterizedLoggingTest : JavaRecipeTest {
 
                 void method(String str) {
                     logger.info("\n" + str);
-                    logger.debug("\t" + str);
+                    logger.info("\t" + str);
+                    logger.info("\r" + str);
+                    logger.info("\"escape\" " + str);
+                    logger.info("use \"escape\" " + str);
                 }
             }
         """,
@@ -121,7 +126,10 @@ class ParameterizedLoggingTest : JavaRecipeTest {
 
                 void method(String str) {
                     logger.info("\n{}", str);
-                    logger.debug("\t{}", str);
+                    logger.info("\t{}", str);
+                    logger.info("\r{}", str);
+                    logger.info("\"escape\" {}", str);
+                    logger.info("use \"escape\" {}", str);
                 }
             }
         """
