@@ -200,7 +200,8 @@ class ParameterizedLoggingTest : JavaRecipeTest {
         """
     )
 
-    @Test // https://github.com/kubernetes-client/java/blob/b641fd3e7bd3d819cb39884a0c0563f4e3150108/examples/examples-release-10/src/main/java/io/kubernetes/client/examples/ExpandedExample.java // fixme
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/38")
     @Disabled
     fun indexOutOfBoundsExceptionOnParseMethodArguments() = assertChanged(
         before = """
