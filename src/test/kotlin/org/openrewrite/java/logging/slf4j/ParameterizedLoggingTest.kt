@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.logging.slf4j
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.openrewrite.Issue
 import org.openrewrite.Recipe
@@ -186,6 +187,51 @@ class ParameterizedLoggingTest : JavaRecipeTest {
                     } catch (NumberFormatException ex) {
                         logger.debug("some big error: {}", ex);
                     }
+                }
+            }
+        """
+    )
+
+    @Test // https://github.com/kubernetes-client/java/blob/b641fd3e7bd3d819cb39884a0c0563f4e3150108/examples/examples-release-10/src/main/java/io/kubernetes/client/examples/ExpandedExample.java // fixme
+    @Disabled
+    fun indexOutOfBoundsExceptionOnParseMethodArguments() = assertChanged(
+        before = """
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+
+            import java.util.List;
+
+            class Test {
+                Logger LOGGER = LoggerFactory.getLogger(Test.class);
+
+                void method(List<String> nameSpaces) {
+                    nameSpaces.stream()
+                            .forEach(namespace -> {
+                                try {
+                                } catch (Exception ex) {
+                                    LOGGER.warn("Couldn't get the pods in namespace:" + namespace, ex);
+                                }
+                            });
+                }
+            }
+        """,
+        after = """
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+
+            import java.util.List;
+
+            class Test {
+                Logger LOGGER = LoggerFactory.getLogger(Test.class);
+
+                void method(List<String> nameSpaces) {
+                    nameSpaces.stream()
+                            .forEach(namespace -> {
+                                try {
+                                } catch (Exception ex) {
+                                    LOGGER.warn("Couldn't get the pods in namespace:{}", namespace, ex);
+                                }
+                            });
                 }
             }
         """
