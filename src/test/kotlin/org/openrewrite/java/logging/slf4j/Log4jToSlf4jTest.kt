@@ -107,7 +107,8 @@ class Log4jToSlf4jTest : JavaRecipeTest {
                     }
                 }
             }
-        """
+        """,
+        typeValidation = { identifiers = false }
     )
 
     @Test
@@ -136,7 +137,8 @@ class Log4jToSlf4jTest : JavaRecipeTest {
                     logger.info("{}", new Object());
                 }
             }
-        """
+        """,
+        typeValidation = { identifiers = false }
     )
 
     @Test
@@ -163,7 +165,8 @@ class Log4jToSlf4jTest : JavaRecipeTest {
                     logger.info("{}", new StringBuilder("append0").append("append1").append(sb));
                 }
             }
-        """
+        """,
+        typeValidation = { identifiers = false }
     )
 
     @Test
@@ -192,7 +195,8 @@ class Log4jToSlf4jTest : JavaRecipeTest {
                     logger.info("Hello {}, nice to meet you {}", name, name);
                 }
             }
-        """
+        """,
+        typeValidation = { identifiers = false }
     )
 
 }

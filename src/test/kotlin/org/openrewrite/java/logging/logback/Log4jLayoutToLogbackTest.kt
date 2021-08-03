@@ -64,7 +64,8 @@ class Log4jLayoutToLogbackTest : JavaRecipeTest {
                     return loggingEvent.getMessage();
                 }
             }
-        """
+        """,
+        typeValidation = { identifiers = false }
     )
 
     @Test
@@ -106,7 +107,8 @@ class Log4jLayoutToLogbackTest : JavaRecipeTest {
                     return loggingEvent.getMessage();
                 }
             }
-        """
+        """,
+        typeValidation = { identifiers = false; methodDeclarations = false }
     )
 
 }
