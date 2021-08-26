@@ -22,7 +22,6 @@ import org.openrewrite.java.JavaRecipeTest
 
 class Log4jToSlf4jTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
-        .logCompilationWarningsAndErrors(true)
         .classpath("log4j")
         .build()
 

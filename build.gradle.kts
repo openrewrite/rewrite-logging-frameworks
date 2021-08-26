@@ -86,6 +86,8 @@ dependencies {
     compileOnly("org.projectlombok:lombok:latest.release")
     annotationProcessor("org.projectlombok:lombok:latest.release")
 
+    implementation("org.kohsuke:wordnet-random-name:latest.release")
+
     implementation("org.openrewrite:rewrite-java:${rewriteVersion}")
     implementation("org.openrewrite:rewrite-maven:${rewriteVersion}")
     runtimeOnly("org.openrewrite:rewrite-java-11:${rewriteVersion}")
@@ -166,4 +168,3 @@ configure<PublishingExtension> {
         }
     }
 }
-
