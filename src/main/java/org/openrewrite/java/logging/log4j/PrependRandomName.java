@@ -21,11 +21,13 @@ import org.openrewrite.Recipe;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 
 public class PrependRandomName extends Recipe {
     private final RandomNameGenerator randomName;
+    private final MethodMatcher logStatement = new MethodMatcher("org.apache.log4j.Category *(Object, ..)");
 
     public PrependRandomName() {
         randomName = new RandomNameGenerator();
@@ -46,8 +48,12 @@ public class PrependRandomName extends Recipe {
     }
 
     @Override
+    protected JavaVisitor<ExecutionContext> getSingleSourceApplicableTest() {
+        return new UsesMethod<>(logStatement);
+    }
+
+    @Override
     protected JavaVisitor<ExecutionContext> getVisitor() {
-        MethodMatcher logStatement = new MethodMatcher("org.apache.log4j.Category *(Object, ..)");
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.Literal visitLiteral(J.Literal literal, ExecutionContext ctx) {
