@@ -26,8 +26,8 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 
 public class PrependRandomName extends Recipe {
+    private static final MethodMatcher logStatement = new MethodMatcher("org.apache.log4j.Category *(Object, ..)");
     private final RandomNameGenerator randomName;
-    private final MethodMatcher logStatement = new MethodMatcher("org.apache.log4j.Category *(Object, ..)");
 
     public PrependRandomName() {
         randomName = new RandomNameGenerator();

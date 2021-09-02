@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.logging.log4j
 
+import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Test
 import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
@@ -22,6 +23,7 @@ import org.openrewrite.java.JavaRecipeTest
 
 class PrependRandomNameTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
+        .logCompilationWarningsAndErrors(true)
         .classpath("log4j")
         .build()
 
@@ -51,4 +53,15 @@ class PrependRandomNameTest : JavaRecipeTest {
             }
         """
     )
+
+    @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
+    @Test
+    fun checkValidation() {
+        var valid = recipe.validate()
+        Assertions.assertThat(valid.isValid).isTrue
+
+        valid = PrependRandomName().validate()
+        Assertions.assertThat(valid.isValid).isTrue
+    }
+
 }
