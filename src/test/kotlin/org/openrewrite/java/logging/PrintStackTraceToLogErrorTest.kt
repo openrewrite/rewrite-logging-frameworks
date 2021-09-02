@@ -20,9 +20,11 @@ import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
-class PrintStackTraceToLogErrorTest: JavaRecipeTest {
+@Suppress("EmptyTryBlock")
+class PrintStackTraceToLogErrorTest : JavaRecipeTest {
     override val parser: JavaParser
         get() = JavaParser.fromJavaVersion()
+            .logCompilationWarningsAndErrors(true)
             .classpath("slf4j-api")
             .build()
 
@@ -36,7 +38,7 @@ class PrintStackTraceToLogErrorTest: JavaRecipeTest {
             class Test {
                 Logger logger;
                 
-                void test() {
+                static void test() {
                     try {
                     } catch(Throwable t) {
                         t.printStackTrace();
@@ -49,7 +51,7 @@ class PrintStackTraceToLogErrorTest: JavaRecipeTest {
             class Test {
                 Logger logger;
                 
-                void test() {
+                static void test() {
                     try {
                     } catch(Throwable t) {
                         logger.error("Exception", t);
