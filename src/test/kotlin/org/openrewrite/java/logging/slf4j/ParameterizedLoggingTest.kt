@@ -22,6 +22,12 @@ import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
+@Suppress(
+    "RedundantSlf4jDefinition",
+    "EmptyTryBlock",
+    "SimplifyStreamApiCallChains",
+    "PlaceholderCountMatchesArgumentCount"
+)
 class ParameterizedLoggingTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
         .logCompilationWarningsAndErrors(true)
