@@ -20,8 +20,10 @@ import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
+@Suppress("RedundantSlf4jDefinition")
 class Log4jToSlf4jTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
+        .logCompilationWarningsAndErrors(true)
         .classpath("log4j")
         .build()
 

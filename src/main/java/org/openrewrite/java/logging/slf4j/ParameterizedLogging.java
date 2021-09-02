@@ -93,6 +93,7 @@ public class ParameterizedLogging extends Recipe {
 
     private static class ParameterizedLoggingVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static String escapeJava(String value) {
+            //noinspection DynamicRegexReplaceableByCompiledPattern
             return value.replace("\"", "\\\\\"")
                     .replace("\r", "\\\\r")
                     .replace("\n", "\\\\n")
