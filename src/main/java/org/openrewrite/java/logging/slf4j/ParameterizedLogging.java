@@ -28,7 +28,9 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -78,6 +80,11 @@ public class ParameterizedLogging extends Recipe {
     @Override
     public String getDescription() {
         return "SLF4J supports parameterized logging which can significantly boost logging performance for disabled logging statement.";
+    }
+
+    @Override
+    public Set<String> getTags() {
+        return Collections.singleton("RSPEC-2629");
     }
 
     @Override
