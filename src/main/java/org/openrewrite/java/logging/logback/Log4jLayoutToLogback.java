@@ -62,8 +62,8 @@ public class Log4jLayoutToLogback extends Recipe {
     public static class Log4jLayoutToLogbackVisitor extends JavaIsoVisitor<ExecutionContext> {
         @Override
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-            doAfterVisit(new ChangeMethodName("org.apache.log4j.Layout format(..)", "doLayout"));
-            doAfterVisit(new ChangeMethodName("org.apache.log4j.spi.LoggingEvent getRenderedMessage()", "getMessage"));
+            doAfterVisit(new ChangeMethodName("org.apache.log4j.Layout format(..)", "doLayout", null));
+            doAfterVisit(new ChangeMethodName("org.apache.log4j.spi.LoggingEvent getRenderedMessage()", "getMessage", null));
             return super.visitCompilationUnit(cu, ctx);
         }
 

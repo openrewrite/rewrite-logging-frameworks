@@ -22,7 +22,7 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.search.FindFields;
+import org.openrewrite.java.search.FindFieldsOfType;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 
@@ -84,7 +84,7 @@ public class PrintStackTraceToLogError extends Recipe {
                 if (printStackTrace.matches(method)) {
                     J.ClassDeclaration clazz = getCursor().firstEnclosingOrThrow(J.ClassDeclaration.class);
 
-                    Set<J.VariableDeclarations> slf4jLoggers = FindFields.find(clazz, "org.slf4j.Logger");
+                    Set<J.VariableDeclarations> slf4jLoggers = FindFieldsOfType.find(clazz, "org.slf4j.Logger");
                     if (!slf4jLoggers.isEmpty()) {
                         return method.withTemplate(slf4jError,
                                 method.getCoordinates().replace(),
@@ -92,7 +92,7 @@ public class PrintStackTraceToLogError extends Recipe {
                                 method.getSelect());
                     }
 
-                    Set<J.VariableDeclarations> log4jLoggers = FindFields.find(clazz, "org.apache.log4j.Category");
+                    Set<J.VariableDeclarations> log4jLoggers = FindFieldsOfType.find(clazz, "org.apache.log4j.Category");
                     if (!log4jLoggers.isEmpty()) {
                         return method.withTemplate(log4jError,
                                 method.getCoordinates().replace(),

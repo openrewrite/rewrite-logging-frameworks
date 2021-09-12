@@ -73,16 +73,19 @@ public class Log4jToSlf4j extends Recipe {
             doAfterVisit(new ChangeMethodTargetToStatic(
                     "org.apache.log4j.Logger getLogger(..)",
                     "org.slf4j.LoggerFactory",
-                    "org.slf4j.Logger"
+                    "org.slf4j.Logger",
+                    null
             ));
             doAfterVisit(new ChangeMethodTargetToStatic(
                     "org.apache.log4j.LogManager getLogger(..)",
                     "org.slf4j.LoggerFactory",
-                    "org.slf4j.Logger"
+                    "org.slf4j.Logger",
+                    null
             ));
             doAfterVisit(new ChangeMethodName(
                     "org.apache.log4j.Category fatal(..)",
-                    "error"
+                    "error",
+                    null
             ));
             doAfterVisit(new ChangeType(
                     "org.apache.log4j.Logger",

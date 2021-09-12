@@ -59,7 +59,7 @@ public class Log4jAppenderToLogback extends Recipe {
     public static class Log4jAppenderToLogbackVisitor extends JavaIsoVisitor<ExecutionContext> {
         @Override
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-            doAfterVisit(new ChangeMethodName("org.apache.log4j.Layout format(..)", "doLayout"));
+            doAfterVisit(new ChangeMethodName("org.apache.log4j.Layout format(..)", "doLayout", null));
             return super.visitCompilationUnit(cu, ctx);
         }
 
