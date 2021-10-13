@@ -19,11 +19,14 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
+import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.List;
 
@@ -69,6 +72,20 @@ public class Slf4jLogShouldBeConstant extends Recipe {
                                 }
                                 return arg;
                             }));
+                        } else if (STRING_VALUE_OF.matches(args.get(0))) {
+                            Expression valueOf = ((J.MethodInvocation) args.get(0)).getArguments().get(0);
+                            if(TypeUtils.isAssignableTo(JavaType.Class.build("java.lang.Throwable"), valueOf.getType())) {
+                                J.MethodInvocation m = method.withTemplate(JavaTemplate.builder(this::getCursor, "\"Exception\", #{any()}").build(),
+                                        method.getCoordinates().replaceArguments(), valueOf);
+                                m = m.withSelect(method.getSelect());
+                                return m;
+                            }
+                        } else if(args.get(0) instanceof J.MethodInvocation && ((J.MethodInvocation) args.get(0)).getSimpleName().equals("toString")) {
+                            Expression valueOf = ((J.MethodInvocation) args.get(0)).getSelect();
+                            J.MethodInvocation m = method.withTemplate(JavaTemplate.builder(this::getCursor, "\"{}\", #{any()}").build(),
+                                    method.getCoordinates().replaceArguments(), valueOf);
+                            m = m.withSelect(method.getSelect());
+                            return m;
                         }
                     }
                 }

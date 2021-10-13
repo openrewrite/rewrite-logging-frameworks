@@ -54,4 +54,58 @@ class Slf4jLogShouldBeConstantTest : JavaRecipeTest {
             }
         """
     )
+
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/41")
+    @Test
+    fun dontUseValueOfException() = assertChanged(
+        before = """
+            import org.slf4j.Logger;
+            class Test {
+                Logger logger;
+                void test() {
+                    try {
+                    } catch(Exception e) {
+                        logger.warn(String.valueOf(e));
+                    }
+                }
+            }
+        """,
+        after = """
+            import org.slf4j.Logger;
+            class Test {
+                Logger logger;
+                void test() {
+                    try {
+                    } catch(Exception e) {
+                        logger.warn("Exception", e);
+                    }
+                }
+            }
+        """
+    )
+
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/41")
+    @Test
+    fun dontUseToString() = assertChanged(
+        before = """
+            import org.slf4j.Logger;
+            class Test {
+                Logger logger;
+                void test() {
+                    Object obj1 = new Object();
+                    logger.info(obj1.toString());
+                }
+            }
+        """,
+        after = """
+            import org.slf4j.Logger;
+            class Test {
+                Logger logger;
+                void test() {
+                    Object obj1 = new Object();
+                    logger.info("{}", obj1);
+                }
+            }
+        """
+    )
 }
