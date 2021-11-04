@@ -108,8 +108,8 @@ public class Log4jToSlf4j extends Recipe {
                     List<Expression> args = m.getArguments();
                     if (!args.isEmpty()) {
                         Expression message = args.iterator().next();
-                        if (!TypeUtils.isString(message.getType())) {
-                            if (message.getType() instanceof JavaType.Class || message.getType() instanceof JavaType.Method) {
+                        if (!TypeUtils.isString(message.getType()) || message instanceof J.MethodInvocation) {
+                            if (message.getType() instanceof JavaType.Class) {
                                 final StringBuilder messageBuilder = new StringBuilder("\"{}\"");
                                 m.getArguments().forEach(arg -> messageBuilder.append(", #{any()}"));
                                 m = m.withTemplate(
