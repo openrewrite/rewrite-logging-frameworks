@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.logging.slf4j
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.openrewrite.Issue
 import org.openrewrite.Recipe
@@ -213,7 +212,6 @@ class ParameterizedLoggingTest : JavaRecipeTest {
 
     @Test
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/38")
-    @Disabled
     fun indexOutOfBoundsExceptionOnParseMethodArguments() = assertChanged(
         before = """
             import org.slf4j.Logger;
