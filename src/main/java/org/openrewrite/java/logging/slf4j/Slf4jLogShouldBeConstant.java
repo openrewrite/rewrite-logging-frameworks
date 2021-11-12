@@ -57,7 +57,7 @@ public class Slf4jLogShouldBeConstant extends Recipe {
             public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
                 if (SLF4J_LOG.matches(method)) {
                     String name = method.getSimpleName();
-                    if (name.equals("trace") || name.equals("debug") || name.equals("info") || name.equals("warn") || name.equals("error")) {
+                    if ("trace".equals(name) || "debug".equals(name) || "info".equals(name) || "warn".equals(name) || "error".equals(name)) {
                         List<Expression> args = method.getArguments();
                         if (STRING_FORMAT.matches(args.get(0))) {
                             J.MethodInvocation stringFormat = (J.MethodInvocation) args.get(0);
@@ -80,7 +80,7 @@ public class Slf4jLogShouldBeConstant extends Recipe {
                                 m = m.withSelect(method.getSelect());
                                 return m;
                             }
-                        } else if(args.get(0) instanceof J.MethodInvocation && ((J.MethodInvocation) args.get(0)).getSimpleName().equals("toString")) {
+                        } else if(args.get(0) instanceof J.MethodInvocation && "toString".equals(((J.MethodInvocation) args.get(0)).getSimpleName())) {
                             Expression valueOf = ((J.MethodInvocation) args.get(0)).getSelect();
                             J.MethodInvocation m = method.withTemplate(JavaTemplate.builder(this::getCursor, "\"{}\", #{any()}").build(),
                                     method.getCoordinates().replaceArguments(), valueOf);

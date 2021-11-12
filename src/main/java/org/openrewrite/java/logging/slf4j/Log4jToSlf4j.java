@@ -62,7 +62,7 @@ public class Log4jToSlf4j extends Recipe {
 
     private static class Log4jToSlf4jVisitor extends JavaIsoVisitor<ExecutionContext> {
         private final List<MethodMatcher> logLevelMatchers = Stream.of("trace", "debug", "info", "warn", "error", "fatal")
-                .map(level -> "org.apache.log4j." + (level.equals("trace") ? "Logger" : "Category") +
+                .map(level -> "org.apache.log4j." + ("trace".equals(level) ? "Logger" : "Category") +
                         " " + level + "(..)")
                 .map(MethodMatcher::new)
                 .collect(Collectors.toList());
