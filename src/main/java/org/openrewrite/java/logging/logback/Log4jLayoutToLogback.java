@@ -105,7 +105,7 @@ public class Log4jLayoutToLogback extends Recipe {
                             J.ClassDeclaration enclosingClass = getCursor().firstEnclosing(J.ClassDeclaration.class);
                             assert enclosingClass != null;
                             doAfterVisit(new ImplementInterface<>(enclosingClass, "ch.qos.logback.core.spi.LifeCycle"));
-                            return method.withName(method.getName().withName("start"));
+                            return method.withName(method.getName().withSimpleName("start"));
                         }
                     }
                     return statement;

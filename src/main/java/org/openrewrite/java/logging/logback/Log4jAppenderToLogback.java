@@ -99,7 +99,7 @@ public class Log4jAppenderToLogback extends Recipe {
                                 return null;
                             }
 
-                            return method.withName(method.getName().withName("stop"));
+                            return method.withName(method.getName().withSimpleName("stop"));
                         }
                     }
                     return statement;
