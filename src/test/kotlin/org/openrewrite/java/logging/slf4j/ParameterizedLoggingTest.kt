@@ -71,8 +71,7 @@ class ParameterizedLoggingTest : JavaRecipeTest {
                     logger.error("Error! Hello {}, nice to meet you {}", name, name);
                 }
             }
-        """,
-        typeValidation = { identifiers = false }
+        """
     )
 
     @Test
@@ -100,8 +99,7 @@ class ParameterizedLoggingTest : JavaRecipeTest {
                     logger.info("left right");
                 }
             }
-        """,
-        typeValidation = { identifiers = false }
+        """
     )
 
     @Test
@@ -139,8 +137,7 @@ class ParameterizedLoggingTest : JavaRecipeTest {
                     logger.info("use \"escape\" {}", str);
                 }
             }
-        """,
-        typeValidation = { identifiers = false }
+        """
     )
 
     @Test
@@ -169,8 +166,7 @@ class ParameterizedLoggingTest : JavaRecipeTest {
                     logger.info("See link #{}", text);
                 }
             }
-        """,
-        typeValidation = { identifiers = false }
+        """
     )
 
     @Test
@@ -206,8 +202,7 @@ class ParameterizedLoggingTest : JavaRecipeTest {
                     }
                 }
             }
-        """,
-        typeValidation = { identifiers = false }
+        """
     )
 
     @Test
@@ -288,8 +283,7 @@ class ParameterizedLoggingTest : JavaRecipeTest {
                     }
                 }
             }
-        """,
-        typeValidation = { identifiers = false }
+        """
     )
 
     @Test
@@ -355,8 +349,7 @@ class ParameterizedLoggingTest : JavaRecipeTest {
                     logger.debug("Process [{}] is at [{}%]", name, percent * 100);
                 }
             }
-        """,
-        typeValidation = { identifiers = false }
+        """
     )
 
 }
