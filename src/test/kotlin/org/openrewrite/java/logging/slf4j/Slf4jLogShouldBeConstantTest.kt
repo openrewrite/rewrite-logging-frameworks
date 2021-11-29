@@ -21,6 +21,7 @@ import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
+@Suppress("EmptyTryBlock")
 class Slf4jLogShouldBeConstantTest : JavaRecipeTest {
     override val parser: JavaParser
         get() = JavaParser.fromJavaVersion().classpath("slf4j-api").build()
@@ -30,7 +31,7 @@ class Slf4jLogShouldBeConstantTest : JavaRecipeTest {
 
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/41")
     @Test
-    fun dontUseStringFormat() = assertChanged(
+    fun doNotUseStringFormat() = assertChanged(
         before = """
             import org.slf4j.Logger;
             class Test {
@@ -57,7 +58,7 @@ class Slf4jLogShouldBeConstantTest : JavaRecipeTest {
 
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/41")
     @Test
-    fun dontUseValueOfException() = assertChanged(
+    fun doNotUseValueOfException() = assertChanged(
         before = """
             import org.slf4j.Logger;
             class Test {
@@ -86,7 +87,7 @@ class Slf4jLogShouldBeConstantTest : JavaRecipeTest {
 
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/41")
     @Test
-    fun dontUseToString() = assertChanged(
+    fun doNotUseToString() = assertChanged(
         before = """
             import org.slf4j.Logger;
             class Test {
