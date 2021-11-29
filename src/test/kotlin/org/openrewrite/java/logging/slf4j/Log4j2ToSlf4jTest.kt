@@ -21,39 +21,20 @@ import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
 @Suppress("RedundantSlf4jDefinition")
-class Log4jToSlf4jTest : JavaRecipeTest {
+class Log4j2ToSlf4jTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
         .logCompilationWarningsAndErrors(true)
-        .classpath("log4j")
+        .classpath("log4j-api", "log4j-core")
         .build()
 
     override val recipe: Recipe
-        get() = Log4jToSlf4j()
-
-    @Test
-    fun migratesLoggerToLoggerFactory() = assertChanged(
-        before = """
-            import org.apache.log4j.Logger;
-
-            class Test {
-                Logger logger = Logger.getLogger(Test.class);
-            }
-        """,
-        after = """
-            import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
-
-            class Test {
-                Logger logger = LoggerFactory.getLogger(Test.class);
-            }
-        """
-    )
+        get() = Log4j2ToSlf4j()
 
     @Test
     fun migratesLogManagerToLoggerFactory() = assertChanged(
         before = """
-            import org.apache.log4j.Logger;
-            import org.apache.log4j.LogManager;
+            import org.apache.logging.log4j.LogManager;
+            import org.apache.logging.log4j.Logger;
 
             class Test {
                 Logger logger = LogManager.getLogger(Test.class);
@@ -72,10 +53,11 @@ class Log4jToSlf4jTest : JavaRecipeTest {
     @Test
     fun migratesFatalToError() = assertChanged(
         before = """
-            import org.apache.log4j.Logger;
+            import org.apache.logging.log4j.LogManager;
+            import org.apache.logging.log4j.Logger;
 
             class Test {
-                Logger logger = Logger.getLogger(Test.class);
+                Logger logger = LogManager.getLogger(Test.class);
 
                 void method() {
                     logger.fatal("uh oh");
@@ -99,10 +81,11 @@ class Log4jToSlf4jTest : JavaRecipeTest {
     @Test
     fun migratesExceptions() = assertChanged(
         before = """
-            import org.apache.log4j.Logger;
+            import org.apache.logging.log4j.LogManager;
+            import org.apache.logging.log4j.Logger;
 
             class Test {
-                Logger logger = Logger.getLogger(Test.class);
+                Logger logger = LogManager.getLogger(Test.class);
 
                 void method(String numberString) {
                     try {
@@ -134,10 +117,11 @@ class Log4jToSlf4jTest : JavaRecipeTest {
     @Test
     fun objectParameters() = assertChanged(
         before = """
-            import org.apache.log4j.Logger;
+            import org.apache.logging.log4j.LogManager;
+            import org.apache.logging.log4j.Logger;
 
             class Test {
-                Logger logger = Logger.getLogger(Test.class);
+                Logger logger = LogManager.getLogger(Test.class);
 
                 void method(Test test) {
                     logger.info(test);
@@ -163,10 +147,11 @@ class Log4jToSlf4jTest : JavaRecipeTest {
     @Test
     fun methodInvocationParameters() = assertChanged(
         before = """
-            import org.apache.log4j.Logger;
+            import org.apache.logging.log4j.LogManager;
+            import org.apache.logging.log4j.Logger;
 
             class Test {
-                Logger logger = Logger.getLogger(Test.class);
+                Logger logger = LogManager.getLogger(Test.class);
 
                 void method(StringBuilder sb) {
                     logger.info(new StringBuilder("append0").append("append1").append(sb));
@@ -190,10 +175,11 @@ class Log4jToSlf4jTest : JavaRecipeTest {
     @Test
     fun usesParameterizedLogging() = assertChanged(
         before = """
-            import org.apache.log4j.Logger;
+            import org.apache.logging.log4j.LogManager;
+            import org.apache.logging.log4j.Logger;
 
             class Test {
-                Logger logger = Logger.getLogger(Test.class);
+                Logger logger = LogManager.getLogger(Test.class);
 
                 void method() {
                     String name = "Jon";

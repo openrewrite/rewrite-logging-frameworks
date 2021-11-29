@@ -111,10 +111,12 @@ dependencies {
     testRuntimeOnly("org.openrewrite:rewrite-java-8:${rewriteVersion}")
 
     testRuntimeOnly("commons-logging:commons-logging:1.2")
-    testRuntimeOnly("org.apache.logging.log4j:log4j-api:latest.release")
-    testRuntimeOnly("log4j:log4j:1.+")
     testRuntimeOnly("org.slf4j:slf4j-api:1.+")
     testRuntimeOnly("ch.qos.logback:logback-classic:1.0.13")
+
+    testRuntimeOnly("log4j:log4j:1.+")
+    testRuntimeOnly("org.apache.logging.log4j:log4j-api:2.+")
+    testRuntimeOnly("org.apache.logging.log4j:log4j-core:2.+")
 }
 
 tasks.withType(KotlinCompile::class.java).configureEach {
