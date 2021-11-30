@@ -29,18 +29,16 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-/**
- * @see <a href="http://www.slf4j.org/migrator.html">SLF4J Migrator</a>
- */
-public class Log4jToSlf4j extends Recipe {
+public class Log4j2ToSlf4j extends Recipe {
     @Override
     public String getDisplayName() {
-        return "Migrate Log4j logging framework to SLF4J";
+        return "Migrate Log4j2 logging framework to SLF4J";
     }
 
     @Override
     public String getDescription() {
-        return "Transforms usages of Log4j to leveraging SLF4J directly. " +
+        return "Use of the traditional Log4j to SLF4J bridge can result in some loss of performance " +
+                "as the Log4j2 messages must be formatted before they can be passed to SLF4J. " +
                 "Note, this currently does not modify `log4j.properties` files.";
     }
 
@@ -49,9 +47,8 @@ public class Log4jToSlf4j extends Recipe {
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-                doAfterVisit(new UsesType<>("org.apache.log4j.LogManager"));
-                doAfterVisit(new UsesType<>("org.apache.log4j.Logger"));
-                doAfterVisit(new UsesType<>("org.apache.log4j.Category"));
+                doAfterVisit(new UsesType<>("org.apache.logging.log4j.LogManager"));
+                doAfterVisit(new UsesType<>("org.apache.logging.log4j.Logger"));
                 return cu;
             }
         };
@@ -61,37 +58,24 @@ public class Log4jToSlf4j extends Recipe {
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new JavaIsoVisitor<ExecutionContext>() {
             private final List<MethodMatcher> logLevelMatchers = Stream.of("trace", "debug", "info", "warn", "error", "fatal")
-                    .map(level -> "org.apache.log4j." + ("trace".equals(level) ? "Logger" : "Category") +
-                            " " + level + "(..)")
+                    .map(level -> "org.apache.logging.log4j.Logger " + level + "(..)")
                     .map(MethodMatcher::new)
                     .collect(Collectors.toList());
 
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
                 J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
-                doAfterVisit(new ChangeMethodTargetToStatic(
-                        "org.apache.log4j.LogManager getLogger(..)",
-                        "org.slf4j.LoggerFactory",
-                        "org.slf4j.Logger",
-                        null
-                ));
-                doAfterVisit(new ChangeMethodTargetToStatic(
-                        "org.apache.log4j.Logger getLogger(..)",
-                        "org.slf4j.LoggerFactory",
-                        "org.slf4j.Logger",
-                        null
+                doAfterVisit(new ChangeType(
+                        "org.apache.logging.log4j.LogManager",
+                        "org.slf4j.LoggerFactory"
                 ));
                 doAfterVisit(new ChangeMethodName(
-                        "org.apache.log4j.Category fatal(..)",
+                        "org.apache.logging.log4j.Logger fatal(..)",
                         "error",
                         null
                 ));
                 doAfterVisit(new ChangeType(
-                        "org.apache.log4j.Logger",
-                        "org.slf4j.Logger"
-                ));
-                doAfterVisit(new ChangeType(
-                        "org.apache.log4j.Category",
+                        "org.apache.logging.log4j.Logger",
                         "org.slf4j.Logger"
                 ));
                 doAfterVisit(new ParameterizedLogging());
