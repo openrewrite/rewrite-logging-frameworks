@@ -64,7 +64,8 @@ public class ConvertLogMessageMessageOnlyToLogMessageAndThrowable extends Recipe
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, executionContext);
                 if ((logErrorMatcher.matches(mi) || logWarningMatcher.matches(mi))
-                        && (mi.getArguments().get(0) instanceof J.MethodInvocation && (getMessageMatcher.matches(mi.getArguments().get(0)) || getLocalizedMessageMatcher.matches(mi.getArguments().get(0))))) {
+                        && (mi.getArguments().get(0) instanceof J.MethodInvocation
+                        && (getMessageMatcher.matches(mi.getArguments().get(0)) || getLocalizedMessageMatcher.matches(mi.getArguments().get(0))))) {
                     J throwableMessage = ((J.MethodInvocation) mi.getArguments().get(0)).getSelect();
                     String type = mi.getSimpleName();
                     String message = logMessage == null ? "" : logMessage;

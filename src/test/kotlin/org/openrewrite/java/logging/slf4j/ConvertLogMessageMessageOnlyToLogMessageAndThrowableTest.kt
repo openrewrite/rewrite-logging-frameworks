@@ -28,10 +28,30 @@ class ConvertLogMessageMessageOnlyToLogMessageAndThrowableTest : JavaRecipeTest 
         .build()
 
     override val recipe: Recipe
-        get() = ConvertLogMessageMessageOnlyToLogMessageAndThrowable(
-            null
-        )
+        get() = ConvertLogMessageMessageOnlyToLogMessageAndThrowable(null)
 
+    @Test
+    fun paramIsNotThrowable() = assertUnchanged(
+        recipe = ConvertLogMessageMessageOnlyToLogMessageAndThrowable(
+            "test-message"
+        ),
+        before = """
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+
+            class Test {
+                Logger logger = LoggerFactory.getLogger(Test.class);
+                void doSomething() {
+                    try {
+                        Integer num = Integer.valueOf("a");
+                    } catch (NumberFormatException e) {
+                        logger.error("Invalid");
+                        logger.warn(Integer.valueOf(1).toString());
+                    }
+                }
+            }
+        """
+    )
     @Test
     fun convertWithoutMessage() = assertChanged(
         recipe = ConvertLogMessageMessageOnlyToLogMessageAndThrowable(
