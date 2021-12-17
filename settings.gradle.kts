@@ -14,6 +14,10 @@ gradleEnterprise {
             url = uri("https://ge.openrewrite.org/cache/")
             isPush = isCiServer
         }
+
+        local {
+            isEnabled = false
+        }
     }
 
     buildScan {
