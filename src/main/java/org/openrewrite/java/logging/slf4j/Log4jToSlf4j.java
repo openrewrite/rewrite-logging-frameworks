@@ -94,6 +94,10 @@ public class Log4jToSlf4j extends Recipe {
                         "org.apache.log4j.Category",
                         "org.slf4j.Logger"
                 ));
+                doAfterVisit(new ChangeType(
+                        "org.apache.log4j.MDC",
+                        "org.slf4j.MDC"
+                ));
                 doAfterVisit(new ParameterizedLogging());
                 return c;
             }
