@@ -17,7 +17,7 @@
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.slf4j.ParameterizedLogging
 displayName: Parameterize SLF4J logging statements
-description: SLF4J supports parameterized logging which can significantly boost logging performance for disabled logging statement.
+description: SLF4J supports parameterized logging, which can significantly boost logging performance for disabled logging statements.
 tags:
   - logging
   - slf4j

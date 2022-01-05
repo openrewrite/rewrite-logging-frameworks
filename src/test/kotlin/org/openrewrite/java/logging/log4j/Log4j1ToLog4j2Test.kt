@@ -13,62 +13,83 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.openrewrite.java.logging.slf4j
+package org.openrewrite.java.logging.log4j
 
 import org.junit.jupiter.api.Test
 import org.openrewrite.Recipe
+import org.openrewrite.config.Environment
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
-@Suppress("RedundantSlf4jDefinition")
-class Log4jToSlf4jTest : JavaRecipeTest {
+class Log4j1ToLog4j2Test : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
         .logCompilationWarningsAndErrors(true)
         .classpath("log4j")
         .build()
 
-    override val recipe: Recipe
-        get() = Log4jToSlf4j()
+    override val recipe: Recipe = Environment.builder()
+        .scanRuntimeClasspath("org.openrewrite.java.logging")
+        .build()
+        .activateRecipes("org.openrewrite.java.logging.log4j.Log4j1ToLog4j2")
 
     @Test
-    fun useLoggerFactory() = assertChanged(
+    fun loggerToLogManager() = assertChanged(
         before = """
             import org.apache.log4j.Logger;
-            import org.apache.log4j.LogManager;
 
             class Test {
-                Logger logger0 = Logger.getLogger(Test.class);
-                Logger logger1 = LogManager.getLogger(Test.class);
+                Logger logger = Logger.getLogger(Test.class);
             }
         """,
         after = """
-            import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
+            import org.apache.logging.log4j.LogManager;
+            import org.apache.logging.log4j.Logger;
 
             class Test {
-                Logger logger0 = LoggerFactory.getLogger(Test.class);
-                Logger logger1 = LoggerFactory.getLogger(Test.class);
+                Logger logger = LogManager.getLogger(Test.class);
             }
         """
     )
 
     @Test
-    fun logLevelFatalToError() = assertChanged(
+    fun getRootLoggerToLogManager() = assertChanged(
+        before = """
+            import org.apache.log4j.Logger;
+            import org.apache.log4j.LogManager;
+
+            class Test {
+                Logger logger0 = Logger.getRootLogger();
+                Logger logger1 = LogManager.getRootLogger();
+            }
+        """,
+        after = """
+            import org.apache.logging.log4j.Logger;
+            import org.apache.logging.log4j.LogManager;
+
+            class Test {
+                Logger logger0 = LogManager.getRootLogger();
+                Logger logger1 = LogManager.getRootLogger();
+            }
+        """
+    )
+
+    @Test
+    fun loggerGetEffectiveLevel() = assertChanged(
         before = """
             import org.apache.log4j.Logger;
 
             class Test {
                 static void method(Logger logger) {
-                    logger.fatal("uh oh");
+                    logger.getEffectiveLevel();
                 }
             }
         """,
         after = """
-            import org.slf4j.Logger;
+            import org.apache.logging.log4j.Logger;
 
             class Test {
                 static void method(Logger logger) {
-                    logger.error("uh oh");
+                    logger.getLevel();
                 }
             }
         """

@@ -85,7 +85,7 @@ public class Log4jAppenderToLogback extends Recipe {
                             cd.getCoordinates().replaceExtendsClause()
                     );
 
-                    // should be covered by maybeAddImport, fixme
+                    // should be covered by maybeAddImport, todo
                     doAfterVisit(new AddImport<>("ch.qos.logback.core.AppenderBase", null, false));
                 }
 

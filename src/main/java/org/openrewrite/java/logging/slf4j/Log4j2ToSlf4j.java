@@ -18,22 +18,17 @@ package org.openrewrite.java.logging.slf4j;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.java.*;
+import org.openrewrite.java.ChangeMethodName;
+import org.openrewrite.java.ChangeType;
+import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.logging.ParameterizedLogging;
 import org.openrewrite.java.search.UsesType;
-import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.TypeUtils;
-
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class Log4j2ToSlf4j extends Recipe {
     @Override
     public String getDisplayName() {
-        return "Migrate Log4j2 logging framework to SLF4J";
+        return "Migrate Log4j 2.x to SLF4J";
     }
 
     @Override
@@ -58,11 +53,6 @@ public class Log4j2ToSlf4j extends Recipe {
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new JavaIsoVisitor<ExecutionContext>() {
-            private final List<MethodMatcher> logLevelMatchers = Stream.of("trace", "debug", "info", "warn", "error", "fatal")
-                    .map(level -> "org.apache.logging.log4j.Logger " + level + "(..)")
-                    .map(MethodMatcher::new)
-                    .collect(Collectors.toList());
-
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
                 J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
@@ -83,41 +73,13 @@ public class Log4j2ToSlf4j extends Recipe {
                         "org.apache.log4j.MDC",
                         "org.slf4j.MDC"
                 ));
-                // refactor as a declarative recipe in order to prevent this parameterized logging chain fixme
+                // refactor as a declarative recipe in order to prevent this parameterized logging chain todo
                 doAfterVisit(new ParameterizedLogging("org.slf4j.Logger trace(..)"));
                 doAfterVisit(new ParameterizedLogging("org.slf4j.Logger debug(..)"));
                 doAfterVisit(new ParameterizedLogging("org.slf4j.Logger info(..)"));
                 doAfterVisit(new ParameterizedLogging("org.slf4j.Logger warn(..)"));
                 doAfterVisit(new ParameterizedLogging("org.slf4j.Logger error(..)"));
                 return c;
-            }
-
-            @Override
-            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
-
-                for (MethodMatcher matcher : logLevelMatchers) {
-                    if (matcher.matches(m)) {
-                        List<Expression> args = m.getArguments();
-                        if (!args.isEmpty()) {
-                            Expression message = args.iterator().next();
-                            if (!TypeUtils.isString(message.getType()) || message instanceof J.MethodInvocation) {
-                                if (message.getType() instanceof JavaType.Class) {
-                                    final StringBuilder messageBuilder = new StringBuilder("\"{}\"");
-                                    m.getArguments().forEach(arg -> messageBuilder.append(", #{any()}"));
-                                    m = m.withTemplate(
-                                            JavaTemplate.builder(this::getCursor, messageBuilder.toString())
-                                                    .build(),
-                                            m.getCoordinates().replaceArguments(),
-                                            m.getArguments().toArray()
-                                    );
-                                }
-                            }
-                        }
-                    }
-                }
-
-                return m;
             }
 
         };

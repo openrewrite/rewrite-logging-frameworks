@@ -17,7 +17,6 @@ package org.openrewrite.java.logging
 
 import org.junit.jupiter.api.Test
 import org.openrewrite.Issue
-import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
@@ -30,7 +29,7 @@ import org.openrewrite.java.JavaRecipeTest
 class ParameterizedLoggingTest : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
         .logCompilationWarningsAndErrors(true)
-        .classpath("slf4j")
+        .classpath("slf4j", "log4j-api", "log4j-core")
         .build()
 
     @Test
@@ -41,7 +40,7 @@ class ParameterizedLoggingTest : JavaRecipeTest {
 
             class Test {
                 static void method(Logger logger, String name) {
-                    logger.info("Info! Hello " + name + ", nice to meet you " + name);
+                    logger.info("Hello " + name + ", nice to meet you " + name);
                 }
             }
         """,
@@ -50,7 +49,7 @@ class ParameterizedLoggingTest : JavaRecipeTest {
 
             class Test {
                 static void method(Logger logger, String name) {
-                    logger.info("Info! Hello {}, nice to meet you {}", name, name);
+                    logger.info("Hello {}, nice to meet you {}", name, name);
                 }
             }
         """
@@ -244,7 +243,7 @@ class ParameterizedLoggingTest : JavaRecipeTest {
         before = """
             import org.slf4j.Logger;
 
-            class A {
+            class Test {
                 static void asInteger(Logger logger, String numberString) {
                     try {
                         Integer i = Integer.valueOf(numberString);
@@ -290,6 +289,85 @@ class ParameterizedLoggingTest : JavaRecipeTest {
             class Test {
                 static void method(Logger logger, String name, double percent) {
                     logger.debug("Process [{}] is at [{}%]", name, percent * 100);
+                }
+            }
+        """
+    )
+
+    @Test
+    fun throwableParameters() = assertChanged(
+        recipe = ParameterizedLogging("org.apache.logging.log4j.Logger error(..)"),
+        before = """
+            import org.apache.logging.log4j.Logger;
+
+            class Test {
+                static void method(Logger logger, String numberString) {
+                    try {
+                        Integer i = Integer.valueOf(numberString);
+                    } catch (Exception e) {
+                        logger.error(e.getMessage(), e);
+                    }
+                }
+            }
+        """,
+        after = """
+            import org.apache.logging.log4j.Logger;
+
+            class Test {
+                static void method(Logger logger, String numberString) {
+                    try {
+                        Integer i = Integer.valueOf(numberString);
+                    } catch (Exception e) {
+                        logger.error("{}", e.getMessage(), e);
+                    }
+                }
+            }
+        """
+    )
+
+    @Test
+    fun objectParameters() = assertChanged(
+        recipe = ParameterizedLogging("org.apache.logging.log4j.Logger info(..)"),
+        before = """
+            import org.apache.logging.log4j.Logger;
+
+            class Test {
+                static void method(Logger logger, Test test) {
+                    logger.info(test);
+                    logger.info(new Object());
+                }
+            }
+        """,
+        after = """
+            import org.apache.logging.log4j.Logger;
+
+            class Test {
+                static void method(Logger logger, Test test) {
+                    logger.info("{}", test);
+                    logger.info("{}", new Object());
+                }
+            }
+        """
+    )
+
+    @Test
+    fun methodInvocationParameters() = assertChanged(
+        recipe = ParameterizedLogging("org.apache.logging.log4j.Logger info(..)"),
+        before = """
+            import org.apache.logging.log4j.Logger;
+
+            class Test {
+                static void method(Logger logger, StringBuilder sb) {
+                    logger.info(new StringBuilder("append0").append("append1").append(sb));
+                }
+            }
+        """,
+        after = """
+            import org.apache.logging.log4j.Logger;
+
+            class Test {
+                static void method(Logger logger, StringBuilder sb) {
+                    logger.info("{}", new StringBuilder("append0").append("append1").append(sb));
                 }
             }
         """

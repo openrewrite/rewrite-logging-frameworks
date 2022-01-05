@@ -31,172 +31,22 @@ class Log4j2ToSlf4jTest : JavaRecipeTest {
         get() = Log4j2ToSlf4j()
 
     @Test
-    fun migratesLogManagerToLoggerFactory() = assertChanged(
+    fun logLevelFatalToError() = assertChanged(
         before = """
-            import org.apache.logging.log4j.LogManager;
             import org.apache.logging.log4j.Logger;
 
             class Test {
-                Logger logger = LogManager.getLogger(Test.class);
-            }
-        """,
-        after = """
-            import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
-
-            class Test {
-                Logger logger = LoggerFactory.getLogger(Test.class);
-            }
-        """
-    )
-
-    @Test
-    fun migratesFatalToError() = assertChanged(
-        before = """
-            import org.apache.logging.log4j.LogManager;
-            import org.apache.logging.log4j.Logger;
-
-            class Test {
-                Logger logger = LogManager.getLogger(Test.class);
-
-                void method() {
+                static void method(Logger logger) {
                     logger.fatal("uh oh");
                 }
             }
         """,
         after = """
             import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
 
             class Test {
-                Logger logger = LoggerFactory.getLogger(Test.class);
-
-                void method() {
+                static void method(Logger logger) {
                     logger.error("uh oh");
-                }
-            }
-        """
-    )
-
-    @Test
-    fun migratesExceptions() = assertChanged(
-        before = """
-            import org.apache.logging.log4j.LogManager;
-            import org.apache.logging.log4j.Logger;
-
-            class Test {
-                Logger logger = LogManager.getLogger(Test.class);
-
-                void method(String numberString) {
-                    try {
-                        Integer i = Integer.valueOf(numberString);
-                    } catch (Exception e) {
-                        logger.error(e.getMessage(), e);
-                    }
-                }
-            }
-        """,
-        after = """
-            import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
-
-            class Test {
-                Logger logger = LoggerFactory.getLogger(Test.class);
-
-                void method(String numberString) {
-                    try {
-                        Integer i = Integer.valueOf(numberString);
-                    } catch (Exception e) {
-                        logger.error("{}", e.getMessage(), e);
-                    }
-                }
-            }
-        """
-    )
-
-    @Test
-    fun objectParameters() = assertChanged(
-        before = """
-            import org.apache.logging.log4j.LogManager;
-            import org.apache.logging.log4j.Logger;
-
-            class Test {
-                Logger logger = LogManager.getLogger(Test.class);
-
-                void method(Test test) {
-                    logger.info(test);
-                    logger.info(new Object());
-                }
-            }
-        """,
-        after = """
-            import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
-
-            class Test {
-                Logger logger = LoggerFactory.getLogger(Test.class);
-
-                void method(Test test) {
-                    logger.info("{}", test);
-                    logger.info("{}", new Object());
-                }
-            }
-        """
-    )
-
-    @Test
-    fun methodInvocationParameters() = assertChanged(
-        before = """
-            import org.apache.logging.log4j.LogManager;
-            import org.apache.logging.log4j.Logger;
-
-            class Test {
-                Logger logger = LogManager.getLogger(Test.class);
-
-                void method(StringBuilder sb) {
-                    logger.info(new StringBuilder("append0").append("append1").append(sb));
-                }
-            }
-        """,
-        after = """
-            import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
-
-            class Test {
-                Logger logger = LoggerFactory.getLogger(Test.class);
-
-                void method(StringBuilder sb) {
-                    logger.info("{}", new StringBuilder("append0").append("append1").append(sb));
-                }
-            }
-        """
-    )
-
-    @Test
-    fun usesParameterizedLogging() = assertChanged(
-        before = """
-            import org.apache.logging.log4j.LogManager;
-            import org.apache.logging.log4j.Logger;
-
-            class Test {
-                Logger logger = LogManager.getLogger(Test.class);
-
-                void method() {
-                    String name = "Jon";
-                    logger.info("Hello " + name + ", nice to meet you " + name);
-                }
-            }
-        """,
-        after = """
-            import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
-
-            class Test {
-                Logger logger = LoggerFactory.getLogger(Test.class);
-
-                void method() {
-                    String name = "Jon";
-                    logger.info("Hello {}, nice to meet you {}", name, name);
                 }
             }
         """
