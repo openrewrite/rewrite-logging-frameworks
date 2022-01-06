@@ -19,6 +19,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.*;
+import org.openrewrite.java.logging.ParameterizedLogging;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
@@ -82,7 +83,12 @@ public class Log4j2ToSlf4j extends Recipe {
                         "org.apache.log4j.MDC",
                         "org.slf4j.MDC"
                 ));
-                doAfterVisit(new ParameterizedLogging());
+                // refactor as a declarative recipe in order to prevent this parameterized logging chain fixme
+                doAfterVisit(new ParameterizedLogging("org.slf4j.Logger trace(..)"));
+                doAfterVisit(new ParameterizedLogging("org.slf4j.Logger debug(..)"));
+                doAfterVisit(new ParameterizedLogging("org.slf4j.Logger info(..)"));
+                doAfterVisit(new ParameterizedLogging("org.slf4j.Logger warn(..)"));
+                doAfterVisit(new ParameterizedLogging("org.slf4j.Logger error(..)"));
                 return c;
             }
 

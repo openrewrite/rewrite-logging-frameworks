@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.openrewrite.java.logging.slf4j
+package org.openrewrite.java.logging
 
 import org.junit.jupiter.api.Test
 import org.openrewrite.Issue
@@ -33,42 +33,24 @@ class ParameterizedLoggingTest : JavaRecipeTest {
         .classpath("slf4j")
         .build()
 
-    override val recipe: Recipe
-        get() = ParameterizedLogging()
-
     @Test
     fun basicParameterization() = assertChanged(
+        recipe = ParameterizedLogging("org.slf4j.Logger info(..)"),
         before = """
             import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
 
             class Test {
-                Logger logger = LoggerFactory.getLogger(Test.class);
-
-                void method() {
-                    String name = "Jon";
+                static void method(Logger logger, String name) {
                     logger.info("Info! Hello " + name + ", nice to meet you " + name);
-                    logger.warn("Warn! Hello " + name + ", nice to meet you " + name);
-                    logger.debug("Debug! Hello " + name + ", nice to meet you " + name);
-                    logger.trace("Trace! Hello " + name + ", nice to meet you " + name);
-                    logger.error("Error! Hello " + name + ", nice to meet you " + name);
                 }
             }
         """,
         after = """
             import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
 
             class Test {
-                Logger logger = LoggerFactory.getLogger(Test.class);
-
-                void method() {
-                    String name = "Jon";
+                static void method(Logger logger, String name) {
                     logger.info("Info! Hello {}, nice to meet you {}", name, name);
-                    logger.warn("Warn! Hello {}, nice to meet you {}", name, name);
-                    logger.debug("Debug! Hello {}, nice to meet you {}", name, name);
-                    logger.trace("Trace! Hello {}, nice to meet you {}", name, name);
-                    logger.error("Error! Hello {}, nice to meet you {}", name, name);
                 }
             }
         """
@@ -76,26 +58,21 @@ class ParameterizedLoggingTest : JavaRecipeTest {
 
     @Test
     fun concatenateLiteralStrings() = assertChanged(
+        recipe = ParameterizedLogging("org.slf4j.Logger info(..)"),
         before = """
             import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
 
             class Test {
-                Logger logger = LoggerFactory.getLogger(Test.class);
-
-                void method() {
+                static void method(Logger logger) {
                     logger.info("left" + " " + "right");
                 }
             }
         """,
         after = """
             import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
 
             class Test {
-                Logger logger = LoggerFactory.getLogger(Test.class);
-
-                void method() {
+                static void method(Logger logger) {
                     logger.info("left right");
                 }
             }
@@ -106,14 +83,12 @@ class ParameterizedLoggingTest : JavaRecipeTest {
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/36")
     @Suppress("UnnecessaryStringEscape")
     fun handleEscapedCharacters() = assertChanged(
+        recipe = ParameterizedLogging("org.slf4j.Logger info(..)"),
         before = """
             import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
 
             class Test {
-                Logger logger = LoggerFactory.getLogger(Test.class);
-
-                void method(String str) {
+                static void method(Logger logger, String str) {
                     logger.info("\n" + str);
                     logger.info("\t" + str);
                     logger.info("\r" + str);
@@ -124,12 +99,9 @@ class ParameterizedLoggingTest : JavaRecipeTest {
         """,
         after = """
             import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
 
             class Test {
-                Logger logger = LoggerFactory.getLogger(Test.class);
-
-                void method(String str) {
+                static void method(Logger logger, String str) {
                     logger.info("\n{}", str);
                     logger.info("\t{}", str);
                     logger.info("\r{}", str);
@@ -143,26 +115,21 @@ class ParameterizedLoggingTest : JavaRecipeTest {
     @Test
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/30")
     fun escapeMessageStrings() = assertChanged(
+        recipe = ParameterizedLogging("org.slf4j.Logger info(..)"),
         before = """
             import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
 
             class Test {
-                Logger logger = LoggerFactory.getLogger(Test.class);
-
-                void method(String text) {
+                static void method(Logger logger, String text) {
                     logger.info("See link #" + text);
                 }
             }
         """,
         after = """
             import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
 
             class Test {
-                Logger logger = LoggerFactory.getLogger(Test.class);
-
-                void method(String text) {
+                static void method(Logger logger, String text) {
                     logger.info("See link #{}", text);
                 }
             }
@@ -171,14 +138,12 @@ class ParameterizedLoggingTest : JavaRecipeTest {
 
     @Test
     fun exceptionArgumentsAsConcatenatedString() = assertChanged(
+        recipe = ParameterizedLogging("org.slf4j.Logger debug(..)"),
         before = """
             import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
 
             class Test {
-                Logger logger = LoggerFactory.getLogger(Test.class);
-
-                void asInteger(String numberString) {
+                static void asInteger(Logger logger, String numberString) {
                     try {
                         Integer i = Integer.valueOf(numberString);
                     } catch (NumberFormatException ex) {
@@ -189,12 +154,9 @@ class ParameterizedLoggingTest : JavaRecipeTest {
         """,
         after = """
             import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
 
             class Test {
-                Logger logger = LoggerFactory.getLogger(Test.class);
-
-                void asInteger(String numberString) {
+                static void asInteger(Logger logger, String numberString) {
                     try {
                         Integer i = Integer.valueOf(numberString);
                     } catch (NumberFormatException ex) {
@@ -208,21 +170,19 @@ class ParameterizedLoggingTest : JavaRecipeTest {
     @Test
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/38")
     fun indexOutOfBoundsExceptionOnParseMethodArguments() = assertChanged(
+        recipe = ParameterizedLogging("org.slf4j.Logger warn(..)"),
         before = """
             import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
 
             import java.util.List;
 
             class Test {
-                Logger LOGGER = LoggerFactory.getLogger(Test.class);
-
-                void method(List<String> nameSpaces) {
+                static void method(Logger logger, List<String> nameSpaces) {
                     nameSpaces.stream()
                             .forEach(namespace -> {
                                 try {
                                 } catch (Exception ex) {
-                                    LOGGER.warn("Couldn't get the pods in namespace:" + namespace, ex);
+                                    logger.warn("Couldn't get the pods in namespace:" + namespace, ex);
                                 }
                             });
                 }
@@ -230,19 +190,16 @@ class ParameterizedLoggingTest : JavaRecipeTest {
         """,
         after = """
             import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
 
             import java.util.List;
 
             class Test {
-                Logger LOGGER = LoggerFactory.getLogger(Test.class);
-
-                void method(List<String> nameSpaces) {
+                static void method(Logger logger, List<String> nameSpaces) {
                     nameSpaces.stream()
                             .forEach(namespace -> {
                                 try {
                                 } catch (Exception ex) {
-                                    LOGGER.warn("Couldn't get the pods in namespace:{}", namespace, ex);
+                                    logger.warn("Couldn't get the pods in namespace:{}", namespace, ex);
                                 }
                             });
                 }
@@ -252,14 +209,12 @@ class ParameterizedLoggingTest : JavaRecipeTest {
 
     @Test
     fun exceptionArgumentsWithThrowable() = assertChanged(
+        recipe = ParameterizedLogging("org.slf4j.Logger warn(..)"),
         before = """
             import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
 
             class Test {
-                Logger logger = LoggerFactory.getLogger(Test.class);
-
-                void asInteger(String numberString) {
+                static void asInteger(Logger logger, String numberString) {
                     try {
                         Integer i = Integer.valueOf(numberString);
                     } catch (NumberFormatException ex) {
@@ -270,12 +225,9 @@ class ParameterizedLoggingTest : JavaRecipeTest {
         """,
         after = """
             import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
 
             class Test {
-                Logger logger = LoggerFactory.getLogger(Test.class);
-
-                void asInteger(String numberString) {
+                static void asInteger(Logger logger, String numberString) {
                     try {
                         Integer i = Integer.valueOf(numberString);
                     } catch (NumberFormatException ex) {
@@ -288,14 +240,12 @@ class ParameterizedLoggingTest : JavaRecipeTest {
 
     @Test
     fun alreadyParameterizedThrowableArguments() = assertUnchanged(
+        recipe = ParameterizedLogging("org.slf4j.Logger warn(..)"),
         before = """
             import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
 
             class A {
-                Logger logger = LoggerFactory.getLogger(A.class);
-
-                void asInteger(String numberString) {
+                static void asInteger(Logger logger, String numberString) {
                     try {
                         Integer i = Integer.valueOf(numberString);
                     } catch (NumberFormatException ex) {
@@ -309,14 +259,12 @@ class ParameterizedLoggingTest : JavaRecipeTest {
     @Test
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/35")
     fun alreadyParameterizedBinaryExpressionArguments() = assertUnchanged(
+        recipe = ParameterizedLogging("org.slf4j.Logger debug(..)"),
         before = """
             import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
 
             class Test {
-                Logger logger = LoggerFactory.getLogger(Test.class);
-
-                void method(Long startTime, Long endTime) {
+                static void method(Logger logger, Long startTime, Long endTime) {
                     logger.debug("Time taken {} for indexing taskExecution logs", endTime - startTime);
                 }
             }
@@ -326,26 +274,21 @@ class ParameterizedLoggingTest : JavaRecipeTest {
     @Test
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/26")
     fun argumentsContainingBinaryExpressions() = assertChanged(
+        recipe = ParameterizedLogging("org.slf4j.Logger debug(..)"),
         before = """
             import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
 
             class Test {
-                Logger logger = LoggerFactory.getLogger(Test.class);
-
-                void method(String name, double percent) {
+                static void method(Logger logger, String name, double percent) {
                     logger.debug("Process [" + name + "] is at [" + percent * 100 + "%]");
                 }
             }
         """,
         after = """
             import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
 
             class Test {
-                Logger logger = LoggerFactory.getLogger(Test.class);
-
-                void method(String name, double percent) {
+                static void method(Logger logger, String name, double percent) {
                     logger.debug("Process [{}] is at [{}%]", name, percent * 100);
                 }
             }
