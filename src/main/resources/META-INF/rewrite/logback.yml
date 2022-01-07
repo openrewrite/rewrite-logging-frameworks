@@ -16,8 +16,8 @@
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.logback.Log4jToLogback
-displayName: Migrate from Log4j
-description: Migrates Log4j logging framework to logback.
+displayName: Migrate Log4j to Logback
+description: Migrates Log4j to logback.
 tags:
   - logging
   - log4j

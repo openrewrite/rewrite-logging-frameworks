@@ -1,0 +1,75 @@
+#
+# Copyright 2021 the original author or authors.
+# <p>
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# <p>
+# https://www.apache.org/licenses/LICENSE-2.0
+# <p>
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.logging.log4j.ParameterizedLogging
+displayName: Parameterize Log4j 2.x logging statements
+description: Log4j 2.x supports parameterized logging, which can significantly boost logging performance for disabled logging statements.
+tags:
+  - logging
+  - log4j
+recipeList:
+  - org.openrewrite.java.logging.ParameterizedLogging:
+      methodPattern: org.apache.logging.log4j.Logger info(..)
+  - org.openrewrite.java.logging.ParameterizedLogging:
+      methodPattern: org.apache.logging.log4j.Logger trace(..)
+  - org.openrewrite.java.logging.ParameterizedLogging:
+      methodPattern: org.apache.logging.log4j.Logger debug(..)
+  - org.openrewrite.java.logging.ParameterizedLogging:
+      methodPattern: org.apache.logging.log4j.Logger info(..)
+  - org.openrewrite.java.logging.ParameterizedLogging:
+      methodPattern: org.apache.logging.log4j.Logger warn(..)
+  - org.openrewrite.java.logging.ParameterizedLogging:
+      methodPattern: org.apache.logging.log4j.Logger error(..)
+  - org.openrewrite.java.logging.ParameterizedLogging:
+      methodPattern: org.apache.logging.log4j.Logger fatal(..)
+  ## included because in Log4j2, org.apache.log4j.Category is not convinced it becomes org.apache.logging.log4j.Logger todo
+  - org.openrewrite.java.logging.ParameterizedLogging:
+      methodPattern: org.apache.logging.log4j.Category info(..)
+  - org.openrewrite.java.logging.ParameterizedLogging:
+      methodPattern: org.apache.logging.log4j.Logger trace(..)
+  - org.openrewrite.java.logging.ParameterizedLogging:
+      methodPattern: org.apache.logging.log4j.Category debug(..)
+  - org.openrewrite.java.logging.ParameterizedLogging:
+      methodPattern: org.apache.logging.log4j.Category info(..)
+  - org.openrewrite.java.logging.ParameterizedLogging:
+      methodPattern: org.apache.logging.log4j.Category warn(..)
+  - org.openrewrite.java.logging.ParameterizedLogging:
+      methodPattern: org.apache.logging.log4j.Category error(..)
+  - org.openrewrite.java.logging.ParameterizedLogging:
+      methodPattern: org.apache.logging.log4j.Category fatal(..)
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.logging.log4j.Log4j1ToLog4j2
+displayName: Migrate Log4j 1.x to Log4j 2.x
+description: Migrates Log4j 1.x to Log4j 2.x.
+tags:
+  - logging
+  - log4j
+recipeList:
+  - org.openrewrite.java.ChangePackage:
+      oldPackageName: org.apache.log4j
+      newPackageName: org.apache.logging.log4j
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.apache.logging.log4j.Logger getLogger(..)
+      fullyQualifiedTargetTypeName: org.apache.logging.log4j.LogManager
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.apache.logging.log4j.Logger getRootLogger()
+      fullyQualifiedTargetTypeName: org.apache.logging.log4j.LogManager
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.apache.logging.log4j.Category getEffectiveLevel()
+      newMethodName: getLevel
+  - org.openrewrite.java.logging.log4j.ParameterizedLogging
