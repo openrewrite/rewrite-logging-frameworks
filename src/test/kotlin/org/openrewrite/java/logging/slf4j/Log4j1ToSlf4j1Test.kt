@@ -16,19 +16,23 @@
 package org.openrewrite.java.logging.slf4j
 
 import org.junit.jupiter.api.Test
+import org.openrewrite.Issue
 import org.openrewrite.Recipe
+import org.openrewrite.config.Environment
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
 @Suppress("RedundantSlf4jDefinition")
-class Log4jToSlf4jTest : JavaRecipeTest {
+class Log4j1ToSlf4j1Test : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
         .logCompilationWarningsAndErrors(true)
         .classpath("log4j")
         .build()
 
-    override val recipe: Recipe
-        get() = Log4jToSlf4j()
+    override val recipe: Recipe = Environment.builder()
+        .scanRuntimeClasspath("org.openrewrite.java.logging")
+        .build()
+        .activateRecipes("org.openrewrite.java.logging.slf4j.Log4j1ToSlf4j1")
 
     @Test
     fun useLoggerFactory() = assertChanged(
@@ -69,6 +73,29 @@ class Log4jToSlf4jTest : JavaRecipeTest {
             class Test {
                 static void method(Logger logger) {
                     logger.error("uh oh");
+                }
+            }
+        """
+    )
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/47")
+    fun migrateMDC() = assertChanged(
+        before = """
+            import org.apache.log4j.MDC;
+
+            class Test {
+                static void method() {
+                    MDC.clear();
+                }
+            }
+        """,
+        after = """
+            import org.slf4j.MDC;
+
+            class Test {
+                static void method() {
+                    MDC.clear();
                 }
             }
         """

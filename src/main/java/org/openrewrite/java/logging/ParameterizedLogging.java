@@ -72,49 +72,39 @@ public class ParameterizedLogging extends Recipe {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
-                if (matcher.matches(m) &&
-                        !m.getArguments().isEmpty() &&
-                        !(m.getArguments().get(0) instanceof J.Empty) &&
-                        m.getArguments().size() <= 2 &&
-                        m.getArguments().get(0) instanceof J.Binary) {
-                    final StringBuilder messageBuilder = new StringBuilder("\"");
-                    final List<Expression> newArgList = new ArrayList<>();
-                    ListUtils.map(m.getArguments(), (index, message) -> {
-                        if (index == 0 && message instanceof J.Binary) {
-                            MessageAndArguments literalAndArgs = concatenationToLiteral(message, new MessageAndArguments("", new ArrayList<>()));
-                            messageBuilder.append(escapeJava(literalAndArgs.message));
-                            newArgList.addAll(literalAndArgs.arguments);
-                        } else {
-                            newArgList.add(message);
-                        }
-                        return message;
-                    });
-                    messageBuilder.append("\"");
-                    newArgList.forEach(arg -> messageBuilder.append(", #{any()}"));
-                    m = m.withTemplate(
-                            JavaTemplate.builder(this::getCursor, messageBuilder.toString())
-                                    .build(),
-                            m.getCoordinates().replaceArguments(),
-                            newArgList.toArray()
-                    );
-                }
-
-                // todo
-                if (matcher.matches(m)) {
-                    List<Expression> args = m.getArguments();
-                    if (!args.isEmpty()) {
-                        Expression message = args.iterator().next();
-                        if (!TypeUtils.isString(message.getType()) || message instanceof J.MethodInvocation) {
-                            if (message.getType() instanceof JavaType.Class) {
-                                final StringBuilder messageBuilder = new StringBuilder("\"{}\"");
-                                m.getArguments().forEach(arg -> messageBuilder.append(", #{any()}"));
-                                m = m.withTemplate(
-                                        JavaTemplate.builder(this::getCursor, messageBuilder.toString())
-                                                .build(),
-                                        m.getCoordinates().replaceArguments(),
-                                        m.getArguments().toArray()
-                                );
+                if (matcher.matches(m) && !m.getArguments().isEmpty() && !(m.getArguments().get(0) instanceof J.Empty) && m.getArguments().size() <= 2) {
+                    Expression logMsg = m.getArguments().get(0);
+                    if (logMsg instanceof J.Binary) {
+                        final StringBuilder messageBuilder = new StringBuilder("\"");
+                        final List<Expression> newArgList = new ArrayList<>();
+                        ListUtils.map(m.getArguments(), (index, message) -> {
+                            if (index == 0 && message instanceof J.Binary) {
+                                MessageAndArguments literalAndArgs = concatenationToLiteral(message, new MessageAndArguments("", new ArrayList<>()));
+                                messageBuilder.append(escapeJava(literalAndArgs.message));
+                                newArgList.addAll(literalAndArgs.arguments);
+                            } else {
+                                newArgList.add(message);
                             }
+                            return message;
+                        });
+                        messageBuilder.append("\"");
+                        newArgList.forEach(arg -> messageBuilder.append(", #{any()}"));
+                        m = m.withTemplate(
+                                JavaTemplate.builder(this::getCursor, messageBuilder.toString())
+                                        .build(),
+                                m.getCoordinates().replaceArguments(),
+                                newArgList.toArray()
+                        );
+                    } else if (!TypeUtils.isString(logMsg.getType()) || logMsg instanceof J.MethodInvocation) {
+                        if (logMsg.getType() instanceof JavaType.Class) {
+                            final StringBuilder messageBuilder = new StringBuilder("\"{}\"");
+                            m.getArguments().forEach(arg -> messageBuilder.append(", #{any()}"));
+                            m = m.withTemplate(
+                                    JavaTemplate.builder(this::getCursor, messageBuilder.toString())
+                                            .build(),
+                                    m.getCoordinates().replaceArguments(),
+                                    m.getArguments().toArray()
+                            );
                         }
                     }
                 }

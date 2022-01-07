@@ -15,6 +15,19 @@
 #
 ---
 type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.logging.slf4j.Log4jToSlf4j
+displayName: Migrate Log4j to SLF4J
+description: Migrates usage of Apache Log4j to using SLF4J directly. Note, this currently does not modify `log4j.properties` files.
+tags:
+  - logging
+  - slf4j
+  - log4j
+recipeList:
+  # note, the idea for this recipe is to be syntactic sugar to easily specify the desire to migrate from any version of log4j (1.x or 2.x, etc.)
+  # and migrate it to the latest version of slf4j (1.x currently, but will be 2.x in the future)
+  - org.openrewrite.java.logging.slf4j.Log4j2ToSlf4j1
+---
+type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.slf4j.ParameterizedLogging
 displayName: Parameterize SLF4J logging statements
 description: SLF4J supports parameterized logging, which can significantly boost logging performance for disabled logging statements.
@@ -33,3 +46,44 @@ recipeList:
       methodPattern: org.slf4j.Logger warn(..)
   - org.openrewrite.java.logging.ParameterizedLogging:
       methodPattern: org.slf4j.Logger error(..)
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.logging.slf4j.Log4j2ToSlf4j1
+displayName: Migrate Log4j 2.x to SLF4J 1.x
+description: Use of the traditional Log4j to SLF4J bridge can result in loss of performance, as the Log4j2 messages must be formatted before they can be passed to SLF4J. Note, this currently does not modify `log4j.properties` files.
+tags:
+  - logging
+  - slf4j
+  - log4j
+recipeList:
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.apache.logging.log4j.LogManager
+      newFullyQualifiedTypeName: org.slf4j.LoggerFactory
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.apache.logging.log4j.Logger fatal(..)
+      newMethodName: error
+  - org.openrewrite.java.ChangeMethodName:
+      # here to convince org.apache.log4j.Logger fatal(..) invocations chained from Log4j1ToLog4j2 they should be migrated too
+      # consider fixing issue in the future; this occurs when using Log4j1ToSlf4j1 todo
+      methodPattern: org.apache.logging.log4j.Category fatal(..)
+      newMethodName: error
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.apache.logging.log4j.Logger
+      newFullyQualifiedTypeName: org.slf4j.Logger
+  - org.openrewrite.java.logging.slf4j.ParameterizedLogging
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.logging.slf4j.Log4j1ToSlf4j1
+displayName: Migrate Log4j 1.x to SLF4J 1.x
+description: Transforms usages of Log4j 1.x to leveraging SLF4J 1.x directly. Note, this currently does not modify `log4j.properties` files.
+tags:
+  - logging
+  - slf4j
+  - log4j
+recipeList:
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.apache.log4j.MDC
+      newFullyQualifiedTypeName: org.slf4j.MDC
+  - org.openrewrite.java.logging.log4j.Log4j1ToLog4j2
+  - org.openrewrite.java.logging.slf4j.Log4j2ToSlf4j1
+  - org.openrewrite.java.logging.slf4j.ParameterizedLogging

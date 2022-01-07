@@ -17,18 +17,20 @@ package org.openrewrite.java.logging.slf4j
 
 import org.junit.jupiter.api.Test
 import org.openrewrite.Recipe
+import org.openrewrite.config.Environment
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
-@Suppress("RedundantSlf4jDefinition")
-class Log4j2ToSlf4jTest : JavaRecipeTest {
+class Log4j2ToSlf4j1Test : JavaRecipeTest {
     override val parser: JavaParser = JavaParser.fromJavaVersion()
         .logCompilationWarningsAndErrors(true)
         .classpath("log4j-api", "log4j-core")
         .build()
 
-    override val recipe: Recipe
-        get() = Log4j2ToSlf4j()
+    override val recipe: Recipe = Environment.builder()
+        .scanRuntimeClasspath("org.openrewrite.java.logging")
+        .build()
+        .activateRecipes("org.openrewrite.java.logging.slf4j.Log4j2ToSlf4j1")
 
     @Test
     fun logLevelFatalToError() = assertChanged(
