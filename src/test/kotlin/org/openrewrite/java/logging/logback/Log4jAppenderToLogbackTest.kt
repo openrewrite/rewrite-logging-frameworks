@@ -64,8 +64,7 @@ class Log4jAppenderToLogbackTest : JavaRecipeTest {
                     System.out.println(s);
                 }
             }
-        """,
-        typeValidation = { identifiers = false }
+        """
     )
 
 }

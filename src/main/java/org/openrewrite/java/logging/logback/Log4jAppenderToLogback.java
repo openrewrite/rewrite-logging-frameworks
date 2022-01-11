@@ -25,25 +25,19 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
-/**
- * {@link Log4jAppenderToLogbackVisitor} operates on the following assumptions:
- * <ul>
- *     <li>The contents of the append() method remains unchanged.</li>
- *     <li>The requiresLayout() method is not used in logback and can be removed.</li>
- *     <li>In logback, the stop() method is the equivalent of log4j's close() method.</li>
- * </ul>
- *
- * @see <a href="http://logback.qos.ch/manual/migrationFromLog4j.html">Migration from log4j</a>
- */
 public class Log4jAppenderToLogback extends Recipe {
     @Override
     public String getDisplayName() {
-        return "Migrate from Log4j appender";
+        return "Migrate Log4j 2.x Appender to logback-classic equivalents";
     }
 
     @Override
     public String getDescription() {
-        return "Migrates custom Log4j appender components to `logback-classic`.";
+        return "Migrates custom Log4j 2.x Appender components to `logback-classic`. This recipe operates on the following assumptions: " +
+                "1.) The contents of the `append()` method remains unchanged. " +
+                "2.) The `requiresLayout()` method is not used in logback and can be removed. " +
+                "3.) In logback, the `stop()` method is the equivalent of log4j's close() method. " +
+                "For more details, see this page from logback: [`Migration from log4j`](http://logback.qos.ch/manual/migrationFromLog4j.html).";
     }
 
     @Override
@@ -53,63 +47,60 @@ public class Log4jAppenderToLogback extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new Log4jAppenderToLogbackVisitor();
-    }
-
-    public static class Log4jAppenderToLogbackVisitor extends JavaIsoVisitor<ExecutionContext> {
-        @Override
-        public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-            doAfterVisit(new ChangeMethodName("org.apache.log4j.Layout format(..)", "doLayout", null));
-            return super.visitCompilationUnit(cu, ctx);
-        }
-
-        @Override
-        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
-            J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
-
-            if (cd.getExtends() != null && cd.getExtends().getType() != null) {
-                JavaType.FullyQualified fullyQualifiedExtends = TypeUtils.asFullyQualified(cd.getExtends().getType());
-                if (fullyQualifiedExtends != null && "org.apache.log4j.AppenderSkeleton".equals(fullyQualifiedExtends.getFullyQualifiedName())) {
-
-                    maybeRemoveImport("org.apache.log4j.AppenderSkeleton");
-                    maybeAddImport("ch.qos.logback.core.AppenderBase");
-                    maybeAddImport("ch.qos.logback.classic.spi.ILoggingEvent");
-
-                    doAfterVisit(new ChangeType("org.apache.log4j.spi.LoggingEvent", "ch.qos.logback.classic.spi.ILoggingEvent"));
-                    doAfterVisit(new ChangeType("org.apache.log4j.Layout", "ch.qos.logback.core.LayoutBase"));
-
-                    cd = cd.withTemplate(
-                            JavaTemplate.builder(this::getCursor, "AppenderBase<ILoggingEvent>")
-                                    .imports("ch.qos.logback.core.AppenderBase", "ch.qos.logback.classic.spi.ILoggingEvent")
-                                    .build(),
-                            cd.getCoordinates().replaceExtendsClause()
-                    );
-
-                    // should be covered by maybeAddImport, todo
-                    doAfterVisit(new AddImport<>("ch.qos.logback.core.AppenderBase", null, false));
-                }
-
-                cd = cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), statement -> {
-                    if (statement instanceof J.MethodDeclaration) {
-                        J.MethodDeclaration method = (J.MethodDeclaration) statement;
-                        if ("requiresLayout".equals(method.getSimpleName())) {
-                            return null;
-                        } else if ("close".equals(method.getSimpleName())) {
-                            if (method.getBody() != null && method.getBody().getStatements().isEmpty()) {
-                                return null;
-                            }
-
-                            return method.withName(method.getName().withSimpleName("stop"));
-                        }
-                    }
-                    return statement;
-                })));
-
+        return new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+                doAfterVisit(new ChangeMethodName("org.apache.log4j.Layout format(..)", "doLayout", null));
+                return super.visitCompilationUnit(cu, ctx);
             }
 
-            return cd;
-        }
+            @Override
+            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+                J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
 
+                if (cd.getExtends() != null && cd.getExtends().getType() != null) {
+                    JavaType.FullyQualified fullyQualifiedExtends = TypeUtils.asFullyQualified(cd.getExtends().getType());
+                    if (fullyQualifiedExtends != null && "org.apache.log4j.AppenderSkeleton".equals(fullyQualifiedExtends.getFullyQualifiedName())) {
+
+                        maybeRemoveImport("org.apache.log4j.AppenderSkeleton");
+                        maybeAddImport("ch.qos.logback.core.AppenderBase");
+                        maybeAddImport("ch.qos.logback.classic.spi.ILoggingEvent");
+
+                        doAfterVisit(new ChangeType("org.apache.log4j.spi.LoggingEvent", "ch.qos.logback.classic.spi.ILoggingEvent"));
+                        doAfterVisit(new ChangeType("org.apache.log4j.Layout", "ch.qos.logback.core.LayoutBase"));
+
+                        cd = cd.withTemplate(
+                                JavaTemplate.builder(this::getCursor, "AppenderBase<ILoggingEvent>")
+                                        .imports("ch.qos.logback.core.AppenderBase", "ch.qos.logback.classic.spi.ILoggingEvent")
+                                        .build(),
+                                cd.getCoordinates().replaceExtendsClause()
+                        );
+
+                        // should be covered by maybeAddImport, todo
+                        doAfterVisit(new AddImport<>("ch.qos.logback.core.AppenderBase", null, false));
+                    }
+
+                    cd = cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), statement -> {
+                        if (statement instanceof J.MethodDeclaration) {
+                            J.MethodDeclaration method = (J.MethodDeclaration) statement;
+                            if ("requiresLayout".equals(method.getSimpleName())) {
+                                return null;
+                            } else if ("close".equals(method.getSimpleName())) {
+                                if (method.getBody() != null && method.getBody().getStatements().isEmpty()) {
+                                    return null;
+                                }
+
+                                return method.withName(method.getName().withSimpleName("stop"));
+                            }
+                        }
+                        return statement;
+                    })));
+
+                }
+
+                return cd;
+            }
+        };
     }
 
 }
