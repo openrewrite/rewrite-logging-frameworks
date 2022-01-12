@@ -16,12 +16,32 @@
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.logback.Log4jToLogback
-displayName: Migrate Log4j to Logback
-description: Migrates usage of Apache Log4j to using Logback directly. Note, this currently does not modify `log4j.properties` files.
+displayName: Migrate Log4j 2.x to Logback
+description: Migrates usage of Apache Log4j 2.x to using `logback` as an SLF4J implementation directly. Note, this currently does not modify `log4j.properties` files.
 tags:
   - logging
   - log4j
   - logback
 recipeList:
+  ## Start by moving Log4J to the abstract of SLF4J, then having SLF4J implementation dependencies are on logback.
+  - org.openrewrite.java.logging.slf4j.Log4jToSlf4j
   - org.openrewrite.java.logging.logback.Log4jAppenderToLogback
   - org.openrewrite.java.logging.logback.Log4jLayoutToLogback
+  - org.openrewrite.maven.AddDependency:
+      groupId: ch.qos.logback
+      artifactId: logback-core
+      version: latest.release
+      onlyIfUsing: org.apache.logging.log4j.*
+  - org.openrewrite.maven.AddDependency:
+      groupId: ch.qos.logback
+      artifactId: logback-classic
+      version: latest.release
+      onlyIfUsing: org.apache.logging.log4j.*
+  - org.openrewrite.maven.AddDependency:
+      groupId: org.slf4j
+      artifactId: slf4j-api
+      version: latest.release
+      onlyIfUsing: org.apache.logging.log4j.*
+  - org.openrewrite.maven.RemoveDependency:
+      groupId: org.apache.logging.log4j
+      artifactId: log4j-*
