@@ -17,6 +17,7 @@ plugins {
 
     id("com.github.hierynomus.license") version "0.16.1"
     id("com.github.jk1.dependency-license-report") version "1.16"
+    id("org.owasp.dependencycheck") version "6.5.3"
 
     id("nebula.maven-publish") version "17.3.2"
     id("nebula.contacts") version "5.1.0"
@@ -26,18 +27,22 @@ plugins {
     id("nebula.source-jar") version "17.3.2"
     id("nebula.maven-apache-license") version "17.3.2"
 
-    id("org.openrewrite.rewrite") version "latest.integration"
+    id("org.openrewrite.rewrite") version "latest.release"
 }
 
 apply(plugin = "nebula.publish-verification")
 
 rewrite {
-    rewriteVersion = "latest.integration"
     activeRecipe("org.openrewrite.java.format.AutoFormat", "org.openrewrite.java.cleanup.Cleanup")
 }
 
 configure<nebula.plugin.release.git.base.ReleasePluginExtension> {
     defaultVersionStrategy = nebula.plugin.release.NetflixOssStrategies.SNAPSHOT(project)
+}
+
+dependencyCheck {
+    analyzers.assemblyEnabled = false
+    failBuildOnCVSS = 9.0F
 }
 
 group = "org.openrewrite.recipe"
