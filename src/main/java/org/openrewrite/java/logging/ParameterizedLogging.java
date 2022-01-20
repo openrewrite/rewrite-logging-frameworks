@@ -114,7 +114,7 @@ public class ParameterizedLogging extends Recipe {
         };
     }
 
-    private static class MessageAndArguments {
+    private static final class MessageAndArguments {
         private final List<Expression> arguments;
         private String message;
 
