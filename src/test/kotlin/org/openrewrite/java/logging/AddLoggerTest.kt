@@ -31,7 +31,7 @@ class AddLoggerTest : JavaRecipeTest {
 
     @Test
     fun addLogger() = assertChanged(
-        recipe = toRecipe { AddLogger.addSlf4jLogger() },
+        recipe = toRecipe { AddLogger.addSlf4jLogger("LOGGER") },
         before = """
             package test;
             class Test {
@@ -91,7 +91,7 @@ class AddLoggerTest : JavaRecipeTest {
         override fun getVisitor() = object : JavaIsoVisitor<ExecutionContext>() {
             override fun visitClassDeclaration(classDecl: J.ClassDeclaration, p: ExecutionContext): J.ClassDeclaration {
                 if (classDecl.simpleName == simpleName) {
-                    doAfterVisit(AddLogger.maybeAddLogger(cursor, AddLogger.addSlf4jLogger()))
+                    doAfterVisit(AddLogger.maybeAddLogger(cursor, AddLogger.addSlf4jLogger("LOGGER")))
                 }
                 return super.visitClassDeclaration(classDecl, p)
             }

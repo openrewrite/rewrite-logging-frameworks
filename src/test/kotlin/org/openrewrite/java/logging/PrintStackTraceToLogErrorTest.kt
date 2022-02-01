@@ -27,7 +27,7 @@ class PrintStackTraceToLogErrorTest : JavaRecipeTest {
         parser = JavaParser.fromJavaVersion()
             .classpath("slf4j-api")
             .build(),
-        recipe = PrintStackTraceToLogError(null, null),
+        recipe = PrintStackTraceToLogError(null, "LOGGER", null),
         before = """
             import org.slf4j.Logger;
             class Test {
@@ -65,7 +65,7 @@ class PrintStackTraceToLogErrorTest : JavaRecipeTest {
         parser = JavaParser.fromJavaVersion()
             .classpath("log4j-api")
             .build(),
-        recipe = PrintStackTraceToLogError(null, LoggingFramework.Log4J2),
+        recipe = PrintStackTraceToLogError(null, "LOGGER", LoggingFramework.Log4J2),
         before = """
             import org.apache.logging.log4j.Logger;
             class Test {
@@ -96,7 +96,7 @@ class PrintStackTraceToLogErrorTest : JavaRecipeTest {
 
     @Test
     fun useJul() = assertChanged(
-        recipe = PrintStackTraceToLogError(null, LoggingFramework.JUL),
+        recipe = PrintStackTraceToLogError(null, "LOGGER", LoggingFramework.JUL),
         before = """
             import java.util.logging.Logger;
             class Test {
@@ -127,12 +127,13 @@ class PrintStackTraceToLogErrorTest : JavaRecipeTest {
         """
     )
 
+    @Suppress("RedundantSlf4jDefinition")
     @Test
     fun addLogger() = assertChanged(
         parser = JavaParser.fromJavaVersion()
             .classpath("slf4j-api")
             .build(),
-        recipe = PrintStackTraceToLogError(true, null),
+        recipe = PrintStackTraceToLogError(true, "LOGGER", null),
         before = """
             class Test {
                 void test() {

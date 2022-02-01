@@ -36,29 +36,31 @@ import java.util.function.Function;
 public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
     private final String loggerType;
     private final String factoryType;
+    private final String loggerName;
     private final JavaTemplate template;
 
-    public AddLogger(String loggerType, String factoryType, Function<JavaVisitor<?>, JavaTemplate> template) {
+    public AddLogger(String loggerType, String factoryType, String loggerName, Function<JavaVisitor<?>, JavaTemplate> template) {
         this.loggerType = loggerType;
         this.factoryType = factoryType;
+        this.loggerName = loggerName;
         this.template = template.apply(this);
     }
 
-    public static TreeVisitor<J, ExecutionContext> maybeAddLogger(Cursor cursor, LoggingFramework loggingFramework) {
+    public static TreeVisitor<J, ExecutionContext> maybeAddLogger(Cursor cursor, LoggingFramework loggingFramework, String loggerName) {
         AddLogger logger;
         switch(loggingFramework) {
             case Log4J1:
-                logger = addLog4j1Logger();
+                logger = addLog4j1Logger(loggerName);
                 break;
             case Log4J2:
-                logger = addLog4j2Logger();
+                logger = addLog4j2Logger(loggerName);
                 break;
             case JUL:
-                logger = addJulLogger();
+                logger = addJulLogger(loggerName);
                 break;
             case SLF4J:
             default:
-                logger = addSlf4jLogger();
+                logger = addSlf4jLogger(loggerName);
                 break;
         }
 
@@ -75,10 +77,10 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
                 TreeVisitor.noop();
     }
 
-    public static AddLogger addSlf4jLogger() {
-        return new AddLogger("org.slf4j.Logger", "org.slf4j.LoggerFactory", visitor ->
+    public static AddLogger addSlf4jLogger(String loggerName) {
+        return new AddLogger("org.slf4j.Logger", "org.slf4j.LoggerFactory", loggerName, visitor ->
                 JavaTemplate
-                        .builder(visitor::getCursor, "private static final Logger LOGGER = LoggerFactory.getLogger(#{}.class);")
+                        .builder(visitor::getCursor, "private static final Logger #{} = LoggerFactory.getLogger(#{}.class);")
                         .imports("org.slf4j.Logger", "org.slf4j.LoggerFactory")
                         .javaParser(() -> JavaParser.fromJavaVersion()
                                 .classpath("slf4j-api")
@@ -87,19 +89,19 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
         );
     }
 
-    public static AddLogger addJulLogger() {
-        return new AddLogger("java.util.logging.Logger", "java.util.logging.LogManager", visitor ->
+    public static AddLogger addJulLogger(String loggerName) {
+        return new AddLogger("java.util.logging.Logger", "java.util.logging.LogManager", loggerName, visitor ->
                 JavaTemplate
-                        .builder(visitor::getCursor, "private static final Logger LOGGER = LogManager.getLogger(\"#{}\");")
+                        .builder(visitor::getCursor, "private static final Logger #{} = LogManager.getLogger(\"#{}\");")
                         .imports("java.util.logging.Logger", "java.util.logging.LogManager")
                         .build()
         );
     }
 
-    public static AddLogger addLog4j1Logger() {
-        return new AddLogger("org.apache.log4j.Logger", "org.apache.log4j.LogManager", visitor ->
+    public static AddLogger addLog4j1Logger(String loggerName) {
+        return new AddLogger("org.apache.log4j.Logger", "org.apache.log4j.LogManager", loggerName, visitor ->
                 JavaTemplate
-                        .builder(visitor::getCursor, "private static final Logger LOGGER = LogManager.getLogger(#{}.class);")
+                        .builder(visitor::getCursor, "private static final Logger #{} = LogManager.getLogger(#{}.class);")
                         .imports("org.apache.log4j.Logger", "org.apache.log4j.LogManager")
                         .javaParser(() -> JavaParser.fromJavaVersion()
                                 .classpath("log4j")
@@ -108,10 +110,10 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
         );
     }
 
-    public static AddLogger addLog4j2Logger() {
-        return new AddLogger("org.apache.logging.log4j.Logger", "org.apache.logging.log4j.LogManager", visitor ->
+    public static AddLogger addLog4j2Logger(String loggerName) {
+        return new AddLogger("org.apache.logging.log4j.Logger", "org.apache.logging.log4j.LogManager", loggerName, visitor ->
                 JavaTemplate
-                        .builder(visitor::getCursor, "private static final Logger LOGGER = LogManager.getLogger(#{}.class);")
+                        .builder(visitor::getCursor, "private static final Logger #{} = LogManager.getLogger(#{}.class);")
                         .imports("org.apache.logging.log4j.Logger", "org.apache.logging.log4j.LogManager")
                         .javaParser(() -> JavaParser.fromJavaVersion()
                                 .classpath("log4j-api")
@@ -123,7 +125,7 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
     @Override
     public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
         J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
-        cd = cd.withTemplate(template, cd.getBody().getCoordinates().firstStatement(), cd.getSimpleName());
+        cd = cd.withTemplate(template, cd.getBody().getCoordinates().firstStatement(), loggerName, cd.getSimpleName());
 
         // ensure the appropriate number of blank lines on next statement after new field
         J.ClassDeclaration formatted = (J.ClassDeclaration) new AutoFormatVisitor<ExecutionContext>().visitNonNull(cd, ctx, getCursor());

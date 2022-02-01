@@ -38,6 +38,12 @@ public class PrintStackTraceToLogError extends Recipe {
     @Nullable
     Boolean addLogger;
 
+    @Option(displayName = "Logger name",
+            description = "The name of the logger to use when generating a field.",
+            required = false)
+    @Nullable
+    String loggerName;
+
     @Option(displayName = "Logging framework",
             description = "The logging framework to use.",
             valid = {"SLF4J", "Log4J", "Log4J 2", "JUL"},
@@ -95,7 +101,7 @@ public class PrintStackTraceToLogError extends Recipe {
                             maybeAddImport("java.util.logging.Level");
                         }
                     } else if (addLogger != null && addLogger) {
-                        doAfterVisit(AddLogger.maybeAddLogger(getCursor(), framework));
+                        doAfterVisit(AddLogger.maybeAddLogger(getCursor(), framework, loggerName == null ? "logger" : loggerName));
 
                         // the print statement will be replaced on the subsequent pass
                         doAfterVisit(this);
