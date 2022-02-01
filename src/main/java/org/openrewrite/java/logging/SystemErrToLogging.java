@@ -90,6 +90,8 @@ public class SystemErrToLogging extends Recipe {
                 J.Block b = super.visitBlock(block, executionContext);
 
                 AtomicBoolean addedLogger = new AtomicBoolean(false);
+                AtomicBoolean foundPrint = new AtomicBoolean(false);
+
                 b = b.withStatements(ListUtils.map(b.getStatements(), (i, stat) -> {
                     if (stat instanceof J.MethodInvocation) {
                         J.MethodInvocation m = (J.MethodInvocation) stat;
@@ -99,6 +101,7 @@ public class SystemErrToLogging extends Recipe {
                                 if (field != null && field.getName().equals("err") && TypeUtils.isOfClassType(field.getOwner(), "java.lang.System")) {
                                     J.MethodInvocation unchangedIfAddedLogger = logInsteadOfPrint(m, exceptionPrintStackTrace(block));
                                     addedLogger.set(unchangedIfAddedLogger == m);
+                                    foundPrint.set(true);
                                     return unchangedIfAddedLogger;
                                 }
                             }
@@ -110,7 +113,7 @@ public class SystemErrToLogging extends Recipe {
                     return stat;
                 }));
 
-                return addedLogger.get() ? block : b;
+                return addedLogger.get() && foundPrint.get() ? block : b;
             }
 
             private J.MethodInvocation logInsteadOfPrint(J.MethodInvocation print, @Nullable Expression exceptionPrintStackTrace) {
