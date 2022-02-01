@@ -91,4 +91,19 @@ class SystemErrToLoggingTest : JavaRecipeTest {
             }
         """
     )
+
+    @Test
+    fun dontChangePrintStackTrace() = assertUnchanged(
+        recipe = SystemErrToLogging(true, "LOGGER", null),
+        before = """
+            class Test {
+                void test() {
+                    try {
+                    } catch(Throwable t) {
+                        t.printStackTrace();
+                    }
+                }
+            }
+        """
+    )
 }

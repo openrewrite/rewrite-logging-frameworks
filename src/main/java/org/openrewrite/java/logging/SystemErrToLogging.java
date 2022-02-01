@@ -113,7 +113,7 @@ public class SystemErrToLogging extends Recipe {
                     return stat;
                 }));
 
-                return addedLogger.get() && foundPrint.get() ? block : b;
+                return addedLogger.get() || !foundPrint.get() ? block : b;
             }
 
             private J.MethodInvocation logInsteadOfPrint(J.MethodInvocation print, @Nullable Expression exceptionPrintStackTrace) {
