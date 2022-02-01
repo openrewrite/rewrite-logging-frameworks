@@ -58,24 +58,24 @@ public class PrintStackTraceToLogError extends Recipe {
             final JavaTemplate slf4jError = JavaTemplate
                     .builder(this::getCursor, "#{any(org.slf4j.Logger)}.error(\"Exception\", #{any(java.lang.Throwable)}")
                     .javaParser(() -> JavaParser.fromJavaVersion()
-                            .dependsOn("" +
-                                    "package org.slf4j;" +
-                                    "public interface Logger {" +
-                                    "    void error(String msg, Throwable t);" +
-                                    "}")
-                            .build()
+                                    .dependsOn("" +
+                                            "package org.slf4j;" +
+                                            "public interface Logger {" +
+                                            "    void error(String msg, Throwable t);" +
+                                            "}")
+                                    .build()
                     )
                     .build();
 
             final JavaTemplate log4jError = JavaTemplate
                     .builder(this::getCursor, "#{any(org.apache.log4j.Category)}.error(\"Exception\", #{any(java.lang.Throwable)}")
                     .javaParser(() -> JavaParser.fromJavaVersion()
-                            .dependsOn("" +
-                                    "package org.apache.log4j;" +
-                                    "public interface Category {" +
-                                    "    void error(Object msg, Throwable t);" +
-                                    "}")
-                            .build()
+                                    .dependsOn("" +
+                                            "package org.apache.log4j;" +
+                                            "public interface Category {" +
+                                            "    void error(Object msg, Throwable t);" +
+                                            "}")
+                                    .build()
                     )
                     .build();
 
