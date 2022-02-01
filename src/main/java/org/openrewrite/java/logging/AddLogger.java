@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.logging;
 
-import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;

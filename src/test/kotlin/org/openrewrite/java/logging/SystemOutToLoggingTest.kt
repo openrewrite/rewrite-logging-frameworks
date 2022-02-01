@@ -50,4 +50,33 @@ class SystemOutToLoggingTest : JavaRecipeTest {
             }
         """
     )
+
+    @Test
+    fun inRunnable() = assertChanged(
+        parser = JavaParser.fromJavaVersion()
+            .logCompilationWarningsAndErrors(true)
+            .classpath("slf4j-api")
+            .build(),
+        recipe = SystemOutToLogging(null, "LOGGER", null, "debug"),
+        before = """
+            import org.slf4j.Logger;
+            class Test {
+                Logger logger;
+                
+                void test() {
+                    Runnable r = () -> System.out.println("single");
+                }
+            }
+        """,
+        after = """
+            import org.slf4j.Logger;
+            class Test {
+                Logger logger;
+                
+                void test() {
+                    Runnable r = () -> logger.debug("single");
+                }
+            }
+        """
+    )
 }

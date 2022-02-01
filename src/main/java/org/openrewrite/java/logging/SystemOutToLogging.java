@@ -96,32 +96,17 @@ public class SystemOutToLogging extends Recipe {
 
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
-            public J.Block visitBlock(J.Block block, ExecutionContext ctx) {
-                J.Block b = super.visitBlock(block, ctx);
-
-                AtomicBoolean addedLogger = new AtomicBoolean(false);
-                AtomicInteger skip = new AtomicInteger(-1);
-
-                b = b.withStatements(ListUtils.map(b.getStatements(), (i, stat) -> {
-                    if (skip.get() == i) {
-                        return null;
-                    } else if (stat instanceof J.MethodInvocation) {
-                        J.MethodInvocation m = (J.MethodInvocation) stat;
-                        if (systemOutPrint.matches((Expression) stat)) {
-                            if (m.getSelect() != null && m.getSelect() instanceof J.FieldAccess) {
-                                JavaType.Variable field = ((J.FieldAccess) m.getSelect()).getName().getFieldType();
-                                if (field != null && field.getName().equals("out") && TypeUtils.isOfClassType(field.getOwner(), "java.lang.System")) {
-                                    J.MethodInvocation unchangedIfAddedLogger = logInsteadOfPrint(m, ctx);
-                                    addedLogger.set(unchangedIfAddedLogger == m);
-                                    return unchangedIfAddedLogger;
-                                }
-                            }
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
+                if (systemOutPrint.matches((Expression) method)) {
+                    if (m.getSelect() != null && m.getSelect() instanceof J.FieldAccess) {
+                        JavaType.Variable field = ((J.FieldAccess) m.getSelect()).getName().getFieldType();
+                        if (field != null && field.getName().equals("out") && TypeUtils.isOfClassType(field.getOwner(), "java.lang.System")) {
+                            return logInsteadOfPrint(m, ctx);
                         }
                     }
-                    return stat;
-                }));
-
-                return addedLogger.get() ? block : b;
+                }
+                return m;
             }
 
             private J.MethodInvocation logInsteadOfPrint(J.MethodInvocation print, ExecutionContext ctx) {
