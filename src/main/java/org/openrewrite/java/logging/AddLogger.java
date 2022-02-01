@@ -46,35 +46,18 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
         this.template = template.apply(this);
     }
 
-    public static TreeVisitor<J, ExecutionContext> maybeAddLogger(Cursor cursor, LoggingFramework loggingFramework, String loggerName) {
-        AddLogger logger;
+    public static TreeVisitor<J, ExecutionContext> addLogger(LoggingFramework loggingFramework, String loggerName) {
         switch(loggingFramework) {
             case Log4J1:
-                logger = addLog4j1Logger(loggerName);
-                break;
+                return addLog4j1Logger(loggerName);
             case Log4J2:
-                logger = addLog4j2Logger(loggerName);
-                break;
+                return addLog4j2Logger(loggerName);
             case JUL:
-                logger = addJulLogger(loggerName);
-                break;
+                return addJulLogger(loggerName);
             case SLF4J:
             default:
-                logger = addSlf4jLogger(loggerName);
-                break;
+                return addSlf4jLogger(loggerName);
         }
-
-        J.ClassDeclaration cd = cursor.firstEnclosingOrThrow(J.ClassDeclaration.class);
-        return FindInheritedFields.find(cd, logger.loggerType).isEmpty() && FindFieldsOfType.find(cd, logger.loggerType).isEmpty() ?
-                logger :
-                TreeVisitor.noop();
-    }
-
-    public static TreeVisitor<J, ExecutionContext> maybeAddLogger(Cursor cursor, AddLogger logger) {
-        J.ClassDeclaration cd = cursor.firstEnclosingOrThrow(J.ClassDeclaration.class);
-        return FindInheritedFields.find(cd, logger.loggerType).isEmpty() && FindFieldsOfType.find(cd, logger.loggerType).isEmpty() ?
-                logger :
-                TreeVisitor.noop();
     }
 
     public static AddLogger addSlf4jLogger(String loggerName) {
@@ -125,6 +108,11 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
     @Override
     public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
         J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
+
+        if(!FindInheritedFields.find(cd, loggerType).isEmpty() || !FindFieldsOfType.find(cd, loggerType).isEmpty()) {
+            return cd;
+        }
+
         cd = cd.withTemplate(template, cd.getBody().getCoordinates().firstStatement(), loggerName, cd.getSimpleName());
 
         // ensure the appropriate number of blank lines on next statement after new field

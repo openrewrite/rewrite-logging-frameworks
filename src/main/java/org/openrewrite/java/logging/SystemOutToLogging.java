@@ -36,9 +36,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
-public class SystemErrToLogging extends Recipe {
-    private static final MethodMatcher systemErrPrint = new MethodMatcher("java.io.PrintStream print*(String)");
-    private static final MethodMatcher printStackTrace = new MethodMatcher("java.lang.Throwable printStackTrace(..)");
+public class SystemOutToLogging extends Recipe {
+    private static final MethodMatcher systemOutPrint = new MethodMatcher("java.io.PrintStream print*(String)");
 
     @Option(displayName = "Add logger",
             description = "Add a logger field to the class if it isn't already present.",
@@ -66,7 +65,7 @@ public class SystemErrToLogging extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Replace `System.err` print statements with a logger.";
+        return "Replace `System.out` print statements with a logger.";
     }
 
     @Override
@@ -78,7 +77,7 @@ public class SystemErrToLogging extends Recipe {
         return new JavaVisitor<ExecutionContext>() {
             @Override
             public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
-                doAfterVisit(new UsesMethod<>(systemErrPrint));
+                doAfterVisit(new UsesMethod<>(systemOutPrint));
                 return cu;
             }
         };
@@ -101,20 +100,11 @@ public class SystemErrToLogging extends Recipe {
                         return null;
                     } else if (stat instanceof J.MethodInvocation) {
                         J.MethodInvocation m = (J.MethodInvocation) stat;
-                        if (systemErrPrint.matches((Expression) stat)) {
+                        if (systemOutPrint.matches((Expression) stat)) {
                             if (m.getSelect() != null && m.getSelect() instanceof J.FieldAccess) {
                                 JavaType.Variable field = ((J.FieldAccess) m.getSelect()).getName().getFieldType();
-                                if (field != null && field.getName().equals("err") && TypeUtils.isOfClassType(field.getOwner(), "java.lang.System")) {
-                                    Expression exceptionPrintStackTrace = null;
-                                    if (block.getStatements().size() > i + 1) {
-                                        J next = block.getStatements().get(i + 1);
-                                        if (next instanceof J.MethodInvocation && printStackTrace.matches((Expression) next)) {
-                                            exceptionPrintStackTrace = ((J.MethodInvocation) next).getSelect();
-                                            skip.set(i + 1);
-                                        }
-                                    }
-
-                                    J.MethodInvocation unchangedIfAddedLogger = logInsteadOfPrint(m, ctx, exceptionPrintStackTrace);
+                                if (field != null && field.getName().equals("out") && TypeUtils.isOfClassType(field.getOwner(), "java.lang.System")) {
+                                    J.MethodInvocation unchangedIfAddedLogger = logInsteadOfPrint(m, ctx);
                                     addedLogger.set(unchangedIfAddedLogger == m);
                                     return unchangedIfAddedLogger;
                                 }
@@ -127,25 +117,17 @@ public class SystemErrToLogging extends Recipe {
                 return addedLogger.get() ? block : b;
             }
 
-            private J.MethodInvocation logInsteadOfPrint(J.MethodInvocation print, ExecutionContext ctx, @Nullable Expression exceptionPrintStackTrace) {
+            private J.MethodInvocation logInsteadOfPrint(J.MethodInvocation print, ExecutionContext ctx) {
                 J.ClassDeclaration clazz = getCursor().firstEnclosingOrThrow(J.ClassDeclaration.class);
                 Set<J.VariableDeclarations> loggers = FindFieldsOfType.find(clazz, framework.getLoggerType());
                 if (!loggers.isEmpty()) {
                     J.Identifier computedLoggerName = loggers.iterator().next().getVariables().get(0).getName();
-                    if (exceptionPrintStackTrace == null) {
-                        print = print.withTemplate(getErrorTemplateNoException(this),
-                                print.getCoordinates().replace(),
-                                computedLoggerName,
-                                print.getArguments().get(0));
-                    } else {
-                        print = print.withTemplate(framework.getErrorTemplate(this, "#{any(String)}"),
-                                print.getCoordinates().replace(),
-                                computedLoggerName,
-                                print.getArguments().get(0),
-                                exceptionPrintStackTrace);
-                    }
+                    print = print.withTemplate(getInfoTemplate(this),
+                            print.getCoordinates().replace(),
+                            computedLoggerName,
+                            print.getArguments().get(0));
 
-                    print = (J.MethodInvocation) new ParameterizedLogging(framework.getLoggerType() + " error(..)")
+                    print = (J.MethodInvocation) new ParameterizedLogging(framework.getLoggerType() + " info(..)")
                             .getVisitor()
                             .visitNonNull(print, ctx, getCursor());
 
@@ -161,11 +143,11 @@ public class SystemErrToLogging extends Recipe {
                 return print;
             }
 
-            public <P> JavaTemplate getErrorTemplateNoException(JavaVisitor<P> visitor) {
+            public <P> JavaTemplate getInfoTemplate(JavaVisitor<P> visitor) {
                 switch (framework) {
                     case SLF4J:
                         return JavaTemplate
-                                .builder(visitor::getCursor, "#{any(org.slf4j.Logger)}.error(#{any(String)})")
+                                .builder(visitor::getCursor, "#{any(org.slf4j.Logger)}.info(#{any(String)})")
                                 .javaParser(() -> JavaParser.fromJavaVersion()
                                         .classpath("slf4j-api")
                                         .build()
@@ -173,7 +155,7 @@ public class SystemErrToLogging extends Recipe {
                                 .build();
                     case Log4J1:
                         return JavaTemplate
-                                .builder(visitor::getCursor, "#{any(org.apache.log4j.Category)}.error(#{any(String)})")
+                                .builder(visitor::getCursor, "#{any(org.apache.log4j.Category)}.info(#{any(String)})")
                                 .javaParser(() -> JavaParser.fromJavaVersion()
                                         .classpath("log4j")
                                         .build()
@@ -182,7 +164,7 @@ public class SystemErrToLogging extends Recipe {
 
                     case Log4J2:
                         return JavaTemplate
-                                .builder(visitor::getCursor, "#{any(org.apache.logging.log4j.Logger)}.error(#{any(String)})")
+                                .builder(visitor::getCursor, "#{any(org.apache.logging.log4j.Logger)}.info(#{any(String)})")
                                 .javaParser(() -> JavaParser.fromJavaVersion()
                                         .classpath("log4j-api")
                                         .build()

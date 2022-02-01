@@ -18,6 +18,7 @@ package org.openrewrite.java.logging
 import org.junit.jupiter.api.Test
 import org.openrewrite.ExecutionContext
 import org.openrewrite.Recipe
+import org.openrewrite.TreeVisitor
 import org.openrewrite.java.JavaIsoVisitor
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
@@ -32,6 +33,38 @@ class AddLoggerTest : JavaRecipeTest {
     @Test
     fun addLogger() = assertChanged(
         recipe = toRecipe { AddLogger.addSlf4jLogger("LOGGER") },
+        before = """
+            package test;
+            class Test {
+            }
+        """,
+        after = """
+            package test;
+            
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+            
+            class Test {
+                private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
+            }
+        """,
+        cycles = 1, // because we aren't conditionally adding the logger in this test
+        expectedCyclesThatMakeChanges = 1
+    )
+
+    @Test
+    fun onlyOne() = assertChanged(
+        recipe = object : Recipe() {
+            override fun getDisplayName(): String = "Only one"
+
+            override fun getVisitor(): TreeVisitor<*, ExecutionContext> = object: JavaIsoVisitor<ExecutionContext>() {
+                override fun visitClassDeclaration(classDecl: J.ClassDeclaration, p: ExecutionContext): J.ClassDeclaration {
+                    doAfterVisit(AddLogger.addSlf4jLogger("LOGGER"))
+                    doAfterVisit(AddLogger.addSlf4jLogger("LOGGER"))
+                    return super.visitClassDeclaration(classDecl, p)
+                }
+            }
+        },
         before = """
             package test;
             class Test {
@@ -91,7 +124,7 @@ class AddLoggerTest : JavaRecipeTest {
         override fun getVisitor() = object : JavaIsoVisitor<ExecutionContext>() {
             override fun visitClassDeclaration(classDecl: J.ClassDeclaration, p: ExecutionContext): J.ClassDeclaration {
                 if (classDecl.simpleName == simpleName) {
-                    doAfterVisit(AddLogger.maybeAddLogger(cursor, AddLogger.addSlf4jLogger("LOGGER")))
+                    doAfterVisit(AddLogger.addSlf4jLogger("LOGGER"))
                 }
                 return super.visitClassDeclaration(classDecl, p)
             }

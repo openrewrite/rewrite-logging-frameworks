@@ -86,8 +86,8 @@ public class PrintStackTraceToLogError extends Recipe {
 
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
-            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
-                J.MethodInvocation m = super.visitMethodInvocation(method, executionContext);
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
                 if (printStackTrace.matches(m)) {
                     J.ClassDeclaration clazz = getCursor().firstEnclosingOrThrow(J.ClassDeclaration.class);
                     Set<J.VariableDeclarations> loggers = FindFieldsOfType.find(clazz, framework.getLoggerType());
@@ -100,7 +100,7 @@ public class PrintStackTraceToLogError extends Recipe {
                             maybeAddImport("java.util.logging.Level");
                         }
                     } else if (addLogger != null && addLogger) {
-                        doAfterVisit(AddLogger.maybeAddLogger(getCursor(), framework, loggerName == null ? "logger" : loggerName));
+                        doAfterVisit(AddLogger.addLogger(framework, loggerName == null ? "logger" : loggerName));
 
                         // the print statement will be replaced on the subsequent pass
                         doAfterVisit(this);

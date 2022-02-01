@@ -31,12 +31,13 @@ class SystemErrToLoggingTest : JavaRecipeTest {
         before = """
             import org.slf4j.Logger;
             class Test {
+                int n;
                 Logger logger;
                 
                 void test() {
                     try {
                     } catch(Throwable t) {
-                        System.err.println("Oh no");
+                        System.err.println("Oh " + n + " no");
                         t.printStackTrace();
                     }
                 }
@@ -45,12 +46,13 @@ class SystemErrToLoggingTest : JavaRecipeTest {
         after = """
             import org.slf4j.Logger;
             class Test {
+                int n;
                 Logger logger;
                 
                 void test() {
                     try {
                     } catch(Throwable t) {
-                        logger.error("Oh no", t);
+                        logger.error("Oh {} no", n, t);
                     }
                 }
             }
