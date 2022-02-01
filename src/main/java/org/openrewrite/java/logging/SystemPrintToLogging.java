@@ -59,7 +59,7 @@ public class SystemPrintToLogging extends Recipe {
         this.loggerName = loggerName;
         this.loggingFramework = loggingFramework;
 
-        doNext(new PrintStackTraceToLogError(addLogger, loggerName, loggingFramework));
         doNext(new SystemErrToLogging(addLogger, loggerName, loggingFramework));
+        doNext(new PrintStackTraceToLogError(addLogger, loggerName, loggingFramework));
     }
 }
