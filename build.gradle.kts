@@ -101,6 +101,10 @@ dependencies {
     // see https://github.com/gradle/kotlin-dsl-samples/issues/1301 for why (okhttp is leaking parts of kotlin stdlib)
     compileOnly("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 
+    runtimeOnly("org.slf4j:slf4j-api:1.+")
+    runtimeOnly("log4j:log4j:1.+")
+    runtimeOnly("org.apache.logging.log4j:log4j-api:2.+")
+
     testImplementation("org.jetbrains.kotlin:kotlin-reflect")
     testImplementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 
@@ -116,11 +120,8 @@ dependencies {
     testRuntimeOnly("org.openrewrite:rewrite-java-8:${rewriteVersion}")
 
     testRuntimeOnly("commons-logging:commons-logging:1.2")
-    testRuntimeOnly("org.slf4j:slf4j-api:1.+")
     testRuntimeOnly("ch.qos.logback:logback-classic:1.0.13")
 
-    testRuntimeOnly("log4j:log4j:1.+")
-    testRuntimeOnly("org.apache.logging.log4j:log4j-api:2.+")
     testRuntimeOnly("org.apache.logging.log4j:log4j-core:2.+")
 }
 

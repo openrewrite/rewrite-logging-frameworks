@@ -44,7 +44,7 @@ class AddLoggerTest : JavaRecipeTest {
             import org.slf4j.LoggerFactory;
             
             class Test {
-                private final static Logger LOGGER = LoggerFactory.getLogger(Test.class);
+                private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
             }
         """,
         cycles = 1, // because we aren't conditionally adding the logger in this test
@@ -61,7 +61,7 @@ class AddLoggerTest : JavaRecipeTest {
             import org.slf4j.LoggerFactory;
             
             class Test {
-                private final static Logger LOGGER = LoggerFactory.getLogger(Inner.class);
+                private static final Logger LOGGER = LoggerFactory.getLogger(Inner.class);
             }
         """
     )
@@ -75,7 +75,7 @@ class AddLoggerTest : JavaRecipeTest {
                 import org.slf4j.LoggerFactory;
                 
                 class Base {
-                    protected final static Logger LOGGER = LoggerFactory.getLogger(Inner.class);
+                    protected static final Logger LOGGER = LoggerFactory.getLogger(Inner.class);
                 }
             """
         ),

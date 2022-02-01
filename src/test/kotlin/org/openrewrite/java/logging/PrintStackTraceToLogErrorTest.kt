@@ -16,32 +16,29 @@
 package org.openrewrite.java.logging
 
 import org.junit.jupiter.api.Test
-import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
 @Suppress("EmptyTryBlock")
 class PrintStackTraceToLogErrorTest : JavaRecipeTest {
-    override val parser: JavaParser
-        get() = JavaParser.fromJavaVersion()
-            .logCompilationWarningsAndErrors(true)
-            .classpath("slf4j-api")
-            .build()
-
-    override val recipe: Recipe
-        get() = PrintStackTraceToLogError()
 
     @Test
-    fun useLogger() = assertChanged(
+    fun useSlf4j() = assertChanged(
+        parser = JavaParser.fromJavaVersion()
+            .classpath("slf4j-api")
+            .build(),
+        recipe = PrintStackTraceToLogError(null, null),
         before = """
             import org.slf4j.Logger;
             class Test {
                 Logger logger;
                 
-                static void test() {
+                void test() {
                     try {
                     } catch(Throwable t) {
                         t.printStackTrace();
+                        t.printStackTrace(System.err);
+                        t.printStackTrace(System.out);
                     }
                 }
             }
@@ -51,10 +48,112 @@ class PrintStackTraceToLogErrorTest : JavaRecipeTest {
             class Test {
                 Logger logger;
                 
-                static void test() {
+                void test() {
                     try {
                     } catch(Throwable t) {
                         logger.error("Exception", t);
+                        logger.error("Exception", t);
+                        logger.error("Exception", t);
+                    }
+                }
+            }
+        """
+    )
+
+    @Test
+    fun useLog4j2() = assertChanged(
+        parser = JavaParser.fromJavaVersion()
+            .classpath("log4j-api")
+            .build(),
+        recipe = PrintStackTraceToLogError(null, LoggingFramework.Log4J2),
+        before = """
+            import org.apache.logging.log4j.Logger;
+            class Test {
+                Logger logger;
+                
+                void test() {
+                    try {
+                    } catch(Throwable t) {
+                        t.printStackTrace();
+                    }
+                }
+            }
+        """,
+        after = """
+            import org.apache.logging.log4j.Logger;
+            class Test {
+                Logger logger;
+                
+                void test() {
+                    try {
+                    } catch(Throwable t) {
+                        logger.error("Exception", t);
+                    }
+                }
+            }
+        """
+    )
+
+    @Test
+    fun useJul() = assertChanged(
+        recipe = PrintStackTraceToLogError(null, LoggingFramework.JUL),
+        before = """
+            import java.util.logging.Logger;
+            class Test {
+                Logger logger;
+                
+                void test() {
+                    try {
+                    } catch(Throwable t) {
+                        t.printStackTrace();
+                    }
+                }
+            }
+        """,
+        after = """
+            import java.util.logging.Level;
+            import java.util.logging.Logger;
+            
+            class Test {
+                Logger logger;
+                
+                void test() {
+                    try {
+                    } catch(Throwable t) {
+                        logger.log(Level.SEVERE, "Exception", t);
+                    }
+                }
+            }
+        """
+    )
+
+    @Test
+    fun addLogger() = assertChanged(
+        parser = JavaParser.fromJavaVersion()
+            .classpath("slf4j-api")
+            .build(),
+        recipe = PrintStackTraceToLogError(true, null),
+        before = """
+            class Test {
+                void test() {
+                    try {
+                    } catch(Throwable t) {
+                        t.printStackTrace();
+                    }
+                }
+            }
+        """,
+        after = """
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+            
+            class Test {
+                private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
+            
+                void test() {
+                    try {
+                    } catch(Throwable t) {
+                        LOGGER.error("Exception", t);
                     }
                 }
             }
