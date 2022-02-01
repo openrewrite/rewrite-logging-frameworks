@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.logging;
 
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
@@ -39,6 +40,17 @@ public enum LoggingFramework {
 
     public String getFactoryType() {
         return factoryType;
+    }
+
+    public static LoggingFramework fromOption(@Nullable String option) {
+        if(option != null) {
+            for (LoggingFramework value : values()) {
+                if (value.toString().equalsIgnoreCase(option)) {
+                    return value;
+                }
+            }
+        }
+        return SLF4J;
     }
 
     public <P> JavaTemplate getErrorTemplate(JavaVisitor<P> visitor, String message) {

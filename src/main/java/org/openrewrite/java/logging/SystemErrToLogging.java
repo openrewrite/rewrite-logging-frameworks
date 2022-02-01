@@ -50,10 +50,10 @@ public class SystemErrToLogging extends Recipe {
 
     @Option(displayName = "Logging framework",
             description = "The logging framework to use.",
-            valid = {"SLF4J", "Log4J", "Log4J 2", "JUL"},
+            valid = {"SLF4J", "Log4J", "Log4J2", "JUL"},
             required = false)
     @Nullable
-    LoggingFramework loggingFramework;
+    String loggingFramework;
 
     @Override
     public String getDisplayName() {
@@ -82,8 +82,7 @@ public class SystemErrToLogging extends Recipe {
 
     @Override
     public JavaVisitor<ExecutionContext> getVisitor() {
-        LoggingFramework framework = loggingFramework == null ? LoggingFramework.SLF4J : loggingFramework;
-
+        LoggingFramework framework = LoggingFramework.fromOption(loggingFramework);
 
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override

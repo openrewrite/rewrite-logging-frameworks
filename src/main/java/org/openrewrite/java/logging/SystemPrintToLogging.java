@@ -39,10 +39,10 @@ public class SystemPrintToLogging extends Recipe {
 
     @Option(displayName = "Logging framework",
             description = "The logging framework to use.",
-            valid = {"SLF4J", "Log4J", "Log4J 2", "JUL"},
+            valid = {"SLF4J", "Log4J", "Log4J2", "JUL"},
             required = false)
     @Nullable
-    LoggingFramework loggingFramework;
+    String loggingFramework;
 
     @Override
     public String getDisplayName() {
@@ -54,7 +54,7 @@ public class SystemPrintToLogging extends Recipe {
         return "Replace `System.out` and `System.err` print statements with a logger.";
     }
 
-    public SystemPrintToLogging(@Nullable Boolean addLogger, @Nullable String loggerName, @Nullable LoggingFramework loggingFramework) {
+    public SystemPrintToLogging(@Nullable Boolean addLogger, @Nullable String loggerName, @Nullable String loggingFramework) {
         this.addLogger = addLogger;
         this.loggerName = loggerName;
         this.loggingFramework = loggingFramework;

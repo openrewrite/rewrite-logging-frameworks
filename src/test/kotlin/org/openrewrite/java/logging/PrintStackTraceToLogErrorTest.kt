@@ -65,7 +65,7 @@ class PrintStackTraceToLogErrorTest : JavaRecipeTest {
         parser = JavaParser.fromJavaVersion()
             .classpath("log4j-api")
             .build(),
-        recipe = PrintStackTraceToLogError(null, "LOGGER", LoggingFramework.Log4J2),
+        recipe = PrintStackTraceToLogError(null, "LOGGER", "Log4j2"),
         before = """
             import org.apache.logging.log4j.Logger;
             class Test {
@@ -96,7 +96,7 @@ class PrintStackTraceToLogErrorTest : JavaRecipeTest {
 
     @Test
     fun useJul() = assertChanged(
-        recipe = PrintStackTraceToLogError(null, "LOGGER", LoggingFramework.JUL),
+        recipe = PrintStackTraceToLogError(null, "LOGGER", "jul"),
         before = """
             import java.util.logging.Logger;
             class Test {
