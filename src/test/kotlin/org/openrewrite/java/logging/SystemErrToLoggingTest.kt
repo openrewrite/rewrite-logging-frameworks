@@ -20,14 +20,14 @@ import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
 @Suppress("EmptyTryBlock")
-class PrintStackTraceToLogErrorTest : JavaRecipeTest {
+class SystemErrToLoggingTest : JavaRecipeTest {
 
     @Test
     fun useSlf4j() = assertChanged(
         parser = JavaParser.fromJavaVersion()
             .classpath("slf4j-api")
             .build(),
-        recipe = PrintStackTraceToLogError(null, "LOGGER", null),
+        recipe = SystemErrToLogging(null, "LOGGER", null),
         before = """
             import org.slf4j.Logger;
             class Test {
@@ -36,9 +36,8 @@ class PrintStackTraceToLogErrorTest : JavaRecipeTest {
                 void test() {
                     try {
                     } catch(Throwable t) {
+                        System.err.println("Oh no");
                         t.printStackTrace();
-                        t.printStackTrace(System.err);
-                        t.printStackTrace(System.out);
                     }
                 }
             }
@@ -51,76 +50,7 @@ class PrintStackTraceToLogErrorTest : JavaRecipeTest {
                 void test() {
                     try {
                     } catch(Throwable t) {
-                        logger.error("Exception", t);
-                        logger.error("Exception", t);
-                        logger.error("Exception", t);
-                    }
-                }
-            }
-        """
-    )
-
-    @Test
-    fun useLog4j2() = assertChanged(
-        parser = JavaParser.fromJavaVersion()
-            .classpath("log4j-api")
-            .build(),
-        recipe = PrintStackTraceToLogError(null, "LOGGER", LoggingFramework.Log4J2),
-        before = """
-            import org.apache.logging.log4j.Logger;
-            class Test {
-                Logger logger;
-                
-                void test() {
-                    try {
-                    } catch(Throwable t) {
-                        t.printStackTrace();
-                    }
-                }
-            }
-        """,
-        after = """
-            import org.apache.logging.log4j.Logger;
-            class Test {
-                Logger logger;
-                
-                void test() {
-                    try {
-                    } catch(Throwable t) {
-                        logger.error("Exception", t);
-                    }
-                }
-            }
-        """
-    )
-
-    @Test
-    fun useJul() = assertChanged(
-        recipe = PrintStackTraceToLogError(null, "LOGGER", LoggingFramework.JUL),
-        before = """
-            import java.util.logging.Logger;
-            class Test {
-                Logger logger;
-                
-                void test() {
-                    try {
-                    } catch(Throwable t) {
-                        t.printStackTrace();
-                    }
-                }
-            }
-        """,
-        after = """
-            import java.util.logging.Level;
-            import java.util.logging.Logger;
-            
-            class Test {
-                Logger logger;
-                
-                void test() {
-                    try {
-                    } catch(Throwable t) {
-                        logger.log(Level.SEVERE, "Exception", t);
+                        logger.error("Oh no", t);
                     }
                 }
             }
@@ -133,12 +63,13 @@ class PrintStackTraceToLogErrorTest : JavaRecipeTest {
         parser = JavaParser.fromJavaVersion()
             .classpath("slf4j-api")
             .build(),
-        recipe = PrintStackTraceToLogError(true, "LOGGER", null),
+        recipe = SystemErrToLogging(true, "LOGGER", null),
         before = """
             class Test {
                 void test() {
                     try {
                     } catch(Throwable t) {
+                        System.err.println("Oh no");
                         t.printStackTrace();
                     }
                 }
@@ -154,7 +85,7 @@ class PrintStackTraceToLogErrorTest : JavaRecipeTest {
                 void test() {
                     try {
                     } catch(Throwable t) {
-                        LOGGER.error("Exception", t);
+                        LOGGER.error("Oh no", t);
                     }
                 }
             }

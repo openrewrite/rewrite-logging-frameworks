@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 the original author or authors.
+ * Copyright 2022 the original author or authors.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,9 @@ import org.openrewrite.Option;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.lang.Nullable;
-import org.openrewrite.java.*;
+import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.JavaVisitor;
+import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.FindFieldsOfType;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
@@ -83,9 +85,6 @@ public class PrintStackTraceToLogError extends Recipe {
         LoggingFramework framework = loggingFramework == null ? LoggingFramework.SLF4J : loggingFramework;
 
         return new JavaIsoVisitor<ExecutionContext>() {
-            @Nullable
-            JavaTemplate errorTemplate;
-
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
                 J.MethodInvocation m = super.visitMethodInvocation(method, executionContext);
@@ -93,7 +92,7 @@ public class PrintStackTraceToLogError extends Recipe {
                     J.ClassDeclaration clazz = getCursor().firstEnclosingOrThrow(J.ClassDeclaration.class);
                     Set<J.VariableDeclarations> loggers = FindFieldsOfType.find(clazz, framework.getLoggerType());
                     if (!loggers.isEmpty()) {
-                        m = m.withTemplate(getErrorTemplate(),
+                        m = m.withTemplate(framework.getErrorTemplate(this, "\"Exception\""),
                                 m.getCoordinates().replace(),
                                 loggers.iterator().next().getVariables().get(0).getName(),
                                 m.getSelect());
@@ -108,47 +107,6 @@ public class PrintStackTraceToLogError extends Recipe {
                     }
                 }
                 return m;
-            }
-
-            private JavaTemplate getErrorTemplate() {
-                if (errorTemplate == null) {
-                    switch (framework) {
-                        case SLF4J:
-                            errorTemplate = JavaTemplate
-                                    .builder(this::getCursor, "#{any(org.slf4j.Logger)}.error(\"Exception\", #{any(java.lang.Throwable)}")
-                                    .javaParser(() -> JavaParser.fromJavaVersion()
-                                            .classpath("slf4j-api")
-                                            .build()
-                                    )
-                                    .build();
-                            break;
-                        case Log4J1:
-                            errorTemplate = JavaTemplate
-                                    .builder(this::getCursor, "#{any(org.apache.log4j.Category)}.error(\"Exception\", #{any(java.lang.Throwable)}")
-                                    .javaParser(() -> JavaParser.fromJavaVersion()
-                                            .classpath("log4j")
-                                            .build()
-                                    )
-                                    .build();
-                            break;
-                        case Log4J2:
-                            errorTemplate = JavaTemplate
-                                    .builder(this::getCursor, "#{any(org.apache.logging.log4j.Logger)}.error(\"Exception\", #{any(java.lang.Throwable)}")
-                                    .javaParser(() -> JavaParser.fromJavaVersion()
-                                            .classpath("log4j-api")
-                                            .build()
-                                    )
-                                    .build();
-                            break;
-                        case JUL:
-                            errorTemplate = JavaTemplate
-                                    .builder(this::getCursor, "#{any(java.util.logging.Logger)}.log(Level.SEVERE, \"Exception\", #{any(java.lang.Throwable)}")
-                                    .imports("java.util.logging.Level")
-                                    .build();
-                            break;
-                    }
-                }
-                return errorTemplate;
             }
         };
     }

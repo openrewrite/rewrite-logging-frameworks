@@ -15,6 +15,10 @@
  */
 package org.openrewrite.java.logging;
 
+import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.JavaVisitor;
+
 public enum LoggingFramework {
     SLF4J("org.slf4j.Logger", "org.slf4j.LoggerFactory"),
     Log4J1("org.apache.log4j.Logger", "org.apache.log4j.LogManager"),
@@ -35,5 +39,42 @@ public enum LoggingFramework {
 
     public String getFactoryType() {
         return factoryType;
+    }
+
+    public <P> JavaTemplate getErrorTemplate(JavaVisitor<P> visitor, String message) {
+        switch (this) {
+            case SLF4J:
+                return JavaTemplate
+                        .builder(visitor::getCursor, "#{any(org.slf4j.Logger)}.error(" + message + ", #{any(java.lang.Throwable)})")
+                        .javaParser(() -> JavaParser.fromJavaVersion()
+                                .classpath("slf4j-api")
+                                .build()
+                        )
+                        .build();
+            case Log4J1:
+                return JavaTemplate
+                        .builder(visitor::getCursor, "#{any(org.apache.log4j.Category)}.error(" + message + ", #{any(java.lang.Throwable)})")
+                        .javaParser(() -> JavaParser.fromJavaVersion()
+                                .classpath("log4j")
+                                .build()
+                        )
+                        .build();
+
+            case Log4J2:
+                return JavaTemplate
+                        .builder(visitor::getCursor, "#{any(org.apache.logging.log4j.Logger)}.error(" + message + ", #{any(java.lang.Throwable)})")
+                        .javaParser(() -> JavaParser.fromJavaVersion()
+                                .classpath("log4j-api")
+                                .build()
+                        )
+                        .build();
+            case JUL:
+            default:
+                return JavaTemplate
+                        .builder(visitor::getCursor, "#{any(java.util.logging.Logger)}.log(Level.SEVERE, " + message + ", #{any(java.lang.Throwable)})")
+                        .imports("java.util.logging.Level")
+                        .build();
+
+        }
     }
 }
