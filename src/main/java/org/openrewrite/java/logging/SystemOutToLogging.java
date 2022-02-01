@@ -30,6 +30,7 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -57,6 +58,13 @@ public class SystemOutToLogging extends Recipe {
             required = false)
     @Nullable
     String loggingFramework;
+
+    @Option(displayName = "Level",
+            description = "The logging level to turn `System.out` print statements into.",
+            valid = {"trace", "debug", "info"},
+            required = false)
+    @Nullable
+    String level;
 
     @Override
     public String getDisplayName() {
@@ -127,7 +135,7 @@ public class SystemOutToLogging extends Recipe {
                             computedLoggerName,
                             print.getArguments().get(0));
 
-                    print = (J.MethodInvocation) new ParameterizedLogging(framework.getLoggerType() + " info(..)")
+                    print = (J.MethodInvocation) new ParameterizedLogging(framework.getLoggerType() + " " + getLevel() + "(..)")
                             .getVisitor()
                             .visitNonNull(print, ctx, getCursor());
 
@@ -143,11 +151,12 @@ public class SystemOutToLogging extends Recipe {
                 return print;
             }
 
-            public <P> JavaTemplate getInfoTemplate(JavaVisitor<P> visitor) {
+            private <P> JavaTemplate getInfoTemplate(JavaVisitor<P> visitor) {
+                String levelOrDefault = getLevel();
                 switch (framework) {
                     case SLF4J:
                         return JavaTemplate
-                                .builder(visitor::getCursor, "#{any(org.slf4j.Logger)}.info(#{any(String)})")
+                                .builder(visitor::getCursor, "#{any(org.slf4j.Logger)}." + levelOrDefault + "(#{any(String)})")
                                 .javaParser(() -> JavaParser.fromJavaVersion()
                                         .classpath("slf4j-api")
                                         .build()
@@ -155,7 +164,7 @@ public class SystemOutToLogging extends Recipe {
                                 .build();
                     case Log4J1:
                         return JavaTemplate
-                                .builder(visitor::getCursor, "#{any(org.apache.log4j.Category)}.info(#{any(String)})")
+                                .builder(visitor::getCursor, "#{any(org.apache.log4j.Category)}." + levelOrDefault + "(#{any(String)})")
                                 .javaParser(() -> JavaParser.fromJavaVersion()
                                         .classpath("log4j")
                                         .build()
@@ -164,7 +173,7 @@ public class SystemOutToLogging extends Recipe {
 
                     case Log4J2:
                         return JavaTemplate
-                                .builder(visitor::getCursor, "#{any(org.apache.logging.log4j.Logger)}.info(#{any(String)})")
+                                .builder(visitor::getCursor, "#{any(org.apache.logging.log4j.Logger)}." + levelOrDefault + "(#{any(String)})")
                                 .javaParser(() -> JavaParser.fromJavaVersion()
                                         .classpath("log4j-api")
                                         .build()
@@ -172,11 +181,26 @@ public class SystemOutToLogging extends Recipe {
                                 .build();
                     case JUL:
                     default:
+
                         return JavaTemplate
-                                .builder(visitor::getCursor, "#{any(java.util.logging.Logger)}.log(Level.SEVERE, #{any(String)})")
+                                .builder(visitor::getCursor, "#{any(java.util.logging.Logger)}.log(Level." + levelOrDefault + ", #{any(String)})")
                                 .imports("java.util.logging.Level")
                                 .build();
                 }
+            }
+
+            private String getLevel() {
+                String levelOrDefault = level == null ? "info" : level;
+                if(framework == LoggingFramework.JUL) {
+                    String julLevel = levelOrDefault.toUpperCase();
+                    if (levelOrDefault.equals("debug")) {
+                        julLevel = "FINE";
+                    } else if (levelOrDefault.equals("trace")) {
+                        julLevel = "FINER";
+                    }
+                    return julLevel;
+                }
+                return levelOrDefault;
             }
         };
     }

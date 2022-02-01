@@ -44,6 +44,13 @@ public class SystemPrintToLogging extends Recipe {
     @Nullable
     String loggingFramework;
 
+    @Option(displayName = "Level",
+            description = "The logging level to turn `System.out` print statements into.",
+            valid = {"trace", "debug", "info"},
+            required = false)
+    @Nullable
+    String level;
+
     @Override
     public String getDisplayName() {
         return "Use logger instead of system print statements";
@@ -54,13 +61,14 @@ public class SystemPrintToLogging extends Recipe {
         return "Replace `System.out` and `System.err` print statements with a logger.";
     }
 
-    public SystemPrintToLogging(@Nullable Boolean addLogger, @Nullable String loggerName, @Nullable String loggingFramework) {
+    public SystemPrintToLogging(@Nullable Boolean addLogger, @Nullable String loggerName, @Nullable String loggingFramework, @Nullable String level) {
         this.addLogger = addLogger;
         this.loggerName = loggerName;
         this.loggingFramework = loggingFramework;
+        this.level = level;
 
         doNext(new SystemErrToLogging(addLogger, loggerName, loggingFramework));
-        doNext(new SystemOutToLogging(addLogger, loggerName, loggingFramework));
+        doNext(new SystemOutToLogging(addLogger, loggerName, loggingFramework, level));
         doNext(new PrintStackTraceToLogError(addLogger, loggerName, loggingFramework));
     }
 }

@@ -26,7 +26,7 @@ class SystemOutToLoggingTest : JavaRecipeTest {
         parser = JavaParser.fromJavaVersion()
             .classpath("slf4j-api")
             .build(),
-        recipe = SystemOutToLogging(null, "LOGGER", null),
+        recipe = SystemOutToLogging(null, "LOGGER", null, "debug"),
         before = """
             import org.slf4j.Logger;
             class Test {
@@ -45,7 +45,7 @@ class SystemOutToLoggingTest : JavaRecipeTest {
                 Logger logger;
                 
                 void test() {
-                    logger.info("Oh {} no", n);
+                    logger.debug("Oh {} no", n);
                 }
             }
         """
