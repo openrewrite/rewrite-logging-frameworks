@@ -25,10 +25,14 @@ import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.FindFieldsOfType;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.tree.*;
+import org.openrewrite.java.tree.Expression;
+import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
@@ -90,30 +94,37 @@ public class SystemErrToLogging extends Recipe {
                 J.Block b = super.visitBlock(block, executionContext);
 
                 AtomicBoolean addedLogger = new AtomicBoolean(false);
-                AtomicBoolean foundPrint = new AtomicBoolean(false);
+                AtomicInteger skip = new AtomicInteger(-1);
 
                 b = b.withStatements(ListUtils.map(b.getStatements(), (i, stat) -> {
-                    if (stat instanceof J.MethodInvocation) {
+                    if (skip.get() == i) {
+                        return null;
+                    } else if (stat instanceof J.MethodInvocation) {
                         J.MethodInvocation m = (J.MethodInvocation) stat;
                         if (systemErrPrint.matches((Expression) stat)) {
                             if (m.getSelect() != null && m.getSelect() instanceof J.FieldAccess) {
                                 JavaType.Variable field = ((J.FieldAccess) m.getSelect()).getName().getFieldType();
                                 if (field != null && field.getName().equals("err") && TypeUtils.isOfClassType(field.getOwner(), "java.lang.System")) {
-                                    J.MethodInvocation unchangedIfAddedLogger = logInsteadOfPrint(m, exceptionPrintStackTrace(block));
+                                    Expression exceptionPrintStackTrace = null;
+                                    if (block.getStatements().size() > i + 1) {
+                                        J next = block.getStatements().get(i + 1);
+                                        if (next instanceof J.MethodInvocation && printStackTrace.matches((Expression) next)) {
+                                            exceptionPrintStackTrace = ((J.MethodInvocation) next).getSelect();
+                                            skip.set(i + 1);
+                                        }
+                                    }
+
+                                    J.MethodInvocation unchangedIfAddedLogger = logInsteadOfPrint(m, exceptionPrintStackTrace);
                                     addedLogger.set(unchangedIfAddedLogger == m);
-                                    foundPrint.set(true);
                                     return unchangedIfAddedLogger;
                                 }
                             }
-                        } else if (printStackTrace.matches(m)) {
-                            // this has been folded into the exception log, so drop it
-                            return null;
                         }
                     }
                     return stat;
                 }));
 
-                return addedLogger.get() || !foundPrint.get() ? block : b;
+                return addedLogger.get() ? block : b;
             }
 
             private J.MethodInvocation logInsteadOfPrint(J.MethodInvocation print, @Nullable Expression exceptionPrintStackTrace) {
@@ -144,16 +155,6 @@ public class SystemErrToLogging extends Recipe {
                     doAfterVisit(this);
                 }
                 return print;
-            }
-
-            @Nullable
-            private Expression exceptionPrintStackTrace(J.Block b) {
-                for (Statement s : b.getStatements()) {
-                    if (s instanceof J.MethodInvocation && printStackTrace.matches((Expression) s)) {
-                        return ((J.MethodInvocation) s).getSelect();
-                    }
-                }
-                return null;
             }
 
             public <P> JavaTemplate getErrorTemplateNoException(JavaVisitor<P> visitor) {
