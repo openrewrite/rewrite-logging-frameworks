@@ -108,4 +108,32 @@ class SystemErrToLoggingTest : JavaRecipeTest {
             }
         """
     )
+
+    @Test
+    fun inRunnable() = assertChanged(
+        parser = JavaParser.fromJavaVersion()
+            .classpath("slf4j-api")
+            .build(),
+        recipe = SystemErrToLogging(null, "LOGGER", null),
+        before = """
+            import org.slf4j.Logger;
+            class Test {
+                Logger logger;
+                
+                void test() {
+                    Runnable r = () -> System.err.println("single");
+                }
+            }
+        """,
+        after = """
+            import org.slf4j.Logger;
+            class Test {
+                Logger logger;
+                
+                void test() {
+                    Runnable r = () -> logger.error("single");
+                }
+            }
+        """
+    )
 }

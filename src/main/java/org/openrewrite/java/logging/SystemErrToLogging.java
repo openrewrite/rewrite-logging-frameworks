@@ -127,6 +127,22 @@ public class SystemErrToLogging extends Recipe {
                 return addedLogger.get() ? block : b;
             }
 
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
+                if (systemErrPrint.matches((Expression) method)) {
+                    if (getCursor().getParentOrThrow().getValue() instanceof J.Lambda) {
+                        if (m.getSelect() != null && m.getSelect() instanceof J.FieldAccess) {
+                            JavaType.Variable field = ((J.FieldAccess) m.getSelect()).getName().getFieldType();
+                            if (field != null && field.getName().equals("err") && TypeUtils.isOfClassType(field.getOwner(), "java.lang.System")) {
+                                return logInsteadOfPrint(m, ctx, null);
+                            }
+                        }
+                    }
+                }
+                return m;
+            }
+
             private J.MethodInvocation logInsteadOfPrint(J.MethodInvocation print, ExecutionContext ctx, @Nullable Expression exceptionPrintStackTrace) {
                 J.ClassDeclaration clazz = getCursor().firstEnclosingOrThrow(J.ClassDeclaration.class);
                 Set<J.VariableDeclarations> loggers = FindFieldsOfType.find(clazz, framework.getLoggerType());
