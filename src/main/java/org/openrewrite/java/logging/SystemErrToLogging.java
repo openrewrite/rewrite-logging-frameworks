@@ -104,7 +104,7 @@ public class SystemErrToLogging extends Recipe {
                         if (systemErrPrint.matches((Expression) stat)) {
                             if (m.getSelect() != null && m.getSelect() instanceof J.FieldAccess) {
                                 JavaType.Variable field = ((J.FieldAccess) m.getSelect()).getName().getFieldType();
-                                if (field != null && field.getName().equals("err") && TypeUtils.isOfClassType(field.getOwner(), "java.lang.System")) {
+                                if (field != null && ("err".equals(field.getName()) || "out".equals(field.getName())) && TypeUtils.isOfClassType(field.getOwner(), "java.lang.System")) {
                                     Expression exceptionPrintStackTrace = null;
                                     if (block.getStatements().size() > i + 1) {
                                         J next = block.getStatements().get(i + 1);
@@ -114,7 +114,7 @@ public class SystemErrToLogging extends Recipe {
                                         }
                                     }
 
-                                    J.MethodInvocation unchangedIfAddedLogger = logInsteadOfPrint(m, exceptionPrintStackTrace);
+                                    J.MethodInvocation unchangedIfAddedLogger = logInsteadOfPrint(m, field.getName(), exceptionPrintStackTrace);
                                     addedLogger.set(unchangedIfAddedLogger == m);
                                     return unchangedIfAddedLogger;
                                 }
@@ -127,16 +127,18 @@ public class SystemErrToLogging extends Recipe {
                 return addedLogger.get() ? block : b;
             }
 
-            private J.MethodInvocation logInsteadOfPrint(J.MethodInvocation print, @Nullable Expression exceptionPrintStackTrace) {
+            private J.MethodInvocation logInsteadOfPrint(J.MethodInvocation print, String name, @Nullable Expression exceptionPrintStackTrace) {
                 J.ClassDeclaration clazz = getCursor().firstEnclosingOrThrow(J.ClassDeclaration.class);
                 Set<J.VariableDeclarations> loggers = FindFieldsOfType.find(clazz, framework.getLoggerType());
                 if (!loggers.isEmpty()) {
                     J.Identifier computedLoggerName = loggers.iterator().next().getVariables().get(0).getName();
                     if (exceptionPrintStackTrace == null) {
-                        print = print.withTemplate(getErrorTemplateNoException(this),
-                                print.getCoordinates().replace(),
-                                computedLoggerName,
-                                print.getArguments().get(0));
+                        String level = getLevel(name);
+                        print = print.withTemplate(getLogTemplateNoException(this),
+                                                   print.getCoordinates().replace(),
+                                                   computedLoggerName,
+                                                   level,
+                                                   print.getArguments().get(0));
                     } else {
                         print = print.withTemplate(framework.getErrorTemplate(this, "#{any(String)}"),
                                 print.getCoordinates().replace(),
@@ -157,11 +159,19 @@ public class SystemErrToLogging extends Recipe {
                 return print;
             }
 
-            public <P> JavaTemplate getErrorTemplateNoException(JavaVisitor<P> visitor) {
+            private String getLevel(String name)
+            {
+                if (framework == LoggingFramework.JUL) {
+                    return "err".equals(name) ? "Level.SEVERE" : "Level.INFO";
+                }
+                return "err".equals(name) ? "error" : "info";
+            }
+
+            public <P> JavaTemplate getLogTemplateNoException(JavaVisitor<P> visitor) {
                 switch (framework) {
                     case SLF4J:
                         return JavaTemplate
-                                .builder(visitor::getCursor, "#{any(org.slf4j.Logger)}.error(#{any(String)})")
+                                .builder(visitor::getCursor, "#{any(org.slf4j.Logger)}.#{}(#{any(String)})")
                                 .javaParser(() -> JavaParser.fromJavaVersion()
                                         .classpath("slf4j-api")
                                         .build()
@@ -169,7 +179,7 @@ public class SystemErrToLogging extends Recipe {
                                 .build();
                     case Log4J1:
                         return JavaTemplate
-                                .builder(visitor::getCursor, "#{any(org.apache.log4j.Category)}.error(#{any(String)})")
+                                .builder(visitor::getCursor, "#{any(org.apache.log4j.Category)}.#{}(#{any(String)})")
                                 .javaParser(() -> JavaParser.fromJavaVersion()
                                         .classpath("log4j")
                                         .build()
@@ -178,7 +188,7 @@ public class SystemErrToLogging extends Recipe {
 
                     case Log4J2:
                         return JavaTemplate
-                                .builder(visitor::getCursor, "#{any(org.apache.logging.log4j.Logger)}.error(#{any(String)})")
+                                .builder(visitor::getCursor, "#{any(org.apache.logging.log4j.Logger)}.#{}(#{any(String)})")
                                 .javaParser(() -> JavaParser.fromJavaVersion()
                                         .classpath("log4j-api")
                                         .build()
@@ -187,11 +197,12 @@ public class SystemErrToLogging extends Recipe {
                     case JUL:
                     default:
                         return JavaTemplate
-                                .builder(visitor::getCursor, "#{any(java.util.logging.Logger)}.log(Level.SEVERE, #{any(String)})")
+                                .builder(visitor::getCursor, "#{any(java.util.logging.Logger)}.log(#{}, #{any(String)})")
                                 .imports("java.util.logging.Level")
                                 .build();
                 }
             }
         };
     }
+
 }

@@ -57,6 +57,34 @@ class SystemErrToLoggingTest : JavaRecipeTest {
         """
     )
 
+    @Test
+    fun outAsInfo() = assertChanged(
+        parser = JavaParser.fromJavaVersion()
+            .classpath("slf4j-api")
+            .build(),
+        recipe = SystemErrToLogging(null, "LOGGER", null),
+        before = """
+            import org.slf4j.Logger;
+            class Test {
+                Logger logger;
+                
+                void test() {
+                    System.out.println("Hello world!");
+                }
+            }
+        """,
+        after = """
+            import org.slf4j.Logger;
+            class Test {
+                Logger logger;
+                
+                void test() {
+                    logger.info("Hello world!");
+                }
+            }
+        """
+    )
+
     @Suppress("RedundantSlf4jDefinition")
     @Test
     fun addLogger() = assertChanged(
