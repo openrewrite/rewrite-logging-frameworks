@@ -169,7 +169,7 @@ public class SystemErrToLogging extends Recipe {
                         maybeAddImport("java.util.logging.Level");
                     }
                 } else if (addLogger != null && addLogger) {
-                    doAfterVisit(AddLogger.addLogger(framework, loggerName == null ? "logger" : loggerName));
+                    doAfterVisit(AddLogger.addLogger(clazz, framework, loggerName == null ? "logger" : loggerName));
 
                     // the print statement will be replaced on the subsequent pass
                     doAfterVisit(this);

@@ -32,7 +32,7 @@ class AddLoggerTest : JavaRecipeTest {
 
     @Test
     fun addLogger() = assertChanged(
-        recipe = toRecipe { AddLogger.addSlf4jLogger("LOGGER") },
+        recipe = MaybeAddLoggerToClass("Test"),
         before = """
             package test;
             class Test {
@@ -59,8 +59,8 @@ class AddLoggerTest : JavaRecipeTest {
 
             override fun getVisitor(): TreeVisitor<*, ExecutionContext> = object: JavaIsoVisitor<ExecutionContext>() {
                 override fun visitClassDeclaration(classDecl: J.ClassDeclaration, p: ExecutionContext): J.ClassDeclaration {
-                    doAfterVisit(AddLogger.addSlf4jLogger("LOGGER"))
-                    doAfterVisit(AddLogger.addSlf4jLogger("LOGGER"))
+                    doAfterVisit(AddLogger.addSlf4jLogger(classDecl, "LOGGER"))
+                    doAfterVisit(AddLogger.addSlf4jLogger(classDecl, "LOGGER"))
                     return super.visitClassDeclaration(classDecl, p)
                 }
             }
@@ -118,13 +118,34 @@ class AddLoggerTest : JavaRecipeTest {
         """
     )
 
+    @Suppress("RedundantSlf4jDefinition")
+    @Test
+    fun dontAddToInnerClass() = assertChanged(
+        recipe = MaybeAddLoggerToClass("Test"),
+        before = """
+            class Test {
+                enum Status { TRUE, FALSE, FILE_NOT_FOUND }
+            }
+        """,
+        after = """
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+            
+            class Test {
+                private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
+            
+                enum Status { TRUE, FALSE, FILE_NOT_FOUND }
+            }
+        """
+    )
+
     class MaybeAddLoggerToClass(val simpleName: String) : Recipe() {
         override fun getDisplayName() = "Add logger to class"
 
         override fun getVisitor() = object : JavaIsoVisitor<ExecutionContext>() {
             override fun visitClassDeclaration(classDecl: J.ClassDeclaration, p: ExecutionContext): J.ClassDeclaration {
                 if (classDecl.simpleName == simpleName) {
-                    doAfterVisit(AddLogger.addSlf4jLogger("LOGGER"))
+                    doAfterVisit(AddLogger.addSlf4jLogger(classDecl,"LOGGER"))
                 }
                 return super.visitClassDeclaration(classDecl, p)
             }

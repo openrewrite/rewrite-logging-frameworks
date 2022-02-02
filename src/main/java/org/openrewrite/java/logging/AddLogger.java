@@ -33,34 +33,36 @@ import java.util.function.Function;
  * @author Edward Harman
  */
 public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
+    private final J.ClassDeclaration scope;
     private final String loggerType;
     private final String factoryType;
     private final String loggerName;
     private final JavaTemplate template;
 
-    public AddLogger(String loggerType, String factoryType, String loggerName, Function<JavaVisitor<?>, JavaTemplate> template) {
+    public AddLogger(J.ClassDeclaration scope, String loggerType, String factoryType, String loggerName, Function<JavaVisitor<?>, JavaTemplate> template) {
+        this.scope = scope;
         this.loggerType = loggerType;
         this.factoryType = factoryType;
         this.loggerName = loggerName;
         this.template = template.apply(this);
     }
 
-    public static TreeVisitor<J, ExecutionContext> addLogger(LoggingFramework loggingFramework, String loggerName) {
-        switch(loggingFramework) {
+    public static TreeVisitor<J, ExecutionContext> addLogger(J.ClassDeclaration scope, LoggingFramework loggingFramework, String loggerName) {
+        switch (loggingFramework) {
             case Log4J1:
-                return addLog4j1Logger(loggerName);
+                return addLog4j1Logger(scope, loggerName);
             case Log4J2:
-                return addLog4j2Logger(loggerName);
+                return addLog4j2Logger(scope, loggerName);
             case JUL:
-                return addJulLogger(loggerName);
+                return addJulLogger(scope, loggerName);
             case SLF4J:
             default:
-                return addSlf4jLogger(loggerName);
+                return addSlf4jLogger(scope, loggerName);
         }
     }
 
-    public static AddLogger addSlf4jLogger(String loggerName) {
-        return new AddLogger("org.slf4j.Logger", "org.slf4j.LoggerFactory", loggerName, visitor ->
+    public static AddLogger addSlf4jLogger(J.ClassDeclaration scope, String loggerName) {
+        return new AddLogger(scope, "org.slf4j.Logger", "org.slf4j.LoggerFactory", loggerName, visitor ->
                 JavaTemplate
                         .builder(visitor::getCursor, "private static final Logger #{} = LoggerFactory.getLogger(#{}.class);")
                         .imports("org.slf4j.Logger", "org.slf4j.LoggerFactory")
@@ -71,8 +73,8 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
         );
     }
 
-    public static AddLogger addJulLogger(String loggerName) {
-        return new AddLogger("java.util.logging.Logger", "java.util.logging.LogManager", loggerName, visitor ->
+    public static AddLogger addJulLogger(J.ClassDeclaration scope, String loggerName) {
+        return new AddLogger(scope, "java.util.logging.Logger", "java.util.logging.LogManager", loggerName, visitor ->
                 JavaTemplate
                         .builder(visitor::getCursor, "private static final Logger #{} = LogManager.getLogger(\"#{}\");")
                         .imports("java.util.logging.Logger", "java.util.logging.LogManager")
@@ -80,8 +82,8 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
         );
     }
 
-    public static AddLogger addLog4j1Logger(String loggerName) {
-        return new AddLogger("org.apache.log4j.Logger", "org.apache.log4j.LogManager", loggerName, visitor ->
+    public static AddLogger addLog4j1Logger(J.ClassDeclaration scope, String loggerName) {
+        return new AddLogger(scope, "org.apache.log4j.Logger", "org.apache.log4j.LogManager", loggerName, visitor ->
                 JavaTemplate
                         .builder(visitor::getCursor, "private static final Logger #{} = LogManager.getLogger(#{}.class);")
                         .imports("org.apache.log4j.Logger", "org.apache.log4j.LogManager")
@@ -92,8 +94,8 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
         );
     }
 
-    public static AddLogger addLog4j2Logger(String loggerName) {
-        return new AddLogger("org.apache.logging.log4j.Logger", "org.apache.logging.log4j.LogManager", loggerName, visitor ->
+    public static AddLogger addLog4j2Logger(J.ClassDeclaration scope, String loggerName) {
+        return new AddLogger(scope, "org.apache.logging.log4j.Logger", "org.apache.logging.log4j.LogManager", loggerName, visitor ->
                 JavaTemplate
                         .builder(visitor::getCursor, "private static final Logger #{} = LogManager.getLogger(#{}.class);")
                         .imports("org.apache.logging.log4j.Logger", "org.apache.logging.log4j.LogManager")
@@ -108,23 +110,26 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
     public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
         J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
 
-        if(!FindInheritedFields.find(cd, loggerType).isEmpty() || !FindFieldsOfType.find(cd, loggerType).isEmpty()) {
-            return cd;
+        if (cd == scope) {
+            if (!FindInheritedFields.find(cd, loggerType).isEmpty() || !FindFieldsOfType.find(cd, loggerType).isEmpty()) {
+                return cd;
+            }
+
+            cd = cd.withTemplate(template, cd.getBody().getCoordinates().firstStatement(), loggerName, cd.getSimpleName());
+
+            // ensure the appropriate number of blank lines on next statement after new field
+            J.ClassDeclaration formatted = (J.ClassDeclaration) new AutoFormatVisitor<ExecutionContext>().visitNonNull(cd, ctx, getCursor());
+            cd = cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), (i, stat) -> {
+                if (i == 1) {
+                    return stat.withPrefix(formatted.getBody().getStatements().get(i).getPrefix());
+                }
+                return stat;
+            })));
+
+            maybeAddImport(loggerType);
+            maybeAddImport(factoryType);
         }
 
-        cd = cd.withTemplate(template, cd.getBody().getCoordinates().firstStatement(), loggerName, cd.getSimpleName());
-
-        // ensure the appropriate number of blank lines on next statement after new field
-        J.ClassDeclaration formatted = (J.ClassDeclaration) new AutoFormatVisitor<ExecutionContext>().visitNonNull(cd, ctx, getCursor());
-        cd = cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), (i, stat) -> {
-            if (i == 1) {
-                return stat.withPrefix(formatted.getBody().getStatements().get(i).getPrefix());
-            }
-            return stat;
-        })));
-
-        maybeAddImport(loggerType);
-        maybeAddImport(factoryType);
         return cd;
     }
 }
