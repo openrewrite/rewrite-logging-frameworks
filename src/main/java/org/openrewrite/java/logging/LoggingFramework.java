@@ -43,7 +43,7 @@ public enum LoggingFramework {
     }
 
     public static LoggingFramework fromOption(@Nullable String option) {
-        if(option != null) {
+        if (option != null) {
             for (LoggingFramework value : values()) {
                 if (value.toString().equalsIgnoreCase(option)) {
                     return value;
@@ -59,16 +59,16 @@ public enum LoggingFramework {
                 return JavaTemplate
                         .builder(visitor::getCursor, "#{any(org.slf4j.Logger)}.error(" + message + ", #{any(java.lang.Throwable)})")
                         .javaParser(() -> JavaParser.fromJavaVersion()
-                                .classpath("slf4j-api")
-                                .build()
+                                        .classpath("slf4j-api")
+                                        .build()
                         )
                         .build();
             case Log4J1:
                 return JavaTemplate
                         .builder(visitor::getCursor, "#{any(org.apache.log4j.Category)}.error(" + message + ", #{any(java.lang.Throwable)})")
                         .javaParser(() -> JavaParser.fromJavaVersion()
-                                .classpath("log4j")
-                                .build()
+                                        .classpath("log4j")
+                                        .build()
                         )
                         .build();
 
@@ -76,8 +76,8 @@ public enum LoggingFramework {
                 return JavaTemplate
                         .builder(visitor::getCursor, "#{any(org.apache.logging.log4j.Logger)}.error(" + message + ", #{any(java.lang.Throwable)})")
                         .javaParser(() -> JavaParser.fromJavaVersion()
-                                .classpath("log4j-api")
-                                .build()
+                                        .classpath("log4j-api")
+                                        .build()
                         )
                         .build();
             case JUL:

@@ -183,16 +183,16 @@ public class SystemErrToLogging extends Recipe {
                         return JavaTemplate
                                 .builder(visitor::getCursor, "#{any(org.slf4j.Logger)}.error(#{any(String)})")
                                 .javaParser(() -> JavaParser.fromJavaVersion()
-                                        .classpath("slf4j-api")
-                                        .build()
+                                                .classpath("slf4j-api")
+                                                .build()
                                 )
                                 .build();
                     case Log4J1:
                         return JavaTemplate
                                 .builder(visitor::getCursor, "#{any(org.apache.log4j.Category)}.error(#{any(String)})")
                                 .javaParser(() -> JavaParser.fromJavaVersion()
-                                        .classpath("log4j")
-                                        .build()
+                                                .classpath("log4j")
+                                                .build()
                                 )
                                 .build();
 
@@ -200,8 +200,8 @@ public class SystemErrToLogging extends Recipe {
                         return JavaTemplate
                                 .builder(visitor::getCursor, "#{any(org.apache.logging.log4j.Logger)}.error(#{any(String)})")
                                 .javaParser(() -> JavaParser.fromJavaVersion()
-                                        .classpath("log4j-api")
-                                        .build()
+                                                .classpath("log4j-api")
+                                                .build()
                                 )
                                 .build();
                     case JUL:
