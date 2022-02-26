@@ -50,7 +50,7 @@ public class Log4jAppenderToLogback extends Recipe {
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-                doAfterVisit(new ChangeMethodName("org.apache.log4j.Layout format(..)", "doLayout", null));
+                doAfterVisit(new ChangeMethodName("org.apache.log4j.Layout format(..)", "doLayout", null, null));
                 return super.visitCompilationUnit(cu, ctx);
             }
 
@@ -66,8 +66,8 @@ public class Log4jAppenderToLogback extends Recipe {
                         maybeAddImport("ch.qos.logback.core.AppenderBase");
                         maybeAddImport("ch.qos.logback.classic.spi.ILoggingEvent");
 
-                        doAfterVisit(new ChangeType("org.apache.log4j.spi.LoggingEvent", "ch.qos.logback.classic.spi.ILoggingEvent"));
-                        doAfterVisit(new ChangeType("org.apache.log4j.Layout", "ch.qos.logback.core.LayoutBase"));
+                        doAfterVisit(new ChangeType("org.apache.log4j.spi.LoggingEvent", "ch.qos.logback.classic.spi.ILoggingEvent", null));
+                        doAfterVisit(new ChangeType("org.apache.log4j.Layout", "ch.qos.logback.core.LayoutBase", null));
 
                         cd = cd.withTemplate(
                                 JavaTemplate.builder(this::getCursor, "AppenderBase<ILoggingEvent>")
