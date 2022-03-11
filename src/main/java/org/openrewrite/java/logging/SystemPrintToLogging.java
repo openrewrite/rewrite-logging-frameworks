@@ -22,6 +22,8 @@ import org.openrewrite.Option;
 import org.openrewrite.Recipe;
 import org.openrewrite.internal.lang.Nullable;
 
+import java.time.Duration;
+
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 @EqualsAndHashCode(callSuper = false)
 public class SystemPrintToLogging extends Recipe {
@@ -54,6 +56,11 @@ public class SystemPrintToLogging extends Recipe {
     @Override
     public String getDisplayName() {
         return "Use logger instead of system print statements";
+    }
+
+    @Override
+    public Duration getEstimatedEffortPerOccurrence() {
+        return Duration.ofMinutes(5);
     }
 
     @Override

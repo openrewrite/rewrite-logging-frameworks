@@ -29,6 +29,7 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
+import java.time.Duration;
 import java.util.Set;
 
 @Value
@@ -61,6 +62,11 @@ public class SystemOutToLogging extends Recipe {
             required = false)
     @Nullable
     String level;
+
+    @Override
+    public Duration getEstimatedEffortPerOccurrence() {
+        return Duration.ofMinutes(5);
+    }
 
     @Override
     public String getDisplayName() {

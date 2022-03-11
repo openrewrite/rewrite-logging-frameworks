@@ -28,6 +28,8 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 
+import java.time.Duration;
+
 @Value
 @EqualsAndHashCode(callSuper = true)
 public class ConvertLogMessageMessageOnlyToLogMessageAndThrowable extends Recipe {
@@ -41,6 +43,11 @@ public class ConvertLogMessageMessageOnlyToLogMessageAndThrowable extends Recipe
     @Override
     public String getDisplayName() {
         return "Convert Logger#error|warn(Throwable#message) to Logger#error|warn(<log-message>, e)";
+    }
+
+    @Override
+    public Duration getEstimatedEffortPerOccurrence() {
+        return Duration.ofMinutes(5);
     }
 
     @Override

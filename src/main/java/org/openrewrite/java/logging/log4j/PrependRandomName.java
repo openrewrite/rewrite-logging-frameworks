@@ -25,6 +25,8 @@ import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 
+import java.time.Duration;
+
 public class PrependRandomName extends Recipe {
     private static final MethodMatcher logStatement = new MethodMatcher("org.apache.log4j.Category *(Object, ..)");
     private final RandomNameGenerator randomName;
@@ -45,6 +47,11 @@ public class PrependRandomName extends Recipe {
     @Override
     public String getDescription() {
         return "To make finding the callsite of a logging statement easier in code search.";
+    }
+
+    @Override
+    public Duration getEstimatedEffortPerOccurrence() {
+        return Duration.ofMinutes(5);
     }
 
     @Override

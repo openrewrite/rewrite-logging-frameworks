@@ -29,6 +29,7 @@ import org.openrewrite.java.search.FindFieldsOfType;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 
+import java.time.Duration;
 import java.util.Set;
 
 @Value
@@ -61,6 +62,11 @@ public class PrintStackTraceToLogError extends Recipe {
     @Override
     public String getDescription() {
         return "When a logger is present, log exceptions rather than calling `printStackTrace()`.";
+    }
+
+    @Override
+    public Duration getEstimatedEffortPerOccurrence() {
+        return Duration.ofMinutes(5);
     }
 
     @Override

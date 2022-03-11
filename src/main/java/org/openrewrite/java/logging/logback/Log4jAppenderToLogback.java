@@ -25,6 +25,8 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
+import java.time.Duration;
+
 public class Log4jAppenderToLogback extends Recipe {
     @Override
     public String getDisplayName() {
@@ -38,6 +40,11 @@ public class Log4jAppenderToLogback extends Recipe {
                 "2.) The `requiresLayout()` method is not used in logback and can be removed. " +
                 "3.) In logback, the `stop()` method is the equivalent of log4j's close() method. " +
                 "For more details, see this page from logback: [`Migration from log4j`](http://logback.qos.ch/manual/migrationFromLog4j.html).";
+    }
+
+    @Override
+    public Duration getEstimatedEffortPerOccurrence() {
+        return Duration.ofMinutes(5);
     }
 
     @Override
