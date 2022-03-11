@@ -110,7 +110,7 @@ public class SystemErrToLogging extends Recipe {
                         if (systemErrPrint.matches((Expression) stat)) {
                             if (m.getSelect() != null && m.getSelect() instanceof J.FieldAccess) {
                                 JavaType.Variable field = ((J.FieldAccess) m.getSelect()).getName().getFieldType();
-                                if (field != null && field.getName().equals("err") && TypeUtils.isOfClassType(field.getOwner(), "java.lang.System")) {
+                                if (field != null && "err".equals(field.getName()) && TypeUtils.isOfClassType(field.getOwner(), "java.lang.System")) {
                                     Expression exceptionPrintStackTrace = null;
                                     if (block.getStatements().size() > i + 1) {
                                         J next = block.getStatements().get(i + 1);
@@ -140,7 +140,7 @@ public class SystemErrToLogging extends Recipe {
                     if (getCursor().getParentOrThrow().getValue() instanceof J.Lambda) {
                         if (m.getSelect() != null && m.getSelect() instanceof J.FieldAccess) {
                             JavaType.Variable field = ((J.FieldAccess) m.getSelect()).getName().getFieldType();
-                            if (field != null && field.getName().equals("err") && TypeUtils.isOfClassType(field.getOwner(), "java.lang.System")) {
+                            if (field != null && "err".equals(field.getName()) && TypeUtils.isOfClassType(field.getOwner(), "java.lang.System")) {
                                 return logInsteadOfPrint(m, ctx, null);
                             }
                         }

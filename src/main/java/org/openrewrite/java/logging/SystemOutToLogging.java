@@ -104,7 +104,7 @@ public class SystemOutToLogging extends Recipe {
                 if (systemOutPrint.matches((Expression) method)) {
                     if (m.getSelect() != null && m.getSelect() instanceof J.FieldAccess) {
                         JavaType.Variable field = ((J.FieldAccess) m.getSelect()).getName().getFieldType();
-                        if (field != null && field.getName().equals("out") && TypeUtils.isOfClassType(field.getOwner(), "java.lang.System")) {
+                        if (field != null && "out".equals(field.getName()) && TypeUtils.isOfClassType(field.getOwner(), "java.lang.System")) {
                             return logInsteadOfPrint(m, ctx);
                         }
                     }
@@ -180,9 +180,9 @@ public class SystemOutToLogging extends Recipe {
                 String levelOrDefault = level == null ? "info" : level;
                 if(framework == LoggingFramework.JUL) {
                     String julLevel = levelOrDefault.toUpperCase();
-                    if (levelOrDefault.equals("debug")) {
+                    if ("debug".equals(levelOrDefault)) {
                         julLevel = "FINE";
-                    } else if (levelOrDefault.equals("trace")) {
+                    } else if ("trace".equals(levelOrDefault)) {
                         julLevel = "FINER";
                     }
                     return julLevel;
