@@ -41,8 +41,7 @@ import java.util.List;
 public class ParameterizedLogging extends Recipe {
     @Option(displayName = "Method pattern",
             description = "A method used to find matching statements to parameterize.",
-            example = "org.slf4j.Logger info(..)",
-            required = true)
+            example = "org.slf4j.Logger info(..)")
     String methodPattern;
 
     @Override
