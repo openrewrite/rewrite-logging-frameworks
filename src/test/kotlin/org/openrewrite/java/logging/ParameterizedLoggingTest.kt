@@ -373,4 +373,31 @@ class ParameterizedLoggingTest : JavaRecipeTest {
         """
     )
 
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/59")
+    @Test
+    fun handlesEscapeChars() = assertChanged(
+        recipe = ParameterizedLogging("org.apache.logging.log4j.Logger info(..)"),
+        before = """
+            import org.apache.logging.log4j.Logger;
+            class T {
+            
+                static void method(Logger logger) {
+                    logger.info("\n\\\r_" + "\\\\_\n" + "_\"\n");
+                    logger.info("t" + "");
+                    logger.info("" + "");
+                }
+            }
+        """,
+        after = """
+            import org.apache.logging.log4j.Logger;
+            class T {
+            
+                static void method(Logger logger) {
+                    logger.info("\n\\\r_\\\\_\n_\"\n");
+                    logger.info("t");
+                    logger.info("");
+                }
+            }
+        """
+    )
 }

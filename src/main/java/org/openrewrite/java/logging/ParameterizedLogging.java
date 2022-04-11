@@ -22,6 +22,7 @@ import org.openrewrite.Option;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
@@ -81,7 +82,7 @@ public class ParameterizedLogging extends Recipe {
                         ListUtils.map(m.getArguments(), (index, message) -> {
                             if (index == 0 && message instanceof J.Binary) {
                                 MessageAndArguments literalAndArgs = concatenationToLiteral(message, new MessageAndArguments("", new ArrayList<>()));
-                                messageBuilder.append(escapeJava(literalAndArgs.message));
+                                messageBuilder.append(literalAndArgs.message);
                                 newArgList.addAll(literalAndArgs.arguments);
                             } else {
                                 newArgList.add(message);
@@ -135,7 +136,7 @@ public class ParameterizedLogging extends Recipe {
         if (concat.getLeft() instanceof J.Binary && ((J.Binary) concat.getLeft()).getOperator() == J.Binary.Type.Addition) {
             concatenationToLiteral(concat.getLeft(), result);
         } else if (concat.getLeft() instanceof J.Literal) {
-            result.message = ((J.Literal) concat.getLeft()).getValue() + result.message;
+            result.message = getLiteralValue((J.Literal) concat.getLeft()) + result.message;
         } else {
             result.message = "{}" + result.message;
             result.arguments.add(concat.getLeft());
@@ -144,7 +145,7 @@ public class ParameterizedLogging extends Recipe {
         if (concat.getRight() instanceof J.Binary && ((J.Binary) concat.getRight()).getOperator() == J.Binary.Type.Addition) {
             concatenationToLiteral(concat.getRight(), result);
         } else if (concat.getRight() instanceof J.Literal) {
-            result.message += ((J.Literal) concat.getRight()).getValue();
+            result.message += getLiteralValue((J.Literal) concat.getRight());
         } else {
             // prevent inadvertently appending {} to # to create #{}, which creates an additional JavaTemplate argument
             if (result.message.endsWith("#")) {
@@ -157,12 +158,14 @@ public class ParameterizedLogging extends Recipe {
         return result;
     }
 
-    private static String escapeJava(String value) {
-        //noinspection DynamicRegexReplaceableByCompiledPattern
-        return value.replace("\"", "\\\\\"")
-                .replace("\r", "\\\\r")
-                .replace("\n", "\\\\n")
-                .replace("\t", "\\\\t");
+    @Nullable
+    private static Object getLiteralValue(J.Literal literal) {
+        if (literal.getValueSource() == null || literal.getType() != JavaType.Primitive.String) {
+            return literal.getValue();
+        }
+        return literal
+                .getValueSource()
+                .substring(1, literal.getValueSource().length() -1)
+                .replace("\\", "\\\\");
     }
-
 }
