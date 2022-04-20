@@ -68,7 +68,6 @@ public class Log4jLayoutToLogback extends Recipe {
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                 J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
-
                 if (cd.getExtends() != null && cd.getExtends().getType() != null) {
                     JavaType.FullyQualified fullyQualifiedExtends = TypeUtils.asFullyQualified(cd.getExtends().getType());
                     if (fullyQualifiedExtends != null && "org.apache.log4j.Layout".equals(fullyQualifiedExtends.getFullyQualifiedName())) {
@@ -83,6 +82,9 @@ public class Log4jLayoutToLogback extends Recipe {
                         cd = cd.withTemplate(
                                 JavaTemplate.builder(this::getCursor, "LayoutBase<ILoggingEvent>")
                                         .imports("ch.qos.logback.core.LayoutBase", "ch.qos.logback.classic.spi.ILoggingEvent")
+                                        .javaParser(() -> JavaParser.fromJavaVersion().dependsOn(
+                                                "package ch.qos.logback.classic.spi;public interface ILoggingEvent{ }",
+                                                "package org.apache.log4j.spi;public class LoggingEvent { public String getRenderedMessage() {return null;}}").build())
                                         .build(),
                                 cd.getCoordinates().replaceExtendsClause()
                         );
