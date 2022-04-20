@@ -116,7 +116,7 @@ dependencies {
     testRuntimeOnly("org.openrewrite:rewrite-java-8:${rewriteVersion}")
 
     testRuntimeOnly("commons-logging:commons-logging:1.2")
-    testRuntimeOnly("ch.qos.logback:logback-classic:1+")
+    testRuntimeOnly("ch.qos.logback:logback-classic:1.2+")
 
     testRuntimeOnly("org.apache.logging.log4j:log4j-core:2.+")
     testRuntimeOnly("org.apache.logging.log4j:log4j-api:2.+")
