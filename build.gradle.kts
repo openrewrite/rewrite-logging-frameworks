@@ -81,6 +81,14 @@ configurations.all {
     }
 }
 
+listOf("compileClasspath", "runtimeClasspath")
+    .map(configurations::named)
+    .forEach {
+        it.configure {
+            exclude("org.jetbrains.kotlin")
+        }
+    }
+
 val rewriteVersion = if (project.hasProperty("releasing")) {
     "latest.release"
 } else {
@@ -114,7 +122,7 @@ dependencies {
 
     testRuntimeOnly("org.openrewrite:rewrite-java-11:${rewriteVersion}")
     testRuntimeOnly("org.openrewrite:rewrite-java-8:${rewriteVersion}")
-
+    testRuntimeOnly("com.fasterxml.jackson.module:jackson-module-kotlin:latest.release")
     testRuntimeOnly("commons-logging:commons-logging:1.2")
     testRuntimeOnly("ch.qos.logback:logback-classic:1.2.11")
 
