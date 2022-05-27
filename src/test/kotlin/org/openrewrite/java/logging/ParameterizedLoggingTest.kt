@@ -295,7 +295,7 @@ class ParameterizedLoggingTest : JavaRecipeTest {
     )
 
     @Test
-    fun throwableParameters() = assertChanged(
+    fun throwableParameters() = assertUnchanged(
         recipe = ParameterizedLogging("org.apache.logging.log4j.Logger error(..)"),
         before = """
             import org.apache.logging.log4j.Logger;
@@ -309,17 +309,20 @@ class ParameterizedLoggingTest : JavaRecipeTest {
                     }
                 }
             }
-        """,
-        after = """
+        """
+    )
+
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/58")
+    @Test
+    fun methodInvocationReturnTypeIsString() = assertUnchanged(
+        recipe = ParameterizedLogging("org.apache.logging.log4j.Logger info(..)"),
+        before = """
             import org.apache.logging.log4j.Logger;
 
             class Test {
-                static void method(Logger logger, String numberString) {
-                    try {
-                        Integer i = Integer.valueOf(numberString);
-                    } catch (Exception e) {
-                        logger.error("{}", e.getMessage(), e);
-                    }
+                static String getMessage() {return "";}
+                static void method(Logger logger, StringBuilder sb) {
+                    logger.info(getMessage());
                 }
             }
         """

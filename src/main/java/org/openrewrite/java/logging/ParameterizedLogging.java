@@ -97,17 +97,15 @@ public class ParameterizedLogging extends Recipe {
                                 m.getCoordinates().replaceArguments(),
                                 newArgList.toArray()
                         );
-                    } else if (!TypeUtils.isString(logMsg.getType()) || logMsg instanceof J.MethodInvocation) {
-                        if (logMsg.getType() instanceof JavaType.Class) {
-                            final StringBuilder messageBuilder = new StringBuilder("\"{}\"");
-                            m.getArguments().forEach(arg -> messageBuilder.append(", #{any()}"));
-                            m = m.withTemplate(
-                                    JavaTemplate.builder(this::getCursor, messageBuilder.toString())
-                                            .build(),
-                                    m.getCoordinates().replaceArguments(),
-                                    m.getArguments().toArray()
-                            );
-                        }
+                    } else if (!TypeUtils.isString(logMsg.getType()) && logMsg.getType() instanceof JavaType.Class) {
+                        final StringBuilder messageBuilder = new StringBuilder("\"{}\"");
+                        m.getArguments().forEach(arg -> messageBuilder.append(", #{any()}"));
+                        m = m.withTemplate(
+                                JavaTemplate.builder(this::getCursor, messageBuilder.toString())
+                                        .build(),
+                                m.getCoordinates().replaceArguments(),
+                                m.getArguments().toArray()
+                        );
                     }
                 }
 
