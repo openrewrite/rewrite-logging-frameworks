@@ -16,6 +16,7 @@
 package org.openrewrite.java.logging
 
 import org.junit.jupiter.api.Test
+import org.openrewrite.Issue
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
@@ -155,6 +156,59 @@ class PrintStackTraceToLogErrorTest : JavaRecipeTest {
                     try {
                     } catch(Throwable t) {
                         LOGGER.error("Exception", t);
+                    }
+                }
+            }
+        """
+    )
+
+    @Suppress("RedundantSlf4jDefinition")
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/64")
+    @Test
+    fun addLoggerTwoStaticClass() = assertChanged(
+        parser = JavaParser.fromJavaVersion()
+            .classpath("slf4j-api")
+            .build(),
+        recipe = PrintStackTraceToLogError(true, "LOGGER", null),
+        before = """
+            public class Test {
+                public static class MyErrorReceiver {
+                    public void error(Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                public static class Another {
+                    public void close() {
+                        try {
+                        } catch ( java.io.IOException e ) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+        """,
+        after = """
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+            
+            public class Test {
+                public static class MyErrorReceiver {
+                    private static final Logger LOGGER = LoggerFactory.getLogger(MyErrorReceiver.class);
+
+                    public void error(Exception e) {
+                        LOGGER.error("Exception", e);
+                    }
+                }
+
+                public static class Another {
+                    private static final Logger LOGGER = LoggerFactory.getLogger(Another.class);
+
+                    public void close() {
+                        try {
+                        } catch ( java.io.IOException e ) {
+                            LOGGER.error("Exception", e);
+                        }
                     }
                 }
             }
