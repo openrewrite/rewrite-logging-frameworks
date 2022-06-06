@@ -87,33 +87,51 @@ public class PrintStackTraceToLogError extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
+        return new PrintStackTraceToLogErrorVisitor(loggingFramework, loggerName, addLogger);
+    }
+
+    private static class PrintStackTraceToLogErrorVisitor extends JavaIsoVisitor<ExecutionContext> {
+
+        @Nullable
+        private final Boolean addLogger;
+        @Nullable
+        private final String loggingFramework;
+        @Nullable
+        private final String loggerName;
+
         MethodMatcher printStackTrace = new MethodMatcher("java.lang.Throwable printStackTrace(..)");
-        LoggingFramework framework = LoggingFramework.fromOption(loggingFramework);
+        LoggingFramework framework;
 
-        return new JavaIsoVisitor<ExecutionContext>() {
-            @Override
-            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
-                if (printStackTrace.matches(m)) {
-                    J.ClassDeclaration clazz = getCursor().firstEnclosingOrThrow(J.ClassDeclaration.class);
-                    Set<J.VariableDeclarations> loggers = FindFieldsOfType.find(clazz, framework.getLoggerType());
-                    if (!loggers.isEmpty()) {
-                        m = m.withTemplate(framework.getErrorTemplate(this, "\"Exception\""),
-                                m.getCoordinates().replace(),
-                                loggers.iterator().next().getVariables().get(0).getName(),
-                                m.getSelect());
-                        if (framework == LoggingFramework.JUL) {
-                            maybeAddImport("java.util.logging.Level");
-                        }
-                    } else if (addLogger != null && addLogger) {
-                        doAfterVisit(AddLogger.addLogger(clazz, framework, loggerName == null ? "logger" : loggerName));
+        private PrintStackTraceToLogErrorVisitor(@Nullable String loggingFramework, @Nullable String loggerName, @Nullable Boolean addLogger) {
+            this.loggingFramework = loggingFramework;
+            this.loggerName = loggerName;
+            this.addLogger = addLogger;
+            this.framework = LoggingFramework.fromOption(loggingFramework);
+        }
 
-                        // the print statement will be replaced on the subsequent pass
-                        doAfterVisit(this);
+        @Override
+        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+            J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
+            if (printStackTrace.matches(m)) {
+                J.ClassDeclaration clazz = getCursor().firstEnclosingOrThrow(J.ClassDeclaration.class);
+                Set<J.VariableDeclarations> loggers = FindFieldsOfType.find(clazz, framework.getLoggerType());
+                if (!loggers.isEmpty()) {
+                    m = m.withTemplate(framework.getErrorTemplate(this, "\"Exception\""),
+                            m.getCoordinates().replace(),
+                            loggers.iterator().next().getVariables().get(0).getName(),
+                            m.getSelect());
+                    if (framework == LoggingFramework.JUL) {
+                        maybeAddImport("java.util.logging.Level");
                     }
+                } else if (addLogger != null && addLogger) {
+                    doAfterVisit(AddLogger.addLogger(clazz, framework, loggerName == null ? "logger" : loggerName));
+
+                    // the print statement will be replaced on the subsequent pass
+                    doAfterVisit(new PrintStackTraceToLogErrorVisitor(loggingFramework, loggerName, Boolean.TRUE));
                 }
-                return m;
             }
-        };
+            return m;
+        }
+
     }
 }
