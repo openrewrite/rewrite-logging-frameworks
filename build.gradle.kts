@@ -81,14 +81,6 @@ configurations.all {
     }
 }
 
-listOf("compileClasspath", "runtimeClasspath")
-    .map(configurations::named)
-    .forEach {
-        it.configure {
-            exclude("org.jetbrains.kotlin")
-        }
-    }
-
 val rewriteVersion = if (project.hasProperty("releasing")) {
     "latest.release"
 } else {
@@ -105,12 +97,9 @@ dependencies {
     implementation("org.openrewrite:rewrite-maven:${rewriteVersion}")
     runtimeOnly("org.openrewrite:rewrite-java-11:${rewriteVersion}")
 
-    // eliminates "unknown enum constant DeprecationLevel.WARNING" warnings from the build log
-    // see https://github.com/gradle/kotlin-dsl-samples/issues/1301 for why (okhttp is leaking parts of kotlin stdlib)
-    compileOnly("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-
-    testImplementation("org.jetbrains.kotlin:kotlin-reflect")
-    testImplementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    testImplementation(platform("org.jetbrains.kotlin:kotlin-bom"))
+    testImplementation(kotlin("reflect"))
+    testImplementation(kotlin("stdlib"))
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:latest.release")
     testImplementation("org.junit.jupiter:junit-jupiter-params:latest.release")
@@ -153,7 +142,6 @@ tasks.named<JavaCompile>("compileJava") {
     options.encoding = "UTF-8"
     options.compilerArgs.add("-parameters")
 }
-
 
 configure<ContactsExtension> {
     val j = Contact("team@moderne.io")
