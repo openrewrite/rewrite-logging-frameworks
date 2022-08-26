@@ -22,12 +22,12 @@ import org.openrewrite.Recipe;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.J.Identifier;
 import org.openrewrite.java.tree.J.MethodInvocation;
 
 public class LoggersNamedForEnclosingClass extends Recipe {
 
-    private static final MethodMatcher LOGGERFACTORY_GETLOGGER = new MethodMatcher("org.slf4j.LoggerFactory getLogger(Class)");
+    private static final MethodMatcher LOGGERFACTORY_GETLOGGER = new MethodMatcher(
+            "org.slf4j.LoggerFactory getLogger(Class)");
 
     @Override
     public String getDisplayName() {
@@ -59,22 +59,19 @@ public class LoggersNamedForEnclosingClass extends Recipe {
                     return mi;
                 }
 
-                J.ClassDeclaration enclosingClazz = getCursor().firstEnclosingOrThrow(J.ClassDeclaration.class);
-                J.Identifier identifier = (Identifier) mi.getArguments().get(0);
-                String name = identifier.getSimpleName().split("\\.")[0];
-
-                if (!enclosingClazz.getSimpleName().equals(name)) {
-                    return mi.withTemplate(
-                            JavaTemplate.builder(this::getCursor, "LoggerFactory.getLogger(#{any()}.class)")
-                                    .javaParser(() -> JavaParser.fromJavaVersion().build())
-                                    .build(),
-                            mi.getCoordinates().replace(),
-                            enclosingClazz.getSimpleName() + ".class");
+                String enclosingClazzName = getCursor().firstEnclosingOrThrow(J.ClassDeclaration.class).getSimpleName()
+                        + ".class";
+                String argumentClazzName = ((J.FieldAccess) mi.getArguments().get(0)).toString();
+                if (enclosingClazzName.equals(argumentClazzName)) {
+                    return mi;
                 }
 
-                return mi;
+                return mi.withTemplate(JavaTemplate.builder(this::getCursor, "LoggerFactory.getLogger(#{})")
+                        .javaParser(() -> JavaParser.fromJavaVersion().classpath("slf4j-api").build())
+                        .build(),
+                        mi.getCoordinates().replace(),
+                        enclosingClazzName);
             }
         };
     }
 }
-

@@ -30,7 +30,7 @@ class LoggersNamedForEnclosingClassTest : JavaRecipeTest {
 
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/65")
     @Test
-    fun doNotUseStringFormat() = assertChanged(
+    fun shouldRenameLogger() = assertChanged(
         before = """
             import org.slf4j.Logger;
             import org.slf4j.LoggerFactory;
@@ -43,6 +43,17 @@ class LoggersNamedForEnclosingClassTest : JavaRecipeTest {
             import org.slf4j.Logger;
             import org.slf4j.LoggerFactory;
             class WrongClass {}
+            class A {
+                private final static Logger LOG = LoggerFactory.getLogger(A.class);
+            }
+        """
+    )
+   
+    @Test
+    fun shouldNotChangeCorrectLoggername() = assertUnchanged(
+        before = """
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
             class A {
                 private final static Logger LOG = LoggerFactory.getLogger(A.class);
             }
