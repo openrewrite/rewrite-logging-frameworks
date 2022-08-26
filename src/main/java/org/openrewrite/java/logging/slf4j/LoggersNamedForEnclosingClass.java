@@ -16,6 +16,8 @@
 package org.openrewrite.java.logging.slf4j;
 
 import java.time.Duration;
+import java.util.Collections;
+import java.util.Set;
 
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
@@ -48,6 +50,10 @@ public class LoggersNamedForEnclosingClass extends Recipe {
         return new UsesType<>("org.slf4j.LoggerFactory");
     }
 
+    @Override
+    public Set<String> getTags() {
+        return Collections.singleton("RSPEC-3416");
+    }
     @Override
     protected JavaVisitor<ExecutionContext> getVisitor() {
         return new JavaIsoVisitor<ExecutionContext>() {
