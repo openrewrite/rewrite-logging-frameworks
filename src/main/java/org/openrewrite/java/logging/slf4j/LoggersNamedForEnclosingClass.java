@@ -22,7 +22,6 @@ import org.openrewrite.Recipe;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.J.MethodInvocation;
 
 public class LoggersNamedForEnclosingClass extends Recipe {
 
@@ -53,14 +52,18 @@ public class LoggersNamedForEnclosingClass extends Recipe {
     protected JavaVisitor<ExecutionContext> getVisitor() {
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
-            public J.MethodInvocation visitMethodInvocation(MethodInvocation method, ExecutionContext p) {
-                MethodInvocation mi = super.visitMethodInvocation(method, p);
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext p) {
+                J.MethodInvocation mi = super.visitMethodInvocation(method, p);
                 if (!LOGGERFACTORY_GETLOGGER.matches(mi)) {
                     return mi;
                 }
 
-                String enclosingClazzName = getCursor().firstEnclosingOrThrow(J.ClassDeclaration.class).getSimpleName()
-                        + ".class";
+                J.ClassDeclaration firstEnclosingClass = getCursor().firstEnclosing(J.ClassDeclaration.class);
+                if (firstEnclosingClass == null) {
+                    return mi;
+                }
+
+                String enclosingClazzName = firstEnclosingClass.getSimpleName() + ".class";
                 String argumentClazzName = ((J.FieldAccess) mi.getArguments().get(0)).toString();
                 if (enclosingClazzName.equals(argumentClazzName)) {
                     return mi;
