@@ -21,6 +21,7 @@ import org.openrewrite.Recipe
 import org.openrewrite.java.JavaParser
 import org.openrewrite.java.JavaRecipeTest
 
+@Suppress("RedundantSlf4jDefinition")
 class LoggersNamedForEnclosingClassTest : JavaRecipeTest {
     override val parser: JavaParser
         get() = JavaParser.fromJavaVersion().classpath("slf4j-api").build()
@@ -48,7 +49,27 @@ class LoggersNamedForEnclosingClassTest : JavaRecipeTest {
             }
         """
     )
-   
+   @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/69")
+    @Test
+    fun shouldRenameLoggerFromMethodInvocationToClass() = assertChanged(
+        before = """
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+            class WrongClass {}
+            class A {
+                private Logger logger = LoggerFactory.getLogger(getClass());
+            }
+        """,
+        after = """
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+            class WrongClass {}
+            class A {
+                private Logger logger = LoggerFactory.getLogger(A.class);
+            }
+        """
+    )
+
     @Test
     fun shouldNotChangeCorrectLoggername() = assertUnchanged(
         before = """

@@ -70,9 +70,11 @@ public class LoggersNamedForEnclosingClass extends Recipe {
                 }
 
                 String enclosingClazzName = firstEnclosingClass.getSimpleName() + ".class";
-                String argumentClazzName = ((J.FieldAccess) mi.getArguments().get(0)).toString();
-                if (enclosingClazzName.equals(argumentClazzName)) {
-                    return mi;
+                if (mi.getArguments().get(0) instanceof J.FieldAccess) {
+                    String argumentClazzName = ((J.FieldAccess) mi.getArguments().get(0)).toString();
+                    if (enclosingClazzName.equals(argumentClazzName)) {
+                        return mi;
+                    }
                 }
 
                 return mi.withTemplate(JavaTemplate.builder(this::getCursor, "LoggerFactory.getLogger(#{})")
