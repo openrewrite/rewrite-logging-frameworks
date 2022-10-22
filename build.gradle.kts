@@ -96,7 +96,7 @@ dependencies {
 
     implementation("org.openrewrite:rewrite-java:${rewriteVersion}")
     implementation("org.openrewrite:rewrite-maven:${rewriteVersion}")
-    runtimeOnly("org.openrewrite:rewrite-java-11:${rewriteVersion}")
+    runtimeOnly("org.openrewrite:rewrite-java-17:${rewriteVersion}")
 
     testImplementation(platform("org.jetbrains.kotlin:kotlin-bom"))
     testImplementation(kotlin("reflect"))
@@ -111,8 +111,7 @@ dependencies {
 
     testImplementation("org.assertj:assertj-core:latest.release")
 
-    testRuntimeOnly("org.openrewrite:rewrite-java-11:${rewriteVersion}")
-    testRuntimeOnly("org.openrewrite:rewrite-java-8:${rewriteVersion}")
+    testRuntimeOnly("org.openrewrite:rewrite-java-17:${rewriteVersion}")
     testRuntimeOnly("com.fasterxml.jackson.module:jackson-module-kotlin:latest.release")
     testRuntimeOnly("commons-logging:commons-logging:1.2")
     testRuntimeOnly("ch.qos.logback:logback-classic:1.2.11")
