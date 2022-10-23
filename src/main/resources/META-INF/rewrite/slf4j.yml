@@ -122,3 +122,16 @@ recipeList:
   - org.openrewrite.java.logging.log4j.Log4j1ToLog4j2
   - org.openrewrite.java.logging.slf4j.Log4j2ToSlf4j1
   - org.openrewrite.java.logging.slf4j.ParameterizedLogging
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.logging.slf4j.Slf4jBestPractices
+displayName: Slf4j best practices
+description: Applies best practices to logging
+tags:
+  - logging
+  - slf4j
+recipeList:
+  - org.openrewrite.java.logging.slf4j.ConvertLogMessageMessageOnlyToLogMessageAndThrowable
+  - org.openrewrite.java.logging.slf4j.LoggersNamedForEnclosingClass
+  - org.openrewrite.java.logging.slf4j.ParameterizedLogging
+  - org.openrewrite.java.logging.slf4j.Slf4jLogShouldBeConstant
