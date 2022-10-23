@@ -43,10 +43,8 @@ class Slf4jBestPracticesTest : JavaRecipeTest {
                     logger.info("Hello " + obj1 + ", " + obj2);
                     Exception e = new Exception();
                     logger.warn(String.valueOf(e));
-                    Exception e2 = new Exception("message2");
-                    logger.error(e2.getMessage());
-                    Exception e3 = new Exception("message3");
-                    logger.error(e3.getLocalizedMessage());
+                    logger.warn(e.getMessage());
+                    logger.warn(e.getLocalizedMessage());
                 }
             }
         """,
@@ -61,10 +59,8 @@ class Slf4jBestPracticesTest : JavaRecipeTest {
                     logger.info("Hello {}, {}", obj1, obj2);
                     Exception e = new Exception();
                     logger.warn("Exception", e);
-                    Exception e2 = new Exception("message2");
-                    logger.error("", e2);
-                    Exception e3 = new Exception("message3");
-                    logger.error("", e3);
+                    logger.warn("", e);
+                    logger.warn("", e);
                 }
             }
         """
