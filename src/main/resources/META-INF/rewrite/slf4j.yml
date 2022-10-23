@@ -125,8 +125,8 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.slf4j.Slf4jBestPractices
-displayName: Slf4j best practices
-description: Applies best practices to logging
+displayName: SLF4J best practices
+description: Applies best practices to logging with SLF4J.
 tags:
   - logging
   - slf4j
