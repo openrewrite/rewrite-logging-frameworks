@@ -2,7 +2,6 @@ import com.github.jk1.license.LicenseReportExtension
 import nebula.plugin.contacts.Contact
 import nebula.plugin.contacts.ContactsExtension
 import nl.javadude.gradle.plugins.license.LicenseExtension
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.util.*
 
 plugins {
@@ -10,7 +9,6 @@ plugins {
     `maven-publish`
     signing
 
-    id("org.jetbrains.kotlin.jvm") version "1.6.21"
     id("nebula.maven-resolved-dependencies") version "17.3.2"
     id("nebula.release") version "15.3.1"
     id("io.github.gradle-nexus.publish-plugin") version "1.0.0"
@@ -34,6 +32,12 @@ apply(plugin = "nebula.publish-verification")
 
 rewrite {
     activeRecipe("org.openrewrite.java.format.AutoFormat", "org.openrewrite.java.cleanup.Cleanup")
+}
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(17))
+    }
 }
 
 configure<nebula.plugin.release.git.base.ReleasePluginExtension> {
@@ -98,10 +102,6 @@ dependencies {
     implementation("org.openrewrite:rewrite-maven:${rewriteVersion}")
     runtimeOnly("org.openrewrite:rewrite-java-17:${rewriteVersion}")
 
-    testImplementation(platform("org.jetbrains.kotlin:kotlin-bom"))
-    testImplementation(kotlin("reflect"))
-    testImplementation(kotlin("stdlib"))
-
     testImplementation("org.junit.jupiter:junit-jupiter-api:latest.release")
     testImplementation("org.junit.jupiter:junit-jupiter-params:latest.release")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:latest.release")
@@ -112,7 +112,6 @@ dependencies {
     testImplementation("org.assertj:assertj-core:latest.release")
 
     testRuntimeOnly("org.openrewrite:rewrite-java-17:${rewriteVersion}")
-    testRuntimeOnly("com.fasterxml.jackson.module:jackson-module-kotlin:latest.release")
     testRuntimeOnly("commons-logging:commons-logging:1.2")
     testRuntimeOnly("ch.qos.logback:logback-classic:1.2.11")
 
@@ -123,23 +122,14 @@ dependencies {
     testRuntimeOnly("log4j:log4j:1.+")
 }
 
-tasks.withType(KotlinCompile::class.java).configureEach {
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
-}
-
 tasks.named<Test>("test") {
     useJUnitPlatform()
     jvmArgs = listOf("-XX:+UnlockDiagnosticVMOptions", "-XX:+ShowHiddenFrames")
 }
 
 tasks.named<JavaCompile>("compileJava") {
-    sourceCompatibility = JavaVersion.VERSION_1_8.toString()
-    targetCompatibility = JavaVersion.VERSION_1_8.toString()
-
     options.isFork = true
-    options.compilerArgs.addAll(listOf("--release", "8"))
+    options.release.set(8)
     options.encoding = "UTF-8"
     options.compilerArgs.add("-parameters")
 }
