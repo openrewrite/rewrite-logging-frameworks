@@ -59,4 +59,45 @@ class Log4j2ToSlf4j1Test implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void loggerUsage() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+             import org.apache.logging.log4j.Logger;
+             import org.apache.logging.log4j.LogManager;
+
+             class Test {
+                 private static final Logger LOGGER = LogManager.getLogger(Test.class);
+                 private static final Logger ROOT_LOGGER = LogManager.getRootLogger();
+
+                 public static void main(String[] args) {
+                     if (LOGGER.isDebugEnabled()) {
+                         LOGGER.debug("logger message");
+                     }
+                     ROOT_LOGGER.info("root logger message");
+                 }
+             }
+             """,
+            """
+             import org.slf4j.Logger;
+             import org.slf4j.LoggerFactory;
+
+             class Test {
+                 private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
+                 private static final Logger ROOT_LOGGER = LoggerFactory.getRootLogger();
+
+                 public static void main(String[] args) {
+                     if (LOGGER.isDebugEnabled()) {
+                         LOGGER.debug("logger message");
+                     }
+                     ROOT_LOGGER.info("root logger message");
+                 }
+             }
+             """
+          )
+        );
+    }
 }
