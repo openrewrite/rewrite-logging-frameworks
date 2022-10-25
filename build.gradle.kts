@@ -98,20 +98,21 @@ dependencies {
 
     implementation("org.kohsuke:wordnet-random-name:latest.release")
 
-    implementation("org.openrewrite:rewrite-java:${rewriteVersion}")
-    implementation("org.openrewrite:rewrite-maven:${rewriteVersion}")
-    runtimeOnly("org.openrewrite:rewrite-java-17:${rewriteVersion}")
+    implementation(platform("org.openrewrite:rewrite-bom:${rewriteVersion}"))
+    implementation("org.openrewrite:rewrite-java")
+    implementation("org.openrewrite:rewrite-maven")
+    runtimeOnly("org.openrewrite:rewrite-java-17")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:latest.release")
     testImplementation("org.junit.jupiter:junit-jupiter-params:latest.release")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:latest.release")
 
-    testImplementation("org.openrewrite:rewrite-test:${rewriteVersion}")
-    testImplementation("org.openrewrite:rewrite-java-tck:${rewriteVersion}")
+    testImplementation("org.openrewrite:rewrite-test")
+    testImplementation("org.openrewrite:rewrite-java-tck")
 
     testImplementation("org.assertj:assertj-core:latest.release")
 
-    testRuntimeOnly("org.openrewrite:rewrite-java-17:${rewriteVersion}")
+    testRuntimeOnly("org.openrewrite:rewrite-java-17")
     testRuntimeOnly("commons-logging:commons-logging:1.2")
     testRuntimeOnly("ch.qos.logback:logback-classic:1.2.11")
 
