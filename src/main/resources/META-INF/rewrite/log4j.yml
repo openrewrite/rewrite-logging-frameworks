@@ -86,6 +86,9 @@ recipeList:
   - org.openrewrite.maven.RemoveDependency:
       groupId: log4j
       artifactId: log4j
+  - org.openrewrite.maven.RemoveDependency:
+      groupId: ch.qos.reload4j
+      artifactId: reload4j
   ### Additional AddDependency's since "onlyIfUsing" may think it isn't using log4j 2.x if doing an upgrade chaining from log4j1 recipes todo
   - org.openrewrite.maven.AddDependency:
       groupId: org.apache.logging.log4j
