@@ -22,6 +22,9 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.java.Assertions.mavenProject;
+import static org.openrewrite.java.Assertions.srcMainJava;
+import static org.openrewrite.maven.Assertions.pomXml;
 
 class Log4j1ToLog4j2Test implements RewriteTest {
 
@@ -104,6 +107,88 @@ class Log4j1ToLog4j2Test implements RewriteTest {
                   }
               }
               """
+          )
+        );
+    }
+
+    @Test
+    void mavenProjectDependenciesUpdated() {
+        rewriteRun(
+          mavenProject("project",
+            srcMainJava(
+              java(
+                """
+                  import org.apache.log4j.Logger;
+
+                  class Test {
+                      Logger logger = Logger.getLogger(Test.class);
+                  }
+                  """,
+                """
+                  import org.apache.logging.log4j.LogManager;
+                  import org.apache.logging.log4j.Logger;
+
+                  class Test {
+                      Logger logger = LogManager.getLogger(Test.class);
+                  }
+                  """
+              ),
+              pomXml(
+                """
+                      <project>
+                          <groupId>com.mycompany.app</groupId>
+                          <artifactId>my-app</artifactId>
+                          <version>1</version>
+                          <dependencies>
+                              <dependency>
+                                  <groupId>org.apache.httpcomponents</groupId>
+                                  <artifactId>httpclient</artifactId>
+                                  <version>4.5.13</version>
+                              </dependency>
+                              <dependency>
+                                  <groupId>log4j</groupId>
+                                  <artifactId>log4j</artifactId>
+                                  <version>1.2.17</version>
+                              </dependency>
+                              <dependency>
+                                  <groupId>org.slf4j</groupId>
+                                  <artifactId>slf4j-log4j12</artifactId>
+                                  <version>1.7.36</version>
+                              </dependency>
+                          </dependencies>
+                      </project>
+                  """,
+                """
+                      <project>
+                          <groupId>com.mycompany.app</groupId>
+                          <artifactId>my-app</artifactId>
+                          <version>1</version>
+                          <dependencies>
+                              <dependency>
+                                  <groupId>org.apache.httpcomponents</groupId>
+                                  <artifactId>httpclient</artifactId>
+                                  <version>4.5.13</version>
+                              </dependency>
+                              <dependency>
+                                  <groupId>org.apache.logging.log4j</groupId>
+                                  <artifactId>log4j-api</artifactId>
+                                  <version>2.19.0</version>
+                              </dependency>
+                              <dependency>
+                                  <groupId>org.apache.logging.log4j</groupId>
+                                  <artifactId>log4j-core</artifactId>
+                                  <version>2.19.0</version>
+                              </dependency>
+                              <dependency>
+                                  <groupId>org.apache.logging.log4j</groupId>
+                                  <artifactId>log4j-slf4j-impl</artifactId>
+                                  <version>2.19.0</version>
+                              </dependency>
+                          </dependencies>
+                      </project>
+                  """
+              )
+            )
           )
         );
     }
