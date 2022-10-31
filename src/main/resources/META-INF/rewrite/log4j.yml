@@ -100,3 +100,15 @@ recipeList:
       artifactId: log4j-core
       version: latest.release
       onlyIfUsing: org.apache.logging.log4j.*
+  - org.openrewrite.maven.ChangeDependencyGroupIdAndArtifactId:
+      oldGroupId: org.slf4j
+      oldArtifactId: slf4j-log4j12
+      newGroupId: org.apache.logging.log4j
+      newArtifactId: log4j-slf4j-impl
+      newVersion: latest.release
+  - org.openrewrite.maven.ChangeDependencyGroupIdAndArtifactId:
+      oldGroupId: org.slf4j
+      oldArtifactId: slf4j-reload4j
+      newGroupId: org.apache.logging.log4j
+      newArtifactId: log4j-slf4j-impl
+      newVersion: latest.release
