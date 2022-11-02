@@ -34,8 +34,7 @@ import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 @Value
 @EqualsAndHashCode(callSuper = true)
@@ -62,6 +61,11 @@ public class ParameterizedLogging extends Recipe {
     }
 
     @Override
+    public Set<String> getTags() {
+        return new HashSet<>(Arrays.asList("RSPEC-2629", "RSPEC-3457"));
+    }
+
+    @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
         return new UsesMethod<>(methodPattern);
     }
@@ -70,6 +74,7 @@ public class ParameterizedLogging extends Recipe {
     public JavaVisitor<ExecutionContext> getVisitor() {
         return new JavaIsoVisitor<ExecutionContext>() {
             private final MethodMatcher matcher = new MethodMatcher(methodPattern);
+            private final RemoveToStringVisitor removeToStringVisitor = new RemoveToStringVisitor();
 
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
@@ -107,9 +112,27 @@ public class ParameterizedLogging extends Recipe {
                                 m.getArguments().toArray()
                         );
                     }
+                    m = m.withArguments(ListUtils.map(m.getArguments(), arg -> (Expression) removeToStringVisitor.visitNonNull(arg, ctx, getCursor())));
                 }
 
                 return m;
+            }
+
+            class RemoveToStringVisitor extends JavaVisitor<ExecutionContext> {
+                private final JavaTemplate t = JavaTemplate.builder(this::getCursor, "#{any(java.lang.String)}").build();
+                private final MethodMatcher TO_STRING = new MethodMatcher("java.lang.Object toString()");
+                @Override
+                public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                    if (getCursor().getNearestMessage("DO_NOT_REMOVE", Boolean.FALSE)) {
+                        return method;
+                    }
+                    if (TO_STRING.matches(method.getSelect())) {
+                        getCursor().putMessage("DO_NOT_REMOVE", Boolean.TRUE);
+                    } else if (TO_STRING.matches(method)) {
+                        return method.withTemplate(t, method.getCoordinates().replace(), method.getSelect());
+                    }
+                    return super.visitMethodInvocation(method, ctx);
+                }
             }
         };
     }

@@ -63,6 +63,35 @@ class ParameterizedLoggingTest implements RewriteTest {
         );
     }
 
+    @SuppressWarnings("UnnecessaryToStringCall")
+    @Test
+    void noNeedToCallToStringOnParameterizedArgument() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)")),
+          //language=java
+          java(
+            """
+                  import org.slf4j.Logger;
+
+                  class Test {
+                      static void method(Logger logger, Object person) {
+                          logger.info("Hello " + person.toString() + ", your name has " + person.toString().length() + " characters. Just counting " + person.toString());
+                      }
+                  }
+              """,
+            """
+                  import org.slf4j.Logger;
+
+                  class Test {
+                      static void method(Logger logger, Object person) {
+                          logger.info("Hello {}, your name has {} characters. Just counting {}", person, person.toString().length(), person);
+                      }
+                  }
+              """
+          )
+        );
+    }
+
     @Test
     void concatenateLiteralStrings() {
         rewriteRun(
