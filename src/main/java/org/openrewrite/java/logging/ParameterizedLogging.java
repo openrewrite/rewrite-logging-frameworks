@@ -46,9 +46,9 @@ public class ParameterizedLogging extends Recipe {
 
     @Option(displayName = "Remove `Object#toString()` invocations from logging parameters",
             description = "Optionally remove `toString(`) method invocations from Object parameters.",
-            required = false,
-            example = "true"
+            required = false
     )
+    @Nullable
     Boolean removeToString;
 
     @Override
@@ -119,7 +119,7 @@ public class ParameterizedLogging extends Recipe {
                                 m.getArguments().toArray()
                         );
                     }
-                    if (removeToString) {
+                    if (Boolean.TRUE.equals(removeToString)) {
                         m = m.withArguments(ListUtils.map(m.getArguments(), arg -> (Expression) removeToStringVisitor.visitNonNull(arg, ctx, getCursor())));
                     }
                 }

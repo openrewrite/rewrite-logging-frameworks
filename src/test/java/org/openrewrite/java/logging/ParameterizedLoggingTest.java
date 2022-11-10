@@ -95,7 +95,7 @@ class ParameterizedLoggingTest implements RewriteTest {
     @Test
     void doNotRemoveStringOnParameterizedArgument() {
         rewriteRun(
-          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", null)),
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
           //language=java
           java(
             """
@@ -103,7 +103,16 @@ class ParameterizedLoggingTest implements RewriteTest {
 
                   class Test {
                       static void method(Logger logger, Object person) {
-                          logger.info("Hello " + person.toString() + ", your name has " + person.toString().length() + " characters. Just counting " + person.toString());
+                          logger.info("Hello " + person.toString());
+                      }
+                  }
+              """,
+            """
+                  import org.slf4j.Logger;
+
+                  class Test {
+                      static void method(Logger logger, Object person) {
+                          logger.info("Hello {}", person.toString());
                       }
                   }
               """
@@ -114,7 +123,7 @@ class ParameterizedLoggingTest implements RewriteTest {
     @Test
     void concatenateLiteralStrings() {
         rewriteRun(
-          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", null)),
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
           //language=java
           java(
             """
