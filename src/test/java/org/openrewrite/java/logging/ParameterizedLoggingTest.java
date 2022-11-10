@@ -38,7 +38,7 @@ class ParameterizedLoggingTest implements RewriteTest {
     @Test
     void basicParameterization() {
         rewriteRun(
-          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)")),
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
           //language=java
           java(
             """
@@ -67,7 +67,7 @@ class ParameterizedLoggingTest implements RewriteTest {
     @Test
     void noNeedToCallToStringOnParameterizedArgument() {
         rewriteRun(
-          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)")),
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", true)),
           //language=java
           java(
             """
@@ -93,9 +93,28 @@ class ParameterizedLoggingTest implements RewriteTest {
     }
 
     @Test
+    void doNotRemoveStringOnParameterizedArgument() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", null)),
+          //language=java
+          java(
+            """
+                  import org.slf4j.Logger;
+
+                  class Test {
+                      static void method(Logger logger, Object person) {
+                          logger.info("Hello " + person.toString() + ", your name has " + person.toString().length() + " characters. Just counting " + person.toString());
+                      }
+                  }
+              """
+          )
+        );
+    }
+
+    @Test
     void concatenateLiteralStrings() {
         rewriteRun(
-          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)")),
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", null)),
           //language=java
           java(
             """
@@ -124,7 +143,7 @@ class ParameterizedLoggingTest implements RewriteTest {
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/36")
     void handleEscapedCharacters() {
         rewriteRun(
-          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)")),
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
           //language=java
           java(
             """
@@ -161,7 +180,7 @@ class ParameterizedLoggingTest implements RewriteTest {
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/30")
     void escapeMessageStrings() {
         rewriteRun(
-          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)")),
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
           //language=java
           java(
             """
@@ -189,7 +208,7 @@ class ParameterizedLoggingTest implements RewriteTest {
     @Test
     void exceptionArgumentsAsConcatenatedString() {
         rewriteRun(
-          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger debug(..)")),
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger debug(..)", false)),
           //language=java
           java(
             """
@@ -226,7 +245,7 @@ class ParameterizedLoggingTest implements RewriteTest {
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/38")
     void indexOutOfBoundsExceptionOnParseMethodArguments() {
         rewriteRun(
-          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger warn(..)")),
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger warn(..)", false)),
           //language=java
           java(
             """
@@ -270,7 +289,7 @@ class ParameterizedLoggingTest implements RewriteTest {
     @Test
     void exceptionArgumentsWithThrowable() {
         rewriteRun(
-          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger warn(..)")),
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger warn(..)", false)),
           //language=java
           java(
             """
@@ -306,7 +325,7 @@ class ParameterizedLoggingTest implements RewriteTest {
     @Test
     void alreadyParameterizedThrowableArguments() {
         rewriteRun(
-          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger warn(..)")),
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger warn(..)", false)),
           //language=java
           java(
             """
@@ -330,7 +349,7 @@ class ParameterizedLoggingTest implements RewriteTest {
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/35")
     void alreadyParameterizedBinaryExpressionArguments() {
         rewriteRun(
-          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger debug(..)")),
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger debug(..)", false)),
           //language=java
           java(
             """
@@ -350,7 +369,7 @@ class ParameterizedLoggingTest implements RewriteTest {
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/26")
     void argumentsContainingBinaryExpressions() {
         rewriteRun(
-          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger debug(..)")),
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger debug(..)", false)),
           //language=java
           java(
             """
@@ -378,7 +397,7 @@ class ParameterizedLoggingTest implements RewriteTest {
     @Test
     void throwableParameters() {
         rewriteRun(
-          spec -> spec.recipe(new ParameterizedLogging("org.apache.logging.log4j.Logger error(..)")),
+          spec -> spec.recipe(new ParameterizedLogging("org.apache.logging.log4j.Logger error(..)", false)),
           //language=java
           java(
             """
@@ -402,7 +421,7 @@ class ParameterizedLoggingTest implements RewriteTest {
     @Test
     void methodInvocationReturnTypeIsString() {
         rewriteRun(
-          spec -> spec.recipe(new ParameterizedLogging("org.apache.logging.log4j.Logger info(..)")),
+          spec -> spec.recipe(new ParameterizedLogging("org.apache.logging.log4j.Logger info(..)", false)),
           //language=java
           java(
             """
@@ -422,7 +441,7 @@ class ParameterizedLoggingTest implements RewriteTest {
     @Test
     void objectParameters() {
         rewriteRun(
-          spec -> spec.recipe(new ParameterizedLogging("org.apache.logging.log4j.Logger info(..)")),
+          spec -> spec.recipe(new ParameterizedLogging("org.apache.logging.log4j.Logger info(..)", false)),
           //language=java
           java(
             """
@@ -452,7 +471,7 @@ class ParameterizedLoggingTest implements RewriteTest {
     @Test
     void methodInvocationParameters() {
         rewriteRun(
-          spec -> spec.recipe(new ParameterizedLogging("org.apache.logging.log4j.Logger info(..)")),
+          spec -> spec.recipe(new ParameterizedLogging("org.apache.logging.log4j.Logger info(..)", false)),
           //language=java
           java(
             """

@@ -167,7 +167,7 @@ public class SystemErrToLogging extends Recipe {
                                 exceptionPrintStackTrace);
                     }
 
-                    print = (J.MethodInvocation) new ParameterizedLogging(framework.getLoggerType() + " error(..)")
+                    print = (J.MethodInvocation) new ParameterizedLogging(framework.getLoggerType() + " error(..)", false)
                             .getVisitor()
                             .visitNonNull(print, ctx, getCursor());
 

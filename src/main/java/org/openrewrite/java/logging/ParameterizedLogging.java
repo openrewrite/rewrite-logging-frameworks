@@ -44,6 +44,13 @@ public class ParameterizedLogging extends Recipe {
             example = "org.slf4j.Logger info(..)")
     String methodPattern;
 
+    @Option(displayName = "Remove `Object#toString()` invocations from logging parameters",
+            description = "Optionally remove `toString(`) method invocations from Object parameters.",
+            required = false,
+            example = "true"
+    )
+    Boolean removeToString;
+
     @Override
     public String getDisplayName() {
         return "Parameterize logging statements";
@@ -112,7 +119,9 @@ public class ParameterizedLogging extends Recipe {
                                 m.getArguments().toArray()
                         );
                     }
-                    m = m.withArguments(ListUtils.map(m.getArguments(), arg -> (Expression) removeToStringVisitor.visitNonNull(arg, ctx, getCursor())));
+                    if (removeToString) {
+                        m = m.withArguments(ListUtils.map(m.getArguments(), arg -> (Expression) removeToStringVisitor.visitNonNull(arg, ctx, getCursor())));
+                    }
                 }
 
                 return m;

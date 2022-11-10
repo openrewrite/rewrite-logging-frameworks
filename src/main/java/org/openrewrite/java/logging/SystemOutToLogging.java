@@ -122,7 +122,7 @@ public class SystemOutToLogging extends Recipe {
                             computedLoggerName,
                             print.getArguments().get(0));
 
-                    print = (J.MethodInvocation) new ParameterizedLogging(framework.getLoggerType() + " " + getLevel() + "(..)")
+                    print = (J.MethodInvocation) new ParameterizedLogging(framework.getLoggerType() + " " + getLevel() + "(..)", null)
                             .getVisitor()
                             .visitNonNull(print, ctx, getCursor());
 
