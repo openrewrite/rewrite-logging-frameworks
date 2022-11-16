@@ -52,7 +52,7 @@ public class ConvertLogMessageMessageOnlyToLogMessageAndThrowable extends Recipe
 
     @Override
     public String getDescription() {
-        return "Convert `Logger#error|warn(throwable#message)` to `Logger#error|warn(<log-message>, e)` invocations having only the error's message as the parameter, to a log statement with message and throwable";
+        return "Convert `Logger#error|warn(throwable#message)` to `Logger#error|warn(<log-message>, e)` invocations having only the error's message as the parameter, to a log statement with message and throwable.";
     }
 
     @Override

@@ -39,11 +39,12 @@ public class Slf4jLogShouldBeConstant extends Recipe {
     public Duration getEstimatedEffortPerOccurrence() {
         return Duration.ofMinutes(5);
     }
+
     private static final MethodMatcher STRING_VALUE_OF = new MethodMatcher("java.lang.String valueOf(..)");
 
     @Override
     public String getDisplayName() {
-        return "SLF4J logging statements should begin with constants.";
+        return "SLF4J logging statements should begin with constants";
     }
 
     @Override

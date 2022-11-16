@@ -32,7 +32,7 @@ public class LoggersNamedForEnclosingClass extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Loggers should be named for their enclosing classes.";
+        return "Loggers should be named for their enclosing classes";
     }
 
     @Override
