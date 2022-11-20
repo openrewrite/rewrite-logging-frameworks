@@ -75,4 +75,46 @@ class Slf4jBestPracticesTest implements RewriteTest {
           )
         );
     }
+
+    @SuppressWarnings("RedundantSlf4jDefinition")
+    @Test
+    void exceptionIsAppendedAtEndOfLogMessage() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+              class Test {
+                  Logger logger = LoggerFactory.getLogger(Test.class);
+                  void test() {
+                      try {
+                        throw new IllegalStateException("oops");
+                      } catch (Exception e) {
+                        logger.error("aaa: " + e);
+                        logger.error("bbb: " + String.valueOf(e));
+                        logger.error("ccc: " + e.toString());
+                      }
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+              class Test {
+                  Logger logger = LoggerFactory.getLogger(Test.class);
+                  void test() {
+                      try {
+                        throw new IllegalStateException("oops");
+                      } catch (Exception e) {
+                        logger.error("aaa: {}", e);
+                        logger.error("bbb: {}", String.valueOf(e));
+                        logger.error("ccc: {}", e.toString());
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
 }
