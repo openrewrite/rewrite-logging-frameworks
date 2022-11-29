@@ -177,6 +177,11 @@ class AddLoggerTest implements RewriteTest {
         }
 
         @Override
+        public String getDescription() {
+            return "Test recipe.";
+        }
+
+        @Override
         protected TreeVisitor<?, ExecutionContext> getVisitor() {
             return new JavaIsoVisitor<>() {
                 @Override
