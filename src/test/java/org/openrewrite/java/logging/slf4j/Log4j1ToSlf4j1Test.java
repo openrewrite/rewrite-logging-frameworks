@@ -64,6 +64,35 @@ class Log4j1ToSlf4j1Test implements RewriteTest {
     }
 
     @Test
+    void staticFinalLoggerIsStaticFinal() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.apache.log4j.Logger;
+              import org.apache.log4j.LogManager;
+
+              class Test {
+                  private static final Logger logger0 = Logger.getLogger(Test.class);
+                  private static final Logger logger1 = LogManager.getLogger(Test.class);
+                  private static final Logger logger2 = LogManager.getLogger("foobar");
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Test {
+                  private static final Logger logger0 = LoggerFactory.getLogger(Test.class);
+                  private static final Logger logger1 = LoggerFactory.getLogger(Test.class);
+                  private static final Logger logger2 = LoggerFactory.getLogger("foobar");
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void logLevelFatalToError() {
         //language=java
         rewriteRun(
