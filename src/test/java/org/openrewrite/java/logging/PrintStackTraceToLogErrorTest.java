@@ -33,34 +33,34 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
           //language=java
           java(
             """
-                  import org.slf4j.Logger;
-                  class Test {
-                      Logger logger;
-                      
-                      void test() {
-                          try {
-                          } catch(Throwable t) {
-                              t.printStackTrace();
-                              t.printStackTrace(System.err);
-                              t.printStackTrace(System.out);
-                          }
+              import org.slf4j.Logger;
+              class Test {
+                  Logger logger;
+                  
+                  void test() {
+                      try {
+                      } catch(Throwable t) {
+                          t.printStackTrace();
+                          t.printStackTrace(System.err);
+                          t.printStackTrace(System.out);
                       }
                   }
+              }
               """,
             """
-                  import org.slf4j.Logger;
-                  class Test {
-                      Logger logger;
-                      
-                      void test() {
-                          try {
-                          } catch(Throwable t) {
-                              logger.error("Exception", t);
-                              logger.error("Exception", t);
-                              logger.error("Exception", t);
-                          }
+              import org.slf4j.Logger;
+              class Test {
+                  Logger logger;
+                  
+                  void test() {
+                      try {
+                      } catch(Throwable t) {
+                          logger.error("Exception", t);
+                          logger.error("Exception", t);
+                          logger.error("Exception", t);
                       }
                   }
+              }
               """
           )
         );

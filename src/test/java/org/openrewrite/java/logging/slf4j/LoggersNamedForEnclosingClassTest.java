@@ -47,12 +47,12 @@ class LoggersNamedForEnclosingClassTest implements RewriteTest {
               }
               """,
             """
-                  import org.slf4j.Logger;
-                  import org.slf4j.LoggerFactory;
-                  class WrongClass {}
-                  class A {
-                      private final static Logger LOG = LoggerFactory.getLogger(A.class);
-                  }
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+              class WrongClass {}
+              class A {
+                  private final static Logger LOG = LoggerFactory.getLogger(A.class);
+              }
               """
           )
         );
