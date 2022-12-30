@@ -156,7 +156,7 @@ class AddLoggerTest implements RewriteTest {
         );
     }
 
-    private static class MaybeAddLoggerToClass extends Recipe {
+    private static final class MaybeAddLoggerToClass extends Recipe {
         private final String simpleName;
         private final int times;
 
