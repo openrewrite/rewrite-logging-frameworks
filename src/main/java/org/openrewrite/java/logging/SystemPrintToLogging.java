@@ -15,16 +15,15 @@
  */
 package org.openrewrite.java.logging;
 
-import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
-import lombok.experimental.FieldDefaults;
+import lombok.Value;
 import org.openrewrite.Option;
 import org.openrewrite.Recipe;
 import org.openrewrite.internal.lang.Nullable;
 
 import java.time.Duration;
 
-@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
+@Value
 @EqualsAndHashCode(callSuper = false)
 public class SystemPrintToLogging extends Recipe {
     @Option(displayName = "Add logger",
