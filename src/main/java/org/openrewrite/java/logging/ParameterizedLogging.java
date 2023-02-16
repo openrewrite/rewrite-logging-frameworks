@@ -74,13 +74,13 @@ public class ParameterizedLogging extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesMethod<>(methodPattern);
+        return new UsesMethod<>(methodPattern, true);
     }
 
     @Override
     public JavaVisitor<ExecutionContext> getVisitor() {
         return new JavaIsoVisitor<ExecutionContext>() {
-            private final MethodMatcher matcher = new MethodMatcher(methodPattern);
+            private final MethodMatcher matcher = new MethodMatcher(methodPattern, true);
             private final RemoveToStringVisitor removeToStringVisitor = new RemoveToStringVisitor();
 
             @Override
