@@ -89,8 +89,8 @@ public class ParameterizedLogging extends Recipe {
                 if (matcher.matches(m) && !m.getArguments().isEmpty() && !(m.getArguments().get(0) instanceof J.Empty) && m.getArguments().size() <= 2) {
                     Expression logMsg = m.getArguments().get(0);
                     if (logMsg instanceof J.Binary) {
-                        final StringBuilder messageBuilder = new StringBuilder("\"");
-                        final List<Expression> newArgList = new ArrayList<>();
+                        StringBuilder messageBuilder = new StringBuilder("\"");
+                        List<Expression> newArgList = new ArrayList<>();
                         ListUtils.map(m.getArguments(), (index, message) -> {
                             if (index == 0 && message instanceof J.Binary) {
                                 MessageAndArguments literalAndArgs = concatenationToLiteral(message, new MessageAndArguments("", new ArrayList<>()));
@@ -110,7 +110,7 @@ public class ParameterizedLogging extends Recipe {
                                 newArgList.toArray()
                         );
                     } else if (!TypeUtils.isString(logMsg.getType()) && logMsg.getType() instanceof JavaType.Class) {
-                        final StringBuilder messageBuilder = new StringBuilder("\"{}\"");
+                        StringBuilder messageBuilder = new StringBuilder("\"{}\"");
                         m.getArguments().forEach(arg -> messageBuilder.append(", #{any()}"));
                         m = m.withTemplate(
                                 JavaTemplate.builder(this::getCursor, messageBuilder.toString())

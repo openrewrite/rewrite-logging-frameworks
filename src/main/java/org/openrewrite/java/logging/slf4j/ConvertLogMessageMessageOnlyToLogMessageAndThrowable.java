@@ -62,10 +62,10 @@ public class ConvertLogMessageMessageOnlyToLogMessageAndThrowable extends Recipe
 
     @Override
     protected JavaIsoVisitor<ExecutionContext> getVisitor() {
-        final MethodMatcher logErrorMatcher = new MethodMatcher("org.slf4j.Logger error(String)");
-        final MethodMatcher logWarningMatcher = new MethodMatcher("org.slf4j.Logger warn(String)");
-        final MethodMatcher getMessageMatcher = new MethodMatcher("java.lang.Throwable getMessage()");
-        final MethodMatcher getLocalizedMessageMatcher = new MethodMatcher("java.lang.Throwable getLocalizedMessage()");
+        MethodMatcher logErrorMatcher = new MethodMatcher("org.slf4j.Logger error(String)");
+        MethodMatcher logWarningMatcher = new MethodMatcher("org.slf4j.Logger warn(String)");
+        MethodMatcher getMessageMatcher = new MethodMatcher("java.lang.Throwable getMessage()");
+        MethodMatcher getLocalizedMessageMatcher = new MethodMatcher("java.lang.Throwable getLocalizedMessage()");
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
