@@ -20,6 +20,7 @@ import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.xml.tree.Xml;
 
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.java.Assertions.mavenProject;
@@ -116,6 +117,7 @@ class Log4j1ToLog4j2Test implements RewriteTest {
         rewriteRun(
           mavenProject("project",
             srcMainJava(
+              //language=java
               java(
                 """
                   import org.apache.log4j.Logger;
@@ -133,6 +135,7 @@ class Log4j1ToLog4j2Test implements RewriteTest {
                   }
                   """
               ),
+              //language=xml
               pomXml(
                 """
                       <project>
@@ -172,17 +175,17 @@ class Log4j1ToLog4j2Test implements RewriteTest {
                               <dependency>
                                   <groupId>org.apache.logging.log4j</groupId>
                                   <artifactId>log4j-api</artifactId>
-                                  <version>2.19.0</version>
+                                  <version>2.20.0</version>
                               </dependency>
                               <dependency>
                                   <groupId>org.apache.logging.log4j</groupId>
                                   <artifactId>log4j-core</artifactId>
-                                  <version>2.19.0</version>
+                                  <version>2.20.0</version>
                               </dependency>
                               <dependency>
                                   <groupId>org.apache.logging.log4j</groupId>
                                   <artifactId>log4j-slf4j-impl</artifactId>
-                                  <version>2.19.0</version>
+                                  <version>2.20.0</version>
                               </dependency>
                           </dependencies>
                       </project>
