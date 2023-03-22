@@ -139,7 +139,7 @@ class CompleteExceptionLoggingTest implements RewriteTest {
     }
 
     @Test
-    void noChangeIfGetMessageIsNotLastParameter() {
+    void noChangeIfGetMessageIsNotValidParameter() {
         rewriteRun(
           java(
             """
@@ -156,10 +156,13 @@ class CompleteExceptionLoggingTest implements RewriteTest {
                       try {
                           produceException();
                       } catch (Exception e) {
-                          // #4, getMessage() is part of a string, no change
+                          // #1, GetMessage is not the last parameter
+                          LOG.error("error message {}, occurred {} times times ", e.getMessage(), 1);
+                          
+                          // #2, getMessage() is part of a string, no change
                           LOG.error("Error message : " + e.getMessage());
 
-                          // #5, getMessage() is not a parameter of LOG methods, no change
+                          // #3, getMessage() is not a parameter of LOG methods, no change
                           LOG.error(format(e.getMessage()));
                           LOG.error("Error message : ", format(e.getMessage()));
                       }
