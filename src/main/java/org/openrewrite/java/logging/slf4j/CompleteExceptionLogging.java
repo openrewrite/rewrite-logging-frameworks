@@ -18,13 +18,19 @@ package org.openrewrite.java.logging.slf4j;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
 
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -48,6 +54,21 @@ public class CompleteExceptionLogging extends Recipe {
                "trace. Including a complete stack trace of the error along with the exception message in the log " +
                "allows developers to better understand the context of the exception and identify the source of the " +
                "error more quickly and accurately.";
+    }
+
+    @Override
+    public Set<String> getTags() {
+        return new HashSet<>(Arrays.asList("logging", "slf4j"));
+    }
+
+    @Override
+    public @Nullable Duration getEstimatedEffortPerOccurrence() {
+        return Duration.ofMinutes(2);
+    }
+
+    @Override
+    protected UsesType<ExecutionContext> getSingleSourceApplicableTest() {
+        return new UsesType<>("org.slf4j.Logger");
     }
 
     @Override

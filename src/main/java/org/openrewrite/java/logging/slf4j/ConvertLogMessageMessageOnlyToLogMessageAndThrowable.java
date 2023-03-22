@@ -29,6 +29,9 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 @Value
 @EqualsAndHashCode(callSuper = true)
@@ -58,6 +61,11 @@ public class ConvertLogMessageMessageOnlyToLogMessageAndThrowable extends Recipe
     @Override
     protected UsesType<ExecutionContext> getSingleSourceApplicableTest() {
         return new UsesType<>("org.slf4j.Logger");
+    }
+
+    @Override
+    public Set<String> getTags() {
+        return new HashSet<>(Arrays.asList("logging", "slf4j"));
     }
 
     @Override

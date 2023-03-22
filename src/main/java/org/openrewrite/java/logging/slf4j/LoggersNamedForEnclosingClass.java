@@ -16,7 +16,9 @@
 package org.openrewrite.java.logging.slf4j;
 
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.openrewrite.ExecutionContext;
@@ -52,8 +54,9 @@ public class LoggersNamedForEnclosingClass extends Recipe {
 
     @Override
     public Set<String> getTags() {
-        return Collections.singleton("RSPEC-3416");
+        return new HashSet<>(Arrays.asList("RSPEC-3416", "logging", "slf4j"));
     }
+
     @Override
     protected JavaVisitor<ExecutionContext> getVisitor() {
         return new JavaIsoVisitor<ExecutionContext>() {
