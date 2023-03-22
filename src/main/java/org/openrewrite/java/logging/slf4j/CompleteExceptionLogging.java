@@ -22,9 +22,8 @@ import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
-import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.java.tree.*;
+import org.openrewrite.marker.Markers;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -34,6 +33,8 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.openrewrite.Tree.randomId;
+
 public class CompleteExceptionLogging extends Recipe {
     private static final MethodMatcher LOGGER_DEBUG = new MethodMatcher("org.slf4j.Logger debug(..)");
     private static final MethodMatcher LOGGER_ERROR = new MethodMatcher("org.slf4j.Logger error(..)");
@@ -41,6 +42,8 @@ public class CompleteExceptionLogging extends Recipe {
     private static final MethodMatcher LOGGER_TRACE = new MethodMatcher("org.slf4j.Logger trace(..)");
     private static final MethodMatcher LOGGER_WARN = new MethodMatcher("org.slf4j.Logger warn(..)");
     private static final MethodMatcher THROWABLE_GET_MESSAGE = new MethodMatcher("java.lang.Throwable getMessage()");
+    private static final MethodMatcher THROWABLE_GET_LOCALIZED_MESSAGE = new MethodMatcher("java.lang.Throwable getLocalizedMessage()");
+
 
     @Override
     public String getDisplayName() {
@@ -85,19 +88,28 @@ public class CompleteExceptionLogging extends Recipe {
                     LOGGER_TRACE.matches(method) ||
                     LOGGER_WARN.matches(method)
                     ) {
-                    // Logic:
-                    // If there are multiple parameters in a log method, and the last one is `exception.getMessage()`
+                    // If the last parameter is `exception.getMessage()`
                     // 1. String contains no format specifiers, replace `exception.getMessage()` with `exception.getMessage()`
                     // 2. String contains format specifiers, count parameters, if the count matches placeholder counts,
                     // append `exception` as a new parameter. otherwise. replace `exception.getMessage()` with `exception`
-                    if (method.getArguments().size() <= 1) {
+                    if (method.getArguments().isEmpty()) {
                         return method;
                     }
 
                     Expression lastParameter = method.getArguments().get(method.getArguments().size() - 1);
 
-                    if (lastParameter instanceof J.MethodInvocation && THROWABLE_GET_MESSAGE.matches(lastParameter)) {
+                    if (lastParameter instanceof J.MethodInvocation &&
+                        (THROWABLE_GET_MESSAGE.matches(lastParameter) ||
+                        THROWABLE_GET_LOCALIZED_MESSAGE.matches(lastParameter))
+                    ) {
                         J.MethodInvocation getMessageCall = (J.MethodInvocation) lastParameter;
+
+                        if (method.getArguments().size() == 1) {
+                            List<Expression> args = method.getArguments();
+                            args.add(0, buildEmptyString());
+                            args.set(1, getMessageCall.getSelect());
+                            return autoFormat(method.withArguments(args), ctx);
+                        }
 
                         Expression firstParameter = method.getArguments().get(0);
                         if (!isStringLiteral(firstParameter)) {
@@ -137,5 +149,10 @@ public class CompleteExceptionLogging extends Recipe {
 
     public static boolean isStringLiteral(Expression expression) {
         return expression instanceof J.Literal && TypeUtils.isString(((J.Literal) expression).getType());
+    }
+
+    private static J.Literal buildEmptyString() {
+        return new J.Literal(randomId(), Space.EMPTY, Markers.EMPTY, "",
+            "\"\"", null, JavaType.Primitive.String);
     }
 }

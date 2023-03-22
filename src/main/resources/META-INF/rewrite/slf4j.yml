@@ -131,7 +131,6 @@ tags:
   - logging
   - slf4j
 recipeList:
-  - org.openrewrite.java.logging.slf4j.ConvertLogMessageMessageOnlyToLogMessageAndThrowable
   - org.openrewrite.java.logging.slf4j.LoggersNamedForEnclosingClass
   - org.openrewrite.java.logging.slf4j.ParameterizedLogging
   - org.openrewrite.java.logging.slf4j.Slf4jLogShouldBeConstant

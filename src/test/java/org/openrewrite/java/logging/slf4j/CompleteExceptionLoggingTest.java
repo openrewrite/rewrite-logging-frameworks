@@ -200,6 +200,12 @@ class CompleteExceptionLoggingTest implements RewriteTest {
                           LOG.info("An error occurred", e.getMessage());
                           LOG.trace("An error occurred", e.getMessage());
                           LOG.warn("An error occurred", e.getMessage());
+                          
+                          LOG.debug("An error occurred", e.getLocalizedMessage());
+                          LOG.error("An error occurred", e.getLocalizedMessage());
+                          LOG.info("An error occurred", e.getLocalizedMessage());
+                          LOG.trace("An error occurred", e.getLocalizedMessage());
+                          LOG.warn("An error occurred", e.getLocalizedMessage());
                       }
                   }
               }
@@ -223,6 +229,53 @@ class CompleteExceptionLoggingTest implements RewriteTest {
                           LOG.info("An error occurred", e);
                           LOG.trace("An error occurred", e);
                           LOG.warn("An error occurred", e);
+                          
+                          LOG.debug("An error occurred", e);
+                          LOG.error("An error occurred", e);
+                          LOG.info("An error occurred", e);
+                          LOG.trace("An error occurred", e);
+                          LOG.warn("An error occurred", e);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void convertWithMessage() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Test {
+                  Logger logger = LoggerFactory.getLogger(Test.class);
+                  void doSomething() {
+                      try {
+                          Integer num = Integer.valueOf("a");
+                      } catch (NumberFormatException e) {
+                          logger.error(e.getMessage());
+                          logger.warn(e.getLocalizedMessage());
+                      }
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Test {
+                  Logger logger = LoggerFactory.getLogger(Test.class);
+                  void doSomething() {
+                      try {
+                          Integer num = Integer.valueOf("a");
+                      } catch (NumberFormatException e) {
+                          logger.error("", e);
+                          logger.warn("", e);
                       }
                   }
               }
