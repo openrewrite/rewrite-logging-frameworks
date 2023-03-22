@@ -55,8 +55,8 @@ public class CompleteExceptionLogging extends Recipe {
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method,
-                                                            ExecutionContext executionContext) {
-                method = super.visitMethodInvocation(method, executionContext);
+                                                            ExecutionContext ctx) {
+                method = super.visitMethodInvocation(method, ctx);
 
                 if (LOGGER_DEBUG.matches(method) ||
                     LOGGER_ERROR.matches(method) ||
@@ -95,7 +95,7 @@ public class CompleteExceptionLogging extends Recipe {
                             args.set(args.size() - 1,
                                 getMessageCall.getSelect().withPrefix(getMessageCall.getPrefix()));
                         }
-                        return method.withArguments(args);
+                        return autoFormat(method.withArguments(args), ctx);
                     }
                 }
 
