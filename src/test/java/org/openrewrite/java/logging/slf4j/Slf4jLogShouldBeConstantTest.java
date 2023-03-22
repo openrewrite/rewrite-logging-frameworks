@@ -32,6 +32,26 @@ class Slf4jLogShouldBeConstantTest implements RewriteTest {
           .parser(JavaParser.fromJavaVersion().classpath("slf4j-api"));
     }
 
+    @Test
+    void firstParameterIsNotLiteral() {
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class A {
+                  private final static Logger LOG = LoggerFactory.getLogger(A.class);
+
+                  public void inconsistent(String message, Object... args) {
+                      LOG.warn(String.format(message, args));
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/41")
     @Test
     void doNotUseStringFormat() {

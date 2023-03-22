@@ -64,7 +64,6 @@ public class Slf4jLogShouldBeConstant extends Recipe {
     public Set<String> getTags() {
         return new HashSet<>(Arrays.asList("logging", "slf4j"));
     }
-
     @Override
     protected JavaVisitor<ExecutionContext> getVisitor() {
         return new JavaVisitor<ExecutionContext>() {
@@ -76,6 +75,13 @@ public class Slf4jLogShouldBeConstant extends Recipe {
                         List<Expression> args = method.getArguments();
                         if (STRING_FORMAT.matches(args.get(0))) {
                             J.MethodInvocation stringFormat = (J.MethodInvocation) args.get(0);
+
+                            if (stringFormat.getArguments() == null ||
+                                stringFormat.getArguments().size() <= 1 ||
+                                !(stringFormat.getArguments().get(0) instanceof J.Literal)) {
+                                return method;
+                            }
+
                             return method.withArguments(ListUtils.map(stringFormat.getArguments(), (n, arg) -> {
                                 if (n == 0) {
                                     J.Literal str = (J.Literal) arg;
