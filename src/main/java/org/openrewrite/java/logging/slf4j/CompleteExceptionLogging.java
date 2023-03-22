@@ -85,20 +85,17 @@ public class CompleteExceptionLogging extends Recipe {
 
                         String content = ((J.Literal) firstParameter).getValue().toString();
                         int placeholderCount = countPlaceholders(content);
-
+                        List<Expression> args = method.getArguments();
                         if (placeholderCount >= (method.getArguments().size() - 1)) {
                             // it means the last `Throwable#getMessage()` call is counted for placeholder intentionally,
                             // so we add the exception as a new parameter at the end
-                            List<Expression> args = method.getArguments();
                             args.add(getMessageCall.getSelect().withPrefix(getMessageCall.getPrefix()));
-                            return method.withArguments(args);
                         } else {
                             // replace `e.getMessage` with `e`.
-                            List<Expression> args = method.getArguments();
                             args.set(args.size() - 1,
                                 getMessageCall.getSelect().withPrefix(getMessageCall.getPrefix()));
-                            return method.withArguments(args);
                         }
+                        return method.withArguments(args);
                     }
                 }
 
