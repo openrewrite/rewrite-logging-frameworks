@@ -135,7 +135,7 @@ public class CompleteExceptionLogging extends Recipe {
         return count;
     }
 
-    private static boolean isStringLiteral(Expression expression) {
+    public static boolean isStringLiteral(Expression expression) {
         return expression instanceof J.Literal && TypeUtils.isString(((J.Literal) expression).getType());
     }
 }

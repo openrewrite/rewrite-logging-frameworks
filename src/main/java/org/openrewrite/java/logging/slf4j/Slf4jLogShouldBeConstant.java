@@ -33,6 +33,8 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Slf4jLogShouldBeConstant extends Recipe {
     private static final MethodMatcher SLF4J_LOG = new MethodMatcher("org.slf4j.Logger *(..)");
@@ -78,18 +80,21 @@ public class Slf4jLogShouldBeConstant extends Recipe {
 
                             if (stringFormat.getArguments() == null ||
                                 stringFormat.getArguments().size() <= 1 ||
-                                !(stringFormat.getArguments().get(0) instanceof J.Literal)) {
+                                !CompleteExceptionLogging.isStringLiteral(stringFormat.getArguments().get(0))
+                                ) {
                                 return method;
                             }
 
+                            String strFormat = ((J.Literal) stringFormat.getArguments().get(0)).getValue().toString();
+                            if (containsIndexFormatSpecifier(strFormat)) {
+                                return method;
+                            }
+                            String updatedStrFormat = replaceFormatSpecifier(strFormat, "{}");
                             return method.withArguments(ListUtils.map(stringFormat.getArguments(), (n, arg) -> {
                                 if (n == 0) {
                                     J.Literal str = (J.Literal) arg;
-                                    if (str.getValue() != null && str.getValueSource() != null) {
-                                        return str
-                                                .withValue(str.getValue().toString().replace("%s", "{}"))
-                                                .withValueSource(str.getValueSource().replace("%s", "{}"));
-                                    }
+                                    return str.withValue(updatedStrFormat)
+                                        .withValueSource("\"" + updatedStrFormat + "\"");
                                 }
                                 return arg;
                             }));
@@ -113,5 +118,23 @@ public class Slf4jLogShouldBeConstant extends Recipe {
                 return super.visitMethodInvocation(method, executionContext);
             }
         };
+    }
+
+    private static String replaceFormatSpecifier(String str, String replacement) {
+        if (str == null || str.isEmpty()) {
+            return str;
+        }
+        Pattern pattern = Pattern.compile("%[\\d\\.]*[dfscbBhHn%]");
+        Matcher matcher = pattern.matcher(str);
+        return matcher.replaceAll(replacement);
+    }
+
+    private static boolean containsIndexFormatSpecifier(String str) {
+        if (str == null || str.isEmpty()) {
+            return false;
+        }
+        // A regular expression that matches index specifiers like '%2$s', '%1$s', etc.
+        String indexSpecifierRegex = ".*%(\\d+\\$)[a-zA-Z].*";
+        return str.matches(indexSpecifierRegex);
     }
 }

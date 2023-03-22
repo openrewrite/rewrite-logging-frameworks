@@ -147,4 +147,56 @@ class Slf4jLogShouldBeConstantTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void noChangeWithIndexSpecifier() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+              class A {
+                  private final static Logger LOG = LoggerFactory.getLogger(A.class);
+                  void method() {
+                      LOG.info(String.format("The the second argument is '%2$s', and the first argument is '%1$s'.", "foo", "bar"));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void differentFormatSpecifier() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class A {
+                  private final static Logger LOG = LoggerFactory.getLogger(A.class);
+
+                  void method() {
+                      LOG.info(String.format("The first argument is '%d', and the second argument is '%.2f'.", 1, 2.3333));
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class A {
+                  private final static Logger LOG = LoggerFactory.getLogger(A.class);
+
+                  void method() {
+                      LOG.info("The first argument is '{}', and the second argument is '{}'.", 1, 2.3333);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
