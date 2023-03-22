@@ -26,6 +26,7 @@ import org.openrewrite.Recipe;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.Javadoc;
 
 public class LoggersNamedForEnclosingClass extends Recipe {
 
@@ -60,6 +61,16 @@ public class LoggersNamedForEnclosingClass extends Recipe {
     @Override
     protected JavaVisitor<ExecutionContext> getVisitor() {
         return new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            protected JavadocVisitor<ExecutionContext> getJavadocVisitor() {
+                return new JavadocVisitor<ExecutionContext>(this) {
+                    @Override
+                    public Javadoc visitDocComment(Javadoc.DocComment javadoc, ExecutionContext executionContext) {
+                        return javadoc;
+                    }
+                };
+            }
+
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext p) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, p);
