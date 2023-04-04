@@ -49,7 +49,7 @@ public class Log4jAppenderToLogback extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.apache.log4j.AppenderSkeleton");
+        return new UsesType<>("org.apache.log4j.AppenderSkeleton", null);
     }
 
     @Override

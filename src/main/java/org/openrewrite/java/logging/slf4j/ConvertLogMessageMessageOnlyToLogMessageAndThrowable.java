@@ -60,7 +60,7 @@ public class ConvertLogMessageMessageOnlyToLogMessageAndThrowable extends Recipe
 
     @Override
     protected UsesType<ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.slf4j.Logger");
+        return new UsesType<>("org.slf4j.Logger", null);
     }
 
     @Override

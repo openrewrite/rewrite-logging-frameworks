@@ -50,7 +50,7 @@ public class LoggersNamedForEnclosingClass extends Recipe {
 
     @Override
     protected UsesType<ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.slf4j.LoggerFactory");
+        return new UsesType<>("org.slf4j.LoggerFactory", null);
     }
 
     @Override

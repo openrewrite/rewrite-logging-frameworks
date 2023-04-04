@@ -54,7 +54,7 @@ public class Log4jLayoutToLogback extends Recipe {
 
     @Override
     protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.apache.log4j.Layout");
+        return new UsesType<>("org.apache.log4j.Layout", null);
     }
 
     @Override

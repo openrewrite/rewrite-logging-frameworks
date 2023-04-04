@@ -79,7 +79,7 @@ public class PrintStackTraceToLogError extends Recipe {
         return new JavaVisitor<ExecutionContext>() {
             @Override
             public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
-                doAfterVisit(new UsesType<>(framework.getLoggerType()));
+                doAfterVisit(new UsesType<>(framework.getLoggerType(), null));
                 return cu;
             }
         };
