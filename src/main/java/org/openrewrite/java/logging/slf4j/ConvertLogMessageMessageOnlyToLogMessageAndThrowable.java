@@ -45,7 +45,7 @@ public class ConvertLogMessageMessageOnlyToLogMessageAndThrowable extends Recipe
 
     @Override
     public String getDisplayName() {
-        return "Convert Logger#error|warn(Throwable#message) to Logger#error|warn(<log-message>, e)";
+        return "Convert `Logger#error|warn(Throwable#message)` to `Logger#error|warn(<log-message>, e)`";
     }
 
     @Override
