@@ -118,6 +118,7 @@ class ConvertLogMessageMessageOnlyToLogMessageAndThrowableTest implements Rewrit
                           logger.warn(e.getLocalizedMessage());
                       }
                   }
+                  int foo() {}
               }
               """,
             """
@@ -134,6 +135,7 @@ class ConvertLogMessageMessageOnlyToLogMessageAndThrowableTest implements Rewrit
                           logger.warn("", e);
                       }
                   }
+                  int foo() {}
               }
               """
           )
