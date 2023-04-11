@@ -85,7 +85,7 @@ public class ConvertLogMessageMessageOnlyToLogMessageAndThrowable extends Recipe
                     String type = mi.getSimpleName();
                     String message = logMessage == null ? "" : logMessage;
                     mi = mi.withTemplate(
-                            JavaTemplate.builder(this::getCursor, "#{any(org.slf4j.Logger)}.#{}(\"#{}\", #{any(java.lang.Throwable)}")
+                            JavaTemplate.builder(this::getCursor, "#{any(org.slf4j.Logger)}.#{}(\"#{}\", #{any(java.lang.Throwable)})")
                                     .javaParser(() -> JavaParser.fromJavaVersion().classpath("slf4j-api").build()).build(), mi.getCoordinates().replace(),
                             mi.getSelect(), type, message, throwableMessage);
                 }
