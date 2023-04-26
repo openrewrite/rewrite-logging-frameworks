@@ -18,6 +18,7 @@ package org.openrewrite.java.logging.slf4j;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
@@ -26,10 +27,7 @@ import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -52,11 +50,14 @@ public class CompleteExceptionLogging extends Recipe {
 
     @Override
     public String getDescription() {
-        return "It is a common mistake to call Exception.getMessage() when passing an exception into a log method. " +
+        return "It is a common mistake to call `Exception.getMessage()` when passing an exception into a log method. " +
                "Not all exception types have useful messages, and even if the message is useful this omits the stack " +
                "trace. Including a complete stack trace of the error along with the exception message in the log " +
                "allows developers to better understand the context of the exception and identify the source of the " +
-               "error more quickly and accurately.";
+               "error more quickly and accurately. \n " +
+               "If the method invocation includes any call to `Exception.getMessage()` or `Exception.getLocalizedMessage()` " +
+               "and not an exception is already passed as the last parameter to the log method, then we will append " +
+               "the exception as the last parameter in the log method.";
     }
 
     @Override
@@ -86,50 +87,74 @@ public class CompleteExceptionLogging extends Recipe {
                     LOGGER_ERROR.matches(method) ||
                     LOGGER_INFO.matches(method) ||
                     LOGGER_TRACE.matches(method) ||
-                    LOGGER_WARN.matches(method)
-                    ) {
-                    // If the last parameter is `exception.getMessage()`
-                    // 1. String contains no format specifiers, replace `exception.getMessage()` with `exception.getMessage()`
-                    // 2. String contains format specifiers, count parameters, if the count matches placeholder counts,
-                    // append `exception` as a new parameter. otherwise. replace `exception.getMessage()` with `exception`
-                    if (method.getArguments().isEmpty()) {
+                    LOGGER_WARN.matches(method)) {
+                    // If the method invocation includes any call to `exception.getMessage()` or `exception
+                    // .getLocalizedMessage()` and not an exception is already passed as the last parameter to the
+                    // log method, then we will append the exception as the last parameter in the log method.
+
+                    List<Expression> args = method.getArguments();
+                    if (args.isEmpty()) {
                         return method;
                     }
 
-                    Expression lastParameter = method.getArguments().get(method.getArguments().size() - 1);
+                    Expression lastParameter = args.get(args.size() - 1);
 
-                    if (lastParameter instanceof J.MethodInvocation &&
+                    boolean isLastParameterAnException = lastParameter instanceof J.Identifier &&
+                                                         TypeUtils.isAssignableTo("java.lang.Throwable",lastParameter.getType());
+                    if (isLastParameterAnException) {
+                        return method;
+                    }
+
+                    // convert `logger.error(e.getMessage());` to `logger.error("", e);`
+                    if (method.getArguments().size() == 1 &&
+                        lastParameter instanceof J.MethodInvocation &&
                         (THROWABLE_GET_MESSAGE.matches(lastParameter) ||
-                        THROWABLE_GET_LOCALIZED_MESSAGE.matches(lastParameter))
+                         THROWABLE_GET_LOCALIZED_MESSAGE.matches(lastParameter))
                     ) {
                         J.MethodInvocation getMessageCall = (J.MethodInvocation) lastParameter;
-
-                        if (method.getArguments().size() == 1) {
-                            List<Expression> args = method.getArguments();
-                            args.add(0, buildEmptyString());
-                            args.set(1, getMessageCall.getSelect());
-                            return autoFormat(method.withArguments(args), ctx);
-                        }
-
-                        Expression firstParameter = method.getArguments().get(0);
-                        if (!isStringLiteral(firstParameter)) {
-                            return method;
-                        }
-
-                        String content = ((J.Literal) firstParameter).getValue().toString();
-                        int placeholderCount = countPlaceholders(content);
-                        List<Expression> args = method.getArguments();
-                        if (placeholderCount >= (method.getArguments().size() - 1)) {
-                            // it means the last `Throwable#getMessage()` call is counted for placeholder intentionally,
-                            // so we add the exception as a new parameter at the end
-                            args.add(getMessageCall.getSelect().withPrefix(getMessageCall.getPrefix()));
-                        } else {
-                            // replace `e.getMessage` with `e`.
-                            args.set(args.size() - 1,
-                                getMessageCall.getSelect().withPrefix(getMessageCall.getPrefix()));
-                        }
+                        args = ListUtils.insert(args, buildEmptyString(), 0);
+                        args = ListUtils.mapLast(args, a -> getMessageCall.getSelect());
                         return autoFormat(method.withArguments(args), ctx);
                     }
+
+                    Optional<Expression> maybeException = new JavaIsoVisitor<List<Expression>>(){
+                        @Override
+                        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation m,
+                                                                        List<Expression> exceptions) {
+                            if (THROWABLE_GET_MESSAGE.matches(m) ||
+                                THROWABLE_GET_LOCALIZED_MESSAGE.matches(m)) {
+                                exceptions.add(m.getSelect());
+                                return m;
+                            }
+                            return super.visitMethodInvocation(m, exceptions);
+                        }
+                    }.reduce(method, new ArrayList<>()).stream().findFirst();
+
+                    if (!maybeException.isPresent()) {
+                        return method;
+                    }
+
+                    // try to move the unnecessary trailing `exception.getMessage()` call.
+                    if (lastParameter instanceof J.MethodInvocation &&
+                        (THROWABLE_GET_MESSAGE.matches(lastParameter) ||
+                         THROWABLE_GET_LOCALIZED_MESSAGE.matches(lastParameter))) {
+                        J.MethodInvocation getMessageCall = (J.MethodInvocation) lastParameter;
+
+                        Expression firstParameter = method.getArguments().get(0);
+                        if (isStringLiteral(firstParameter)) {
+                            String content = ((J.Literal) firstParameter).getValue().toString();
+                            int placeholderCount = countPlaceholders(content);
+                            if (placeholderCount >= (args.size() - 1)) {
+                                // it means the last `Throwable#getMessage()` call is counted for placeholder intentionally,
+                            } else {
+                                // remove the last arg
+                                args.remove(args.size() - 1);
+                            }
+                        }
+                    }
+
+                    args = ListUtils.concat(args, maybeException.get());
+                    return autoFormat(method.withArguments(args), ctx);
                 }
 
                 return method;

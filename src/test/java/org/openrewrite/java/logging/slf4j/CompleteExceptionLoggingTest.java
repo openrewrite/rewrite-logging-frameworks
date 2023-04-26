@@ -16,6 +16,7 @@
 package org.openrewrite.java.logging.slf4j;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.internal.DocumentExample;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -32,6 +33,7 @@ class CompleteExceptionLoggingTest implements RewriteTest {
 
     @Test
     void replaceGetMessageWithException() {
+        //language=java
         rewriteRun(
           java(
             """
@@ -86,6 +88,7 @@ class CompleteExceptionLoggingTest implements RewriteTest {
 
     @Test
     void addNewParameter() {
+        //language=java
         rewriteRun(
           java(
             """
@@ -139,7 +142,8 @@ class CompleteExceptionLoggingTest implements RewriteTest {
     }
 
     @Test
-    void noChangeIfGetMessageIsNotValidParameter() {
+    void variousGetMessageAsParameter() {
+        //language=java
         rewriteRun(
           java(
             """
@@ -158,13 +162,44 @@ class CompleteExceptionLoggingTest implements RewriteTest {
                       } catch (Exception e) {
                           // #1, GetMessage is not the last parameter
                           LOG.error("error message {}, occurred {} times times ", e.getMessage(), 1);
-                          
+
                           // #2, getMessage() is part of a string, no change
                           LOG.error("Error message : " + e.getMessage());
 
                           // #3, getMessage() is not a parameter of LOG methods, no change
                           LOG.error(format(e.getMessage()));
                           LOG.error("Error message : ", format(e.getMessage()));
+                      }
+                  }
+
+                  String format(String input) {
+                      return input + "!";
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class A {
+                  private final static Logger LOG = LoggerFactory.getLogger(A.class);
+
+                  void produceException() {
+                      int i = 10 / 0;
+                  }
+                  void method() {
+                      try {
+                          produceException();
+                      } catch (Exception e) {
+                          // #1, GetMessage is not the last parameter
+                          LOG.error("error message {}, occurred {} times times ", e.getMessage(), 1, e);
+
+                          // #2, getMessage() is part of a string, no change
+                          LOG.error("Error message : " + e.getMessage(), e);
+
+                          // #3, getMessage() is not a parameter of LOG methods, no change
+                          LOG.error(format(e.getMessage()), e);
+                          LOG.error("Error message : ", format(e.getMessage()), e);
                       }
                   }
 
@@ -179,6 +214,7 @@ class CompleteExceptionLoggingTest implements RewriteTest {
 
     @Test
     void allLogMethods() {
+        //language=java
         rewriteRun(
           java(
             """
@@ -276,6 +312,67 @@ class CompleteExceptionLoggingTest implements RewriteTest {
                       } catch (NumberFormatException e) {
                           logger.error("", e);
                           logger.warn("", e);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @DocumentExample
+    @Test
+    void addExceptionToBeTheLastArg() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Test {
+                  Logger logger = LoggerFactory.getLogger(Test.class);
+                  void doSomething() {
+                      try {
+                          Integer num = Integer.valueOf("a");
+                      } catch (NumberFormatException e) {
+                          // TEST CASE #1:
+                          logger.error(e.getMessage());
+
+                          // TEST CASE #2:
+                          logger.error("BEFORE MESSAGE " + e.getMessage());
+
+                          // TEST CASE #3:
+                          logger.error("BEFORE MESSAGE " + e.getMessage() + " AFTER MESSAGE");
+
+                          // TEST CASE #4: No Changes, since stack trace already being logged
+                          logger.error("BEFORE MESSAGE " + e.getMessage() + " AFTER MESSAGE", e);
+                      }
+                  }
+              }
+              """,
+            """
+
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Test {
+                  Logger logger = LoggerFactory.getLogger(Test.class);
+                  void doSomething() {
+                      try {
+                          Integer num = Integer.valueOf("a");
+                      } catch (NumberFormatException e) {
+                          // TEST CASE #1:
+                          logger.error("", e);
+
+                          // TEST CASE #2:
+                          logger.error("BEFORE MESSAGE " + e.getMessage(), e);
+
+                          // TEST CASE #3:
+                          logger.error("BEFORE MESSAGE " + e.getMessage() + " AFTER MESSAGE", e);
+
+                          // TEST CASE #4: No Changes, since stack trace already being logged
+                          logger.error("BEFORE MESSAGE " + e.getMessage() + " AFTER MESSAGE", e);
                       }
                   }
               }
