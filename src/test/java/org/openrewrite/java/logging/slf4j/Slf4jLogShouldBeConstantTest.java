@@ -34,6 +34,7 @@ class Slf4jLogShouldBeConstantTest implements RewriteTest {
 
     @Test
     void firstParameterIsNotLiteral() {
+        //language=java
         rewriteRun(
           java(
             """
@@ -60,23 +61,25 @@ class Slf4jLogShouldBeConstantTest implements RewriteTest {
           java(
             """
               import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
               class Test {
-                  Logger logger;
+                  private final static Logger LOG = LoggerFactory.getLogger(Test.class);
                   void test() {
                       Object obj1 = new Object();
                       Object obj2 = new Object();
-                      logger.info(String.format("Object 1 is %s and Object 2 is %s", obj1, obj2));
+                      LOG.info(String.format("Object 1 is %s and Object 2 is %s", obj1, obj2));
                   }
               }
               """,
             """
               import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
               class Test {
-                  Logger logger;
+                  private final static Logger LOG = LoggerFactory.getLogger(Test.class);
                   void test() {
                       Object obj1 = new Object();
                       Object obj2 = new Object();
-                      logger.info("Object 1 is {} and Object 2 is {}", obj1, obj2);
+                      LOG.info("Object 1 is {} and Object 2 is {}", obj1, obj2);
                   }
               }
               """
@@ -92,24 +95,26 @@ class Slf4jLogShouldBeConstantTest implements RewriteTest {
           java(
             """
               import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
               class Test {
-                  Logger logger;
+                  private final static Logger LOG = LoggerFactory.getLogger(Test.class);
                   void test() {
                       try {
                       } catch(Exception e) {
-                          logger.warn(String.valueOf(e));
+                          LOG.warn(String.valueOf(e));
                       }
                   }
               }
               """,
             """
               import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
               class Test {
-                  Logger logger;
+                  private final static Logger LOG = LoggerFactory.getLogger(Test.class);
                   void test() {
                       try {
                       } catch(Exception e) {
-                          logger.warn("Exception", e);
+                          LOG.warn("Exception", e);
                       }
                   }
               }
@@ -126,21 +131,23 @@ class Slf4jLogShouldBeConstantTest implements RewriteTest {
           java(
             """
               import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
               class Test {
-                  Logger logger;
+                  private final static Logger LOG = LoggerFactory.getLogger(Test.class);
                   void test() {
                       Object obj1 = new Object();
-                      logger.info(obj1.toString());
+                      LOG.info(obj1.toString());
                   }
               }
               """,
             """
               import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
               class Test {
-                  Logger logger;
+                  private final static Logger LOG = LoggerFactory.getLogger(Test.class);
                   void test() {
                       Object obj1 = new Object();
-                      logger.info("{}", obj1);
+                      LOG.info("{}", obj1);
                   }
               }
               """
@@ -193,6 +200,65 @@ class Slf4jLogShouldBeConstantTest implements RewriteTest {
 
                   void method() {
                       LOG.info("The first argument is '{}', and the second argument is '{}'.", 1, 2.3333);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/95")
+    @Test
+    void doNotUseStringFormatAndKeepPassedException() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class A {
+                  private final static Logger LOG = LoggerFactory.getLogger(A.class);
+
+                  void method() {
+                      Exception ex = new Exception();
+                      LOG.warn(String.format("Unexpected exception: %s", ex.getClass().getName()), ex);
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class A {
+                  private final static Logger LOG = LoggerFactory.getLogger(A.class);
+
+                  void method() {
+                      Exception ex = new Exception();
+                      LOG.warn("Unexpected exception: {}", ex.getClass().getName(), ex);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/95")
+    @Test
+    void noChangeWithCombinedSpecifier() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class A {
+                  private final static Logger LOG = LoggerFactory.getLogger(A.class);
+
+                  void method() {
+                      Exception ex = new Exception();
+                      LOG.warn(String.format("Message: {} from Unexpected exception: %s", ex.getClass().getName()), ex.getMessage(), ex);
                   }
               }
               """
