@@ -19,6 +19,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
+import org.openrewrite.internal.StringUtils;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
@@ -37,6 +38,7 @@ import java.util.regex.Pattern;
 
 public class Slf4jLogShouldBeConstant extends Recipe {
 
+    private static final String SLF4J_FORMAT_SPECIFIER = "{}";
     private static final Pattern SLF4J_FORMAT_SPECIFIER_PATTERN = Pattern.compile("\\{}");
     private static final Pattern FORMAT_SPECIFIER_PATTERN = Pattern.compile("%[\\d.]*[dfscbBhHn%]");
 
@@ -84,18 +86,17 @@ public class Slf4jLogShouldBeConstant extends Recipe {
                         if (STRING_FORMAT.matches(args.get(0))) {
                             J.MethodInvocation stringFormat = (J.MethodInvocation) args.get(0);
 
-                            if (stringFormat.getArguments() == null ||
-                                    stringFormat.getArguments().size() <= 1 ||
+                            if (stringFormat.getArguments().size() <= 1 ||
                                     !CompleteExceptionLogging.isStringLiteral(stringFormat.getArguments().get(0))
                             ) {
                                 return method;
                             }
 
-                            String strFormat = ((J.Literal) stringFormat.getArguments().get(0)).getValue().toString();
-                            if (containsIndexFormatSpecifier(strFormat) || containsCombinedFormatSpecifiers(strFormat)) {
+                            String strFormat = String.valueOf(((J.Literal) stringFormat.getArguments().get(0)).getValue());
+                            if (StringUtils.isBlank(strFormat) || containsIndexFormatSpecifier(strFormat) || containsCombinedFormatSpecifiers(strFormat)) {
                                 return method;
                             }
-                            String updatedStrFormat = replaceFormatSpecifier(strFormat, "{}");
+                            String updatedStrFormat = replaceFormatSpecifier(strFormat, SLF4J_FORMAT_SPECIFIER);
                             List<Expression> stringFormatWithArgs = ListUtils.map(stringFormat.getArguments(), (n, arg) -> {
                                 if (n == 0) {
                                     J.Literal str = (J.Literal) arg;
@@ -133,14 +134,14 @@ public class Slf4jLogShouldBeConstant extends Recipe {
     }
 
     private static String replaceFormatSpecifier(String str, String replacement) {
-        if (str == null || str.isEmpty()) {
+        if (StringUtils.isNullOrEmpty(str)) {
             return str;
         }
         return FORMAT_SPECIFIER_PATTERN.matcher(str).replaceAll(replacement);
     }
 
     private static boolean containsIndexFormatSpecifier(String str) {
-        if (str == null || str.isEmpty()) {
+        if (StringUtils.isNullOrEmpty(str)) {
             return false;
         }
         return INDEXED_FORMAT_SPECIFIER_PATTERN.matcher(str).find();
