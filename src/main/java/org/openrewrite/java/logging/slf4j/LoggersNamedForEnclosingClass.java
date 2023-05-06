@@ -17,7 +17,6 @@ package org.openrewrite.java.logging.slf4j;
 
 import java.time.Duration;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -93,7 +92,7 @@ public class LoggersNamedForEnclosingClass extends Recipe {
 
                 if(mi.getArguments().get(0) instanceof J.MethodInvocation &&
                         ((J.MethodInvocation)mi.getArguments().get(0)).getName().toString().equals("getClass") &&
-                        firstEnclosingClass.hasModifier(J.Modifier.Type.Abstract)){
+                        !firstEnclosingClass.hasModifier(J.Modifier.Type.Final)){
                     return mi;
                 }
 
