@@ -41,7 +41,7 @@ public class Slf4jLogShouldBeConstant extends Recipe {
     private static final Pattern FORMAT_SPECIFIER_PATTERN = Pattern.compile("%[\\d.]*[dfscbBhHn%]");
 
     // A regular expression that matches index specifiers like '%2$s', '%1$s', etc.
-    private static final Pattern INDEXED_FORMAT_SPECIFIER_PATTERN = Pattern.compile(".*%(\\d+\\$)[a-zA-Z].*");
+    private static final Pattern INDEXED_FORMAT_SPECIFIER_PATTERN = Pattern.compile("%(\\d+\\$)[a-zA-Z]");
     private static final MethodMatcher SLF4J_LOG = new MethodMatcher("org.slf4j.Logger *(..)");
     private static final MethodMatcher STRING_FORMAT = new MethodMatcher("java.lang.String format(..)");
 
