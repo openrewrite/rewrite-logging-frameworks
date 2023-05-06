@@ -30,10 +30,7 @@ import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Pattern;
 
 public class Slf4jLogShouldBeConstant extends Recipe {
@@ -92,8 +89,8 @@ public class Slf4jLogShouldBeConstant extends Recipe {
                                 return method;
                             }
 
-                            String strFormat = String.valueOf(((J.Literal) stringFormat.getArguments().get(0)).getValue());
-                            if (StringUtils.isBlank(strFormat) || containsIndexFormatSpecifier(strFormat) || containsCombinedFormatSpecifiers(strFormat)) {
+                            String strFormat = Objects.requireNonNull(((J.Literal) stringFormat.getArguments().get(0)).getValue()).toString();
+                            if (containsIndexFormatSpecifier(strFormat) || containsCombinedFormatSpecifiers(strFormat)) {
                                 return method;
                             }
                             String updatedStrFormat = replaceFormatSpecifier(strFormat, SLF4J_FORMAT_SPECIFIER);
