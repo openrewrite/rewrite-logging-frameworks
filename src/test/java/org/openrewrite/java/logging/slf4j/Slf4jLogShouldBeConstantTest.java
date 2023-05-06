@@ -267,6 +267,7 @@ class Slf4jLogShouldBeConstantTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void doNotUseStringFormatForBlankLog() {
         //language=java
