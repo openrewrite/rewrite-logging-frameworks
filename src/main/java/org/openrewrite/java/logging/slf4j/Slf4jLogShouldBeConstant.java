@@ -19,6 +19,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
+import org.openrewrite.internal.StringUtils;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
@@ -29,14 +30,17 @@ import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.regex.Matcher;
+import java.util.*;
 import java.util.regex.Pattern;
 
 public class Slf4jLogShouldBeConstant extends Recipe {
+
+    private static final String SLF4J_FORMAT_SPECIFIER = "{}";
+    private static final Pattern SLF4J_FORMAT_SPECIFIER_PATTERN = Pattern.compile("\\{}");
+    private static final Pattern FORMAT_SPECIFIER_PATTERN = Pattern.compile("%[\\d.]*[dfscbBhHn%]");
+
+    // A regular expression that matches index specifiers like '%2$s', '%1$s', etc.
+    private static final Pattern INDEXED_FORMAT_SPECIFIER_PATTERN = Pattern.compile("%(\\d+\\$)[a-zA-Z]");
     private static final MethodMatcher SLF4J_LOG = new MethodMatcher("org.slf4j.Logger *(..)");
     private static final MethodMatcher STRING_FORMAT = new MethodMatcher("java.lang.String format(..)");
 
@@ -66,6 +70,7 @@ public class Slf4jLogShouldBeConstant extends Recipe {
     public Set<String> getTags() {
         return new HashSet<>(Arrays.asList("logging", "slf4j"));
     }
+
     @Override
     protected JavaVisitor<ExecutionContext> getVisitor() {
         return new JavaVisitor<ExecutionContext>() {
@@ -78,26 +83,25 @@ public class Slf4jLogShouldBeConstant extends Recipe {
                         if (STRING_FORMAT.matches(args.get(0))) {
                             J.MethodInvocation stringFormat = (J.MethodInvocation) args.get(0);
 
-                            if (stringFormat.getArguments() == null ||
-                                stringFormat.getArguments().size() <= 1 ||
-                                !CompleteExceptionLogging.isStringLiteral(stringFormat.getArguments().get(0))
-                                ) {
+                            if (!CompleteExceptionLogging.isStringLiteral(stringFormat.getArguments().get(0))) {
                                 return method;
                             }
 
-                            String strFormat = ((J.Literal) stringFormat.getArguments().get(0)).getValue().toString();
-                            if (containsIndexFormatSpecifier(strFormat)) {
+                            String strFormat = Objects.requireNonNull(((J.Literal) stringFormat.getArguments().get(0)).getValue()).toString();
+                            if (containsIndexFormatSpecifier(strFormat) || containsCombinedFormatSpecifiers(strFormat)) {
                                 return method;
                             }
-                            String updatedStrFormat = replaceFormatSpecifier(strFormat, "{}");
-                            return method.withArguments(ListUtils.map(stringFormat.getArguments(), (n, arg) -> {
+                            String updatedStrFormat = replaceFormatSpecifier(strFormat, SLF4J_FORMAT_SPECIFIER);
+                            List<Expression> stringFormatWithArgs = ListUtils.map(stringFormat.getArguments(), (n, arg) -> {
                                 if (n == 0) {
                                     J.Literal str = (J.Literal) arg;
                                     return str.withValue(updatedStrFormat)
-                                        .withValueSource("\"" + updatedStrFormat + "\"");
+                                            .withValueSource("\"" + updatedStrFormat + "\"");
                                 }
                                 return arg;
-                            }));
+                            });
+                            List<Expression> originalArgsWithoutMessage = args.subList(1, args.size());
+                            return method.withArguments(ListUtils.concatAll(stringFormatWithArgs, originalArgsWithoutMessage));
                         } else if (STRING_VALUE_OF.matches(args.get(0))) {
                             Expression valueOf = ((J.MethodInvocation) args.get(0)).getArguments().get(0);
                             if (TypeUtils.isAssignableTo(JavaType.ShallowClass.build("java.lang.Throwable"), valueOf.getType())) {
@@ -120,21 +124,21 @@ public class Slf4jLogShouldBeConstant extends Recipe {
         };
     }
 
+    private boolean containsCombinedFormatSpecifiers(String str) {
+        return FORMAT_SPECIFIER_PATTERN.matcher(str).find() && SLF4J_FORMAT_SPECIFIER_PATTERN.matcher(str).find();
+    }
+
     private static String replaceFormatSpecifier(String str, String replacement) {
-        if (str == null || str.isEmpty()) {
+        if (StringUtils.isNullOrEmpty(str)) {
             return str;
         }
-        Pattern pattern = Pattern.compile("%[\\d\\.]*[dfscbBhHn%]");
-        Matcher matcher = pattern.matcher(str);
-        return matcher.replaceAll(replacement);
+        return FORMAT_SPECIFIER_PATTERN.matcher(str).replaceAll(replacement);
     }
 
     private static boolean containsIndexFormatSpecifier(String str) {
-        if (str == null || str.isEmpty()) {
+        if (StringUtils.isNullOrEmpty(str)) {
             return false;
         }
-        // A regular expression that matches index specifiers like '%2$s', '%1$s', etc.
-        String indexSpecifierRegex = ".*%(\\d+\\$)[a-zA-Z].*";
-        return str.matches(indexSpecifierRegex);
+        return INDEXED_FORMAT_SPECIFIER_PATTERN.matcher(str).find();
     }
 }
