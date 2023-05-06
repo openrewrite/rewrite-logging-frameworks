@@ -91,6 +91,12 @@ public class LoggersNamedForEnclosingClass extends Recipe {
                     }
                 }
 
+                if(mi.getArguments().get(0) instanceof J.MethodInvocation &&
+                        ((J.MethodInvocation)mi.getArguments().get(0)).getName().toString().equals("getClass") &&
+                        firstEnclosingClass.hasModifier(J.Modifier.Type.Abstract)){
+                    return mi;
+                }
+
                 return mi.withTemplate(JavaTemplate.builder(this::getCursor, "LoggerFactory.getLogger(#{})")
                         .javaParser(() -> JavaParser.fromJavaVersion().classpath("slf4j-api").build())
                         .build(),

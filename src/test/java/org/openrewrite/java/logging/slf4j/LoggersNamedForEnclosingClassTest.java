@@ -60,7 +60,7 @@ class LoggersNamedForEnclosingClassTest implements RewriteTest {
 
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/69")
     @Test
-    void shouldRenameLoggerFromMethodInvocationToClass() {
+    void shouldRenameLoggerFromMethodInvocationToClassForNonAbstractClass() {
         //language=java
         rewriteRun(
           java(
@@ -85,7 +85,7 @@ class LoggersNamedForEnclosingClassTest implements RewriteTest {
     }
 
     @Test
-    void shouldNotChangeCorrectLoggername() {
+    void shouldNotChangeCorrectLoggerName() {
         //language=java
         rewriteRun(
           java(
@@ -102,6 +102,7 @@ class LoggersNamedForEnclosingClassTest implements RewriteTest {
 
     @Test
     void doNotChangeJavaDoc() {
+        //language=java
         rewriteRun(
           java(
             """
@@ -114,6 +115,24 @@ class LoggersNamedForEnclosingClassTest implements RewriteTest {
                    */
                   void method() {
                   }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/101")
+    @Test
+    void doNotChangeGetClassOnAbstractClass(){
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+              class WrongClass {}
+              abstract class A {
+                  private Logger logger = LoggerFactory.getLogger(getClass());
               }
               """
           )
