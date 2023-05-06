@@ -43,7 +43,7 @@ class LoggersNamedForEnclosingClassTest implements RewriteTest {
               import org.slf4j.LoggerFactory;
               class WrongClass {}
               class A {
-                  private final static Logger LOG = LoggerFactory.getLogger(WrongClass.class);
+                  Logger log = LoggerFactory.getLogger(WrongClass.class);
               }
               """,
             """
@@ -51,7 +51,7 @@ class LoggersNamedForEnclosingClassTest implements RewriteTest {
               import org.slf4j.LoggerFactory;
               class WrongClass {}
               class A {
-                  private final static Logger LOG = LoggerFactory.getLogger(A.class);
+                  Logger log = LoggerFactory.getLogger(A.class);
               }
               """
           )
@@ -67,17 +67,15 @@ class LoggersNamedForEnclosingClassTest implements RewriteTest {
             """
               import org.slf4j.Logger;
               import org.slf4j.LoggerFactory;
-              class WrongClass {}
               final class A {
-                  private Logger logger = LoggerFactory.getLogger(getClass());
+                  Logger log = LoggerFactory.getLogger(getClass());
               }
               """,
             """
               import org.slf4j.Logger;
               import org.slf4j.LoggerFactory;
-              class WrongClass {}
               final class A {
-                  private Logger logger = LoggerFactory.getLogger(A.class);
+                  Logger log = LoggerFactory.getLogger(A.class);
               }
               """
           )
@@ -93,7 +91,7 @@ class LoggersNamedForEnclosingClassTest implements RewriteTest {
               import org.slf4j.Logger;
               import org.slf4j.LoggerFactory;
               class A {
-                  private final static Logger LOG = LoggerFactory.getLogger(A.class);
+                  Logger log = LoggerFactory.getLogger(A.class);
               }
               """
           )
@@ -130,9 +128,8 @@ class LoggersNamedForEnclosingClassTest implements RewriteTest {
             """
               import org.slf4j.Logger;
               import org.slf4j.LoggerFactory;
-              class WrongClass {}
               class A {
-                  private Logger logger = LoggerFactory.getLogger(getClass());
+                  Logger log = LoggerFactory.getLogger(getClass());
               }
               """
           )
