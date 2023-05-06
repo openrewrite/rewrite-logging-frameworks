@@ -83,9 +83,7 @@ public class Slf4jLogShouldBeConstant extends Recipe {
                         if (STRING_FORMAT.matches(args.get(0))) {
                             J.MethodInvocation stringFormat = (J.MethodInvocation) args.get(0);
 
-                            if (stringFormat.getArguments().isEmpty() ||
-                                    !CompleteExceptionLogging.isStringLiteral(stringFormat.getArguments().get(0))
-                            ) {
+                            if (!CompleteExceptionLogging.isStringLiteral(stringFormat.getArguments().get(0))) {
                                 return method;
                             }
 
