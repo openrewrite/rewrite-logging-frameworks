@@ -240,4 +240,57 @@ class Slf4jLogShouldBeConstantTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void doNotUseStringFormatWithoutArgs() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+              class A {
+                  Logger log;
+                  void method() {
+                      log.info(String.format("hi"));
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              class A {
+                  Logger log;
+                  void method() {
+                      log.info("hi");
+                  }
+              }
+              """
+          )
+        );
+    }
+    @Test
+    void doNotUseStringFormatForBlankLog() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+              class A {
+                  Logger log;
+                  void method() {
+                      log.info(String.format("    "));
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              class A {
+                  Logger log;
+                  void method() {
+                      log.info("    ");
+                  }
+              }
+              """
+          )
+        );
+    }
 }
