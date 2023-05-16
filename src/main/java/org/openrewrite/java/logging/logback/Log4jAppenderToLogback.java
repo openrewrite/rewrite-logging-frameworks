@@ -16,6 +16,7 @@
 package org.openrewrite.java.logging.logback;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
@@ -48,13 +49,8 @@ public class Log4jAppenderToLogback extends Recipe {
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.apache.log4j.AppenderSkeleton", null);
-    }
-
-    @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new JavaIsoVisitor<ExecutionContext>() {
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(new UsesType<>("org.apache.log4j.AppenderSkeleton", null), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
                 doAfterVisit(new ChangeMethodName("org.apache.log4j.Layout format(..)", "doLayout", null, null));
@@ -77,12 +73,14 @@ public class Log4jAppenderToLogback extends Recipe {
                         doAfterVisit(new ChangeType("org.apache.log4j.Layout", "ch.qos.logback.core.LayoutBase", null));
 
                         cd = cd.withTemplate(
-                                JavaTemplate.builder(this::getCursor, "AppenderBase<ILoggingEvent>")
+                                JavaTemplate.builder("AppenderBase<ILoggingEvent>")
+                                        .context(getCursor())
                                         .imports("ch.qos.logback.core.AppenderBase", "ch.qos.logback.classic.spi.ILoggingEvent")
-                                        .javaParser(() -> JavaParser.fromJavaVersion().dependsOn(
+                                        .javaParser(JavaParser.fromJavaVersion().dependsOn(
                                                 "package ch.qos.logback.classic.spi;public interface ILoggingEvent{ }",
-                                                "package org.apache.log4j.spi;public class LoggingEvent { public String getRenderedMessage() {return null;}}").build())
+                                                "package org.apache.log4j.spi;public class LoggingEvent { public String getRenderedMessage() {return null;}}"))
                                         .build(),
+                                getCursor(),
                                 cd.getCoordinates().replaceExtendsClause()
                         );
 
@@ -110,7 +108,7 @@ public class Log4jAppenderToLogback extends Recipe {
 
                 return cd;
             }
-        };
+        });
     }
 
 }

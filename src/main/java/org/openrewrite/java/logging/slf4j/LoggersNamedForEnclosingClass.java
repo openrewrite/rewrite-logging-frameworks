@@ -15,17 +15,19 @@
  */
 package org.openrewrite.java.logging.slf4j;
 
-import java.time.Duration;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Javadoc;
+
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 public class LoggersNamedForEnclosingClass extends Recipe {
 
@@ -48,18 +50,13 @@ public class LoggersNamedForEnclosingClass extends Recipe {
     }
 
     @Override
-    protected UsesType<ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.slf4j.LoggerFactory", null);
-    }
-
-    @Override
     public Set<String> getTags() {
         return new HashSet<>(Arrays.asList("RSPEC-3416", "logging", "slf4j"));
     }
 
     @Override
-    protected JavaVisitor<ExecutionContext> getVisitor() {
-        return new JavaIsoVisitor<ExecutionContext>() {
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(new UsesType<>("org.slf4j.LoggerFactory", null), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             protected JavadocVisitor<ExecutionContext> getJavadocVisitor() {
                 return new JavadocVisitor<ExecutionContext>(this) {
@@ -90,18 +87,21 @@ public class LoggersNamedForEnclosingClass extends Recipe {
                     }
                 }
 
-                if(mi.getArguments().get(0) instanceof J.MethodInvocation &&
-                        ((J.MethodInvocation)mi.getArguments().get(0)).getName().toString().equals("getClass") &&
-                        !firstEnclosingClass.hasModifier(J.Modifier.Type.Final)){
+                if (mi.getArguments().get(0) instanceof J.MethodInvocation &&
+                        ((J.MethodInvocation) mi.getArguments().get(0)).getName().toString().equals("getClass") &&
+                        !firstEnclosingClass.hasModifier(J.Modifier.Type.Final)) {
                     return mi;
                 }
 
-                return mi.withTemplate(JavaTemplate.builder(this::getCursor, "LoggerFactory.getLogger(#{})")
-                        .javaParser(() -> JavaParser.fromJavaVersion().classpath("slf4j-api").build())
-                        .build(),
+                return mi.withTemplate(JavaTemplate.builder("LoggerFactory.getLogger(#{})")
+                                .context(getCursor())
+                                .imports("org.slf4j.LoggerFactory")
+                                .javaParser(JavaParser.fromJavaVersion().classpath("slf4j-api"))
+                                .build(),
+                        getCursor(),
                         mi.getCoordinates().replace(),
                         enclosingClazzName);
             }
-        };
+        });
     }
 }

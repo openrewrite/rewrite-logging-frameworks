@@ -22,6 +22,8 @@ import org.openrewrite.Recipe;
 import org.openrewrite.internal.lang.Nullable;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.List;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
@@ -72,9 +74,14 @@ public class SystemPrintToLogging extends Recipe {
         this.loggerName = loggerName;
         this.loggingFramework = loggingFramework;
         this.level = level;
+    }
 
-        doNext(new SystemErrToLogging(addLogger, loggerName, loggingFramework));
-        doNext(new SystemOutToLogging(addLogger, loggerName, loggingFramework, level));
-        doNext(new PrintStackTraceToLogError(addLogger, loggerName, loggingFramework));
+    @Override
+    public List<Recipe> getRecipeList() {
+        return Arrays.asList(
+                new SystemErrToLogging(addLogger, loggerName, loggingFramework),
+                new SystemOutToLogging(addLogger, loggerName, loggingFramework, level),
+                new PrintStackTraceToLogError(addLogger, loggerName, loggingFramework)
+        );
     }
 }
