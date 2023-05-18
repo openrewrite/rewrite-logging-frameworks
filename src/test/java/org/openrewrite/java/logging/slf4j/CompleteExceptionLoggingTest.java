@@ -161,7 +161,7 @@ class CompleteExceptionLoggingTest implements RewriteTest {
                           produceException();
                       } catch (Exception e) {
                           // #1, GetMessage is not the last parameter
-                          LOG.error("error message {}, occurred {} times times ", e.getMessage(), 1);
+                          LOG.error("error message {}, occurred {} times ", e.getMessage(), 1);
 
                           // #2, getMessage() is part of a string, no change
                           LOG.error("Error message : " + e.getMessage());
@@ -192,7 +192,7 @@ class CompleteExceptionLoggingTest implements RewriteTest {
                           produceException();
                       } catch (Exception e) {
                           // #1, GetMessage is not the last parameter
-                          LOG.error("error message {}, occurred {} times times ", e.getMessage(), 1, e);
+                          LOG.error("error message {}, occurred {} times ", e.getMessage(), 1, e);
 
                           // #2, getMessage() is part of a string, no change
                           LOG.error("Error message : " + e.getMessage(), e);
