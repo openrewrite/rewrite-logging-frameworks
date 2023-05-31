@@ -147,6 +147,25 @@ class Slf4jLogShouldBeConstantTest implements RewriteTest {
     }
 
     @Test
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/89")
+    void toStringWithoutSelect() {
+        //language=java
+        rewriteRun(
+          java("""
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+            class A implements Cloneable {
+                private static final Logger log = LoggerFactory.getLogger(A.class);
+            
+                public void foo() {
+                    log.error(toString());
+                }
+            }
+            """)
+        );
+    }
+
+    @Test
     void noChangeWithIndexSpecifier() {
         //language=java
         rewriteRun(
@@ -294,4 +313,5 @@ class Slf4jLogShouldBeConstantTest implements RewriteTest {
           )
         );
     }
+
 }
