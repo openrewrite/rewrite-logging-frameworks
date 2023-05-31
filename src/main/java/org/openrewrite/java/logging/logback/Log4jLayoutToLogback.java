@@ -58,8 +58,8 @@ public class Log4jLayoutToLogback extends Recipe {
         return Preconditions.check(new UsesType<>("org.apache.log4j.Layout", null), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-                doAfterVisit(new ChangeMethodName("org.apache.log4j.Layout format(..)", "doLayout", true, null));
-                doAfterVisit(new ChangeMethodName("org.apache.log4j.spi.LoggingEvent getRenderedMessage()", "getMessage", true, null));
+                doAfterVisit(new ChangeMethodName("org.apache.log4j.Layout format(..)", "doLayout", true, null).getVisitor());
+                doAfterVisit(new ChangeMethodName("org.apache.log4j.spi.LoggingEvent getRenderedMessage()", "getMessage", true, null).getVisitor());
                 return super.visitCompilationUnit(cu, ctx);
             }
 
@@ -75,7 +75,7 @@ public class Log4jLayoutToLogback extends Recipe {
                         maybeAddImport("ch.qos.logback.core.LayoutBase");
                         maybeAddImport("ch.qos.logback.classic.spi.ILoggingEvent");
 
-                        doAfterVisit(new ChangeType("org.apache.log4j.spi.LoggingEvent", "ch.qos.logback.classic.spi.ILoggingEvent", null));
+                        doAfterVisit(new ChangeType("org.apache.log4j.spi.LoggingEvent", "ch.qos.logback.classic.spi.ILoggingEvent", null).getVisitor());
 
                         cd = cd.withTemplate(
                                 JavaTemplate.builder("LayoutBase<ILoggingEvent>")
