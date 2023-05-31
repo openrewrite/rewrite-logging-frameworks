@@ -17,9 +17,7 @@ package org.openrewrite.java.logging;
 
 import lombok.EqualsAndHashCode;
 import lombok.Value;
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Option;
-import org.openrewrite.Recipe;
+import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.*;
@@ -76,25 +74,10 @@ public class SystemErrToLogging extends Recipe {
     }
 
     @Override
-    protected JavaVisitor<ExecutionContext> getSingleSourceApplicableTest() {
-        if (addLogger != null && addLogger) {
-            return null;
-        }
-
-        return new JavaVisitor<ExecutionContext>() {
-            @Override
-            public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
-                doAfterVisit(new UsesMethod<>(systemErrPrint));
-                return cu;
-            }
-        };
-    }
-
-    @Override
-    public JavaVisitor<ExecutionContext> getVisitor() {
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
         LoggingFramework framework = LoggingFramework.fromOption(loggingFramework);
 
-        return new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesMethod<>(systemErrPrint), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.Block visitBlock(J.Block block, ExecutionContext ctx) {
                 J.Block b = super.visitBlock(block, ctx);
@@ -156,11 +139,13 @@ public class SystemErrToLogging extends Recipe {
                     J.Identifier computedLoggerName = loggers.iterator().next().getVariables().get(0).getName();
                     if (exceptionPrintStackTrace == null) {
                         print = print.withTemplate(getErrorTemplateNoException(this),
+                                getCursor(),
                                 print.getCoordinates().replace(),
                                 computedLoggerName,
                                 print.getArguments().get(0));
                     } else {
                         print = print.withTemplate(framework.getErrorTemplate(this, "#{any(String)}"),
+                                getCursor(),
                                 print.getCoordinates().replace(),
                                 computedLoggerName,
                                 print.getArguments().get(0),
@@ -187,37 +172,32 @@ public class SystemErrToLogging extends Recipe {
                 switch (framework) {
                     case SLF4J:
                         return JavaTemplate
-                                .builder(visitor::getCursor, "#{any(org.slf4j.Logger)}.error(#{any(String)})")
-                                .javaParser(() -> JavaParser.fromJavaVersion()
-                                        .classpath("slf4j-api")
-                                        .build()
-                                )
+                                .builder("#{any(org.slf4j.Logger)}.error(#{any(String)})")
+                                .context(visitor::getCursor)
+                                .javaParser(JavaParser.fromJavaVersion().classpath("slf4j-api"))
                                 .build();
                     case Log4J1:
                         return JavaTemplate
-                                .builder(visitor::getCursor, "#{any(org.apache.log4j.Category)}.error(#{any(String)})")
-                                .javaParser(() -> JavaParser.fromJavaVersion()
-                                        .classpath("log4j")
-                                        .build()
-                                )
+                                .builder("#{any(org.apache.log4j.Category)}.error(#{any(String)})")
+                                .context(visitor::getCursor)
+                                .javaParser(JavaParser.fromJavaVersion().classpath("log4j"))
                                 .build();
 
                     case Log4J2:
                         return JavaTemplate
-                                .builder(visitor::getCursor, "#{any(org.apache.logging.log4j.Logger)}.error(#{any(String)})")
-                                .javaParser(() -> JavaParser.fromJavaVersion()
-                                        .classpath("log4j-api")
-                                        .build()
-                                )
+                                .builder("#{any(org.apache.logging.log4j.Logger)}.error(#{any(String)})")
+                                .context(visitor::getCursor)
+                                .javaParser(JavaParser.fromJavaVersion().classpath("log4j-api"))
                                 .build();
                     case JUL:
                     default:
                         return JavaTemplate
-                                .builder(visitor::getCursor, "#{any(java.util.logging.Logger)}.log(Level.SEVERE, #{any(String)})")
+                                .builder("#{any(java.util.logging.Logger)}.log(Level.SEVERE, #{any(String)})")
+                                .context(visitor::getCursor)
                                 .imports("java.util.logging.Level")
                                 .build();
                 }
             }
-        };
+        });
     }
 }

@@ -16,6 +16,7 @@
 package org.openrewrite.java.logging.slf4j;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
@@ -71,13 +72,8 @@ public class CompleteExceptionLogging extends Recipe {
     }
 
     @Override
-    protected UsesType<ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.slf4j.Logger", null);
-    }
-
-    @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new JavaIsoVisitor<ExecutionContext>() {
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(new UsesType<>("org.slf4j.Logger", null), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method,
                                                             ExecutionContext ctx) {
@@ -159,7 +155,7 @@ public class CompleteExceptionLogging extends Recipe {
 
                 return method;
             }
-        };
+        });
     }
 
     private static int countPlaceholders(String message) {

@@ -16,6 +16,7 @@
 package org.openrewrite.java.logging.logback;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
@@ -53,17 +54,12 @@ public class Log4jLayoutToLogback extends Recipe {
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesType<>("org.apache.log4j.Layout", null);
-    }
-
-    @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new JavaIsoVisitor<ExecutionContext>() {
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(new UsesType<>("org.apache.log4j.Layout", null), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-                doAfterVisit(new ChangeMethodName("org.apache.log4j.Layout format(..)", "doLayout", true, null));
-                doAfterVisit(new ChangeMethodName("org.apache.log4j.spi.LoggingEvent getRenderedMessage()", "getMessage", true, null));
+                doAfterVisit(new ChangeMethodName("org.apache.log4j.Layout format(..)", "doLayout", true, null).getVisitor());
+                doAfterVisit(new ChangeMethodName("org.apache.log4j.spi.LoggingEvent getRenderedMessage()", "getMessage", true, null).getVisitor());
                 return super.visitCompilationUnit(cu, ctx);
             }
 
@@ -79,15 +75,17 @@ public class Log4jLayoutToLogback extends Recipe {
                         maybeAddImport("ch.qos.logback.core.LayoutBase");
                         maybeAddImport("ch.qos.logback.classic.spi.ILoggingEvent");
 
-                        doAfterVisit(new ChangeType("org.apache.log4j.spi.LoggingEvent", "ch.qos.logback.classic.spi.ILoggingEvent", null));
+                        doAfterVisit(new ChangeType("org.apache.log4j.spi.LoggingEvent", "ch.qos.logback.classic.spi.ILoggingEvent", null).getVisitor());
 
                         cd = cd.withTemplate(
-                                JavaTemplate.builder(this::getCursor, "LayoutBase<ILoggingEvent>")
+                                JavaTemplate.builder("LayoutBase<ILoggingEvent>")
+                                        .context(getCursor())
                                         .imports("ch.qos.logback.core.LayoutBase", "ch.qos.logback.classic.spi.ILoggingEvent")
-                                        .javaParser(() -> JavaParser.fromJavaVersion().dependsOn(
+                                        .javaParser(JavaParser.fromJavaVersion().dependsOn(
                                                 "package ch.qos.logback.classic.spi;public interface ILoggingEvent{ }",
-                                                "package org.apache.log4j.spi;public class LoggingEvent { public String getRenderedMessage() {return null;}}").build())
+                                                "package org.apache.log4j.spi;public class LoggingEvent { public String getRenderedMessage() {return null;}}"))
                                         .build(),
+                                getCursor(),
                                 cd.getCoordinates().replaceExtendsClause()
                         );
 
@@ -123,7 +121,7 @@ public class Log4jLayoutToLogback extends Recipe {
 
             }
 
-        };
+        });
     }
 
 }

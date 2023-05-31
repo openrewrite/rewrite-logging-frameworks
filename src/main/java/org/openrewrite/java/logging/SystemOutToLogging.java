@@ -17,9 +17,7 @@ package org.openrewrite.java.logging;
 
 import lombok.EqualsAndHashCode;
 import lombok.Value;
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Option;
-import org.openrewrite.Recipe;
+import org.openrewrite.*;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.FindFieldsOfType;
@@ -79,25 +77,10 @@ public class SystemOutToLogging extends Recipe {
     }
 
     @Override
-    protected JavaVisitor<ExecutionContext> getSingleSourceApplicableTest() {
-        if (addLogger != null && addLogger) {
-            return null;
-        }
-
-        return new JavaVisitor<ExecutionContext>() {
-            @Override
-            public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
-                doAfterVisit(new UsesMethod<>(systemOutPrint));
-                return cu;
-            }
-        };
-    }
-
-    @Override
-    public JavaVisitor<ExecutionContext> getVisitor() {
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
         LoggingFramework framework = LoggingFramework.fromOption(loggingFramework);
 
-        return new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesMethod<>(systemOutPrint), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
@@ -118,6 +101,7 @@ public class SystemOutToLogging extends Recipe {
                 if (!loggers.isEmpty()) {
                     J.Identifier computedLoggerName = loggers.iterator().next().getVariables().get(0).getName();
                     print = print.withTemplate(getInfoTemplate(this),
+                            getCursor(),
                             print.getCoordinates().replace(),
                             computedLoggerName,
                             print.getArguments().get(0));
@@ -143,34 +127,25 @@ public class SystemOutToLogging extends Recipe {
                 switch (framework) {
                     case SLF4J:
                         return JavaTemplate
-                                .builder(visitor::getCursor, "#{any(org.slf4j.Logger)}." + levelOrDefault + "(#{any(String)})")
-                                .javaParser(() -> JavaParser.fromJavaVersion()
-                                        .classpath("slf4j-api")
-                                        .build()
-                                )
+                                .builder("#{any(org.slf4j.Logger)}." + levelOrDefault + "(#{any(String)})")
+                                .javaParser(JavaParser.fromJavaVersion().classpath("slf4j-api"))
                                 .build();
                     case Log4J1:
                         return JavaTemplate
-                                .builder(visitor::getCursor, "#{any(org.apache.log4j.Category)}." + levelOrDefault + "(#{any(String)})")
-                                .javaParser(() -> JavaParser.fromJavaVersion()
-                                        .classpath("log4j")
-                                        .build()
-                                )
+                                .builder("#{any(org.apache.log4j.Category)}." + levelOrDefault + "(#{any(String)})")
+                                .javaParser(JavaParser.fromJavaVersion().classpath("log4j"))
                                 .build();
 
                     case Log4J2:
                         return JavaTemplate
-                                .builder(visitor::getCursor, "#{any(org.apache.logging.log4j.Logger)}." + levelOrDefault + "(#{any(String)})")
-                                .javaParser(() -> JavaParser.fromJavaVersion()
-                                        .classpath("log4j-api")
-                                        .build()
-                                )
+                                .builder("#{any(org.apache.logging.log4j.Logger)}." + levelOrDefault + "(#{any(String)})")
+                                .javaParser(JavaParser.fromJavaVersion().classpath("log4j-api"))
                                 .build();
                     case JUL:
                     default:
 
                         return JavaTemplate
-                                .builder(visitor::getCursor, "#{any(java.util.logging.Logger)}.log(Level." + levelOrDefault + ", #{any(String)})")
+                                .builder("#{any(java.util.logging.Logger)}.log(Level." + levelOrDefault + ", #{any(String)})")
                                 .imports("java.util.logging.Level")
                                 .build();
                 }
@@ -189,6 +164,6 @@ public class SystemOutToLogging extends Recipe {
                 }
                 return levelOrDefault;
             }
-        };
+        });
     }
 }

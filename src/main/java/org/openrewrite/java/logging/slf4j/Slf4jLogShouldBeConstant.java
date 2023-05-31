@@ -16,6 +16,7 @@
 package org.openrewrite.java.logging.slf4j;
 
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
@@ -62,18 +63,13 @@ public class Slf4jLogShouldBeConstant extends Recipe {
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesMethod<>(SLF4J_LOG);
-    }
-
-    @Override
     public Set<String> getTags() {
         return new HashSet<>(Arrays.asList("logging", "slf4j"));
     }
 
     @Override
-    protected JavaVisitor<ExecutionContext> getVisitor() {
-        return new JavaVisitor<ExecutionContext>() {
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(new UsesMethod<>(SLF4J_LOG), new JavaVisitor<ExecutionContext>() {
             @Override
             public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
                 if (SLF4J_LOG.matches(method)) {
@@ -105,16 +101,16 @@ public class Slf4jLogShouldBeConstant extends Recipe {
                         } else if (STRING_VALUE_OF.matches(args.get(0))) {
                             Expression valueOf = ((J.MethodInvocation) args.get(0)).getArguments().get(0);
                             if (TypeUtils.isAssignableTo(JavaType.ShallowClass.build("java.lang.Throwable"), valueOf.getType())) {
-                                J.MethodInvocation m = method.withTemplate(JavaTemplate.builder(this::getCursor, "\"Exception\", #{any()}").build(),
-                                        method.getCoordinates().replaceArguments(), valueOf);
+                                J.MethodInvocation m = method.withTemplate(JavaTemplate.builder("\"Exception\", #{any()}").context(getCursor()).build(),
+                                        getCursor(), method.getCoordinates().replaceArguments(), valueOf);
                                 m = m.withSelect(method.getSelect());
                                 return m;
                             }
                         } else if (args.get(0) instanceof J.MethodInvocation && "toString".equals(((J.MethodInvocation) args.get(0)).getSimpleName())) {
                             Expression valueOf = ((J.MethodInvocation) args.get(0)).getSelect();
                             if (valueOf != null) {
-                                J.MethodInvocation m = method.withTemplate(JavaTemplate.builder(this::getCursor, "\"{}\", #{any()}").build(),
-                                        method.getCoordinates().replaceArguments(), valueOf);
+                                J.MethodInvocation m = method.withTemplate(JavaTemplate.builder("\"{}\", #{any()}").context(getCursor()).build(),
+                                        getCursor(), method.getCoordinates().replaceArguments(), valueOf);
                                 m = m.withSelect(method.getSelect());
                                 return m;
                             }
@@ -123,7 +119,7 @@ public class Slf4jLogShouldBeConstant extends Recipe {
                 }
                 return super.visitMethodInvocation(method, executionContext);
             }
-        };
+        });
     }
 
     private boolean containsCombinedFormatSpecifiers(String str) {

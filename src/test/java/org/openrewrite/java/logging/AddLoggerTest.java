@@ -182,7 +182,7 @@ class AddLoggerTest implements RewriteTest {
         }
 
         @Override
-        protected TreeVisitor<?, ExecutionContext> getVisitor() {
+        public TreeVisitor<?, ExecutionContext> getVisitor() {
             return new JavaIsoVisitor<>() {
                 @Override
                 public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {

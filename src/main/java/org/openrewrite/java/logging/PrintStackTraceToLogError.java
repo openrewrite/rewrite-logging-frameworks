@@ -17,13 +17,9 @@ package org.openrewrite.java.logging;
 
 import lombok.EqualsAndHashCode;
 import lombok.Value;
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Option;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.FindFieldsOfType;
 import org.openrewrite.java.search.UsesType;
@@ -70,27 +66,11 @@ public class PrintStackTraceToLogError extends Recipe {
     }
 
     @Override
-    protected JavaVisitor<ExecutionContext> getSingleSourceApplicableTest() {
-        if (addLogger != null && addLogger) {
-            return null;
-        }
-
-        LoggingFramework framework = LoggingFramework.fromOption(loggingFramework);
-        return new JavaVisitor<ExecutionContext>() {
-            @Override
-            public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
-                doAfterVisit(new UsesType<>(framework.getLoggerType(), null));
-                return cu;
-            }
-        };
-    }
-
-    @Override
-    protected TreeVisitor<?, ExecutionContext> getVisitor() {
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
         MethodMatcher printStackTrace = new MethodMatcher("java.lang.Throwable printStackTrace(..)");
         LoggingFramework framework = LoggingFramework.fromOption(loggingFramework);
 
-        return new JavaIsoVisitor<ExecutionContext>() {
+        JavaIsoVisitor<ExecutionContext> visitor = new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
@@ -99,6 +79,7 @@ public class PrintStackTraceToLogError extends Recipe {
                     Set<J.VariableDeclarations> loggers = FindFieldsOfType.find(clazz, framework.getLoggerType());
                     if (!loggers.isEmpty()) {
                         m = m.withTemplate(framework.getErrorTemplate(this, "\"Exception\""),
+                                getCursor(),
                                 m.getCoordinates().replace(),
                                 loggers.iterator().next().getVariables().get(0).getName(),
                                 m.getSelect());
@@ -107,13 +88,12 @@ public class PrintStackTraceToLogError extends Recipe {
                         }
                     } else if (addLogger != null && addLogger) {
                         doAfterVisit(AddLogger.addLogger(clazz, framework, loggerName == null ? "logger" : loggerName));
-
-                        // the print statement will be replaced on the subsequent pass
-                        doAfterVisit(this);
                     }
                 }
                 return m;
             }
         };
+
+        return addLogger != null && addLogger ? visitor : Preconditions.check(new UsesType<>(framework.getLoggerType(), null), visitor);
     }
 }

@@ -17,10 +17,7 @@ package org.openrewrite.java.logging;
 
 import lombok.EqualsAndHashCode;
 import lombok.Value;
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Option;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -73,13 +70,8 @@ public class ParameterizedLogging extends Recipe {
     }
 
     @Override
-    protected TreeVisitor<?, ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesMethod<>(methodPattern, true);
-    }
-
-    @Override
-    public JavaVisitor<ExecutionContext> getVisitor() {
-        return new JavaIsoVisitor<ExecutionContext>() {
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(new UsesMethod<>(methodPattern, true), new JavaIsoVisitor<ExecutionContext>() {
             private final MethodMatcher matcher = new MethodMatcher(methodPattern, true);
             private final RemoveToStringVisitor removeToStringVisitor = new RemoveToStringVisitor();
 
@@ -104,8 +96,10 @@ public class ParameterizedLogging extends Recipe {
                         messageBuilder.append("\"");
                         newArgList.forEach(arg -> messageBuilder.append(", #{any()}"));
                         m = m.withTemplate(
-                                JavaTemplate.builder(this::getCursor, messageBuilder.toString())
+                                JavaTemplate.builder(messageBuilder.toString())
+                                        .context(getCursor())
                                         .build(),
+                                getCursor(),
                                 m.getCoordinates().replaceArguments(),
                                 newArgList.toArray()
                         );
@@ -113,8 +107,10 @@ public class ParameterizedLogging extends Recipe {
                         StringBuilder messageBuilder = new StringBuilder("\"{}\"");
                         m.getArguments().forEach(arg -> messageBuilder.append(", #{any()}"));
                         m = m.withTemplate(
-                                JavaTemplate.builder(this::getCursor, messageBuilder.toString())
+                                JavaTemplate.builder(messageBuilder.toString())
+                                        .context(getCursor())
                                         .build(),
+                                getCursor(),
                                 m.getCoordinates().replaceArguments(),
                                 m.getArguments().toArray()
                         );
@@ -128,7 +124,7 @@ public class ParameterizedLogging extends Recipe {
             }
 
             class RemoveToStringVisitor extends JavaVisitor<ExecutionContext> {
-                private final JavaTemplate t = JavaTemplate.builder(this::getCursor, "#{any(java.lang.String)}").build();
+                private final JavaTemplate t = JavaTemplate.builder("#{any(java.lang.String)}").build();
                 private final MethodMatcher TO_STRING = new MethodMatcher("java.lang.Object toString()");
                 @Override
                 public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
@@ -138,12 +134,12 @@ public class ParameterizedLogging extends Recipe {
                     if (TO_STRING.matches(method.getSelect())) {
                         getCursor().putMessage("DO_NOT_REMOVE", Boolean.TRUE);
                     } else if (TO_STRING.matches(method)) {
-                        return method.withTemplate(t, method.getCoordinates().replace(), method.getSelect());
+                        return method.withTemplate(t, getCursor(), method.getCoordinates().replace(), method.getSelect());
                     }
                     return super.visitMethodInvocation(method, ctx);
                 }
             }
-        };
+        });
     }
 
     private static final class MessageAndArguments {

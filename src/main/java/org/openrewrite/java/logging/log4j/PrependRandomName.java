@@ -17,9 +17,10 @@ package org.openrewrite.java.logging.log4j;
 
 import org.kohsuke.randname.RandomNameGenerator;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.J;
@@ -55,13 +56,8 @@ public class PrependRandomName extends Recipe {
     }
 
     @Override
-    protected JavaVisitor<ExecutionContext> getSingleSourceApplicableTest() {
-        return new UsesMethod<>(logStatement);
-    }
-
-    @Override
-    protected JavaVisitor<ExecutionContext> getVisitor() {
-        return new JavaIsoVisitor<ExecutionContext>() {
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(new UsesMethod<>(logStatement), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.Literal visitLiteral(J.Literal literal, ExecutionContext ctx) {
                 Object parent = getCursor().dropParentUntil(J.class::isInstance).getValue();
@@ -76,6 +72,6 @@ public class PrependRandomName extends Recipe {
                 }
                 return super.visitLiteral(literal, ctx);
             }
-        };
+        });
     }
 }
