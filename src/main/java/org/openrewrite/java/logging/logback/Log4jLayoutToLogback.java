@@ -15,10 +15,7 @@
  */
 package org.openrewrite.java.logging.logback;
 
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Preconditions;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
@@ -77,17 +74,14 @@ public class Log4jLayoutToLogback extends Recipe {
 
                         doAfterVisit(new ChangeType("org.apache.log4j.spi.LoggingEvent", "ch.qos.logback.classic.spi.ILoggingEvent", null).getVisitor());
 
-                        cd = cd.withTemplate(
-                                JavaTemplate.builder("LayoutBase<ILoggingEvent>")
-                                        .context(getCursor())
-                                        .imports("ch.qos.logback.core.LayoutBase", "ch.qos.logback.classic.spi.ILoggingEvent")
-                                        .javaParser(JavaParser.fromJavaVersion().dependsOn(
-                                                "package ch.qos.logback.classic.spi;public interface ILoggingEvent{ }",
-                                                "package org.apache.log4j.spi;public class LoggingEvent { public String getRenderedMessage() {return null;}}"))
-                                        .build(),
-                                getCursor(),
-                                cd.getCoordinates().replaceExtendsClause()
-                        );
+                        cd = JavaTemplate.builder("LayoutBase<ILoggingEvent>")
+                                .contextSensitive()
+                                .imports("ch.qos.logback.core.LayoutBase", "ch.qos.logback.classic.spi.ILoggingEvent")
+                                .javaParser(JavaParser.fromJavaVersion().dependsOn(
+                                        "package ch.qos.logback.classic.spi;public interface ILoggingEvent{ }",
+                                        "package org.apache.log4j.spi;public class LoggingEvent { public String getRenderedMessage() {return null;}}"))
+                                .build()
+                                .apply(new Cursor(getCursor().getParent(), cd), cd.getCoordinates().replaceExtendsClause());
 
                         // should be covered by maybeAddImport, todo
                         doAfterVisit(new AddImport<>("ch.qos.logback.core.LayoutBase", null, false));

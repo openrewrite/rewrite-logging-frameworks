@@ -15,10 +15,7 @@
  */
 package org.openrewrite.java.logging.slf4j;
 
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Preconditions;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
@@ -93,14 +90,12 @@ public class LoggersNamedForEnclosingClass extends Recipe {
                     return mi;
                 }
 
-                return mi.withTemplate(JavaTemplate.builder("LoggerFactory.getLogger(#{})")
-                                .context(getCursor())
-                                .imports("org.slf4j.LoggerFactory")
-                                .javaParser(JavaParser.fromJavaVersion().classpath("slf4j-api"))
-                                .build(),
-                        getCursor(),
-                        mi.getCoordinates().replace(),
-                        enclosingClazzName);
+                return JavaTemplate.builder("LoggerFactory.getLogger(#{})")
+                        .contextSensitive()
+                        .imports("org.slf4j.LoggerFactory")
+                        .javaParser(JavaParser.fromJavaVersion().classpath("slf4j-api"))
+                        .build()
+                        .apply(new Cursor(getCursor().getParent(), mi), mi.getCoordinates().replace(), enclosingClazzName);
             }
         });
     }

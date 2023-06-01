@@ -95,25 +95,17 @@ public class ParameterizedLogging extends Recipe {
                         });
                         messageBuilder.append("\"");
                         newArgList.forEach(arg -> messageBuilder.append(", #{any()}"));
-                        m = m.withTemplate(
-                                JavaTemplate.builder(messageBuilder.toString())
-                                        .context(getCursor())
-                                        .build(),
-                                getCursor(),
-                                m.getCoordinates().replaceArguments(),
-                                newArgList.toArray()
-                        );
+                        m = JavaTemplate.builder(messageBuilder.toString())
+                                .contextSensitive()
+                                .build()
+                                .apply(new Cursor(getCursor().getParent(), m), m.getCoordinates().replaceArguments(), newArgList.toArray());
                     } else if (!TypeUtils.isString(logMsg.getType()) && logMsg.getType() instanceof JavaType.Class) {
                         StringBuilder messageBuilder = new StringBuilder("\"{}\"");
                         m.getArguments().forEach(arg -> messageBuilder.append(", #{any()}"));
-                        m = m.withTemplate(
-                                JavaTemplate.builder(messageBuilder.toString())
-                                        .context(getCursor())
-                                        .build(),
-                                getCursor(),
-                                m.getCoordinates().replaceArguments(),
-                                m.getArguments().toArray()
-                        );
+                        m = JavaTemplate.builder(messageBuilder.toString())
+                                .contextSensitive()
+                                .build()
+                                .apply(new Cursor(getCursor().getParent(), m), m.getCoordinates().replaceArguments(), m.getArguments().toArray());
                     }
                     if (Boolean.TRUE.equals(removeToString)) {
                         m = m.withArguments(ListUtils.map(m.getArguments(), arg -> (Expression) removeToStringVisitor.visitNonNull(arg, ctx, getCursor())));
@@ -134,7 +126,7 @@ public class ParameterizedLogging extends Recipe {
                     if (TO_STRING.matches(method.getSelect())) {
                         getCursor().putMessage("DO_NOT_REMOVE", Boolean.TRUE);
                     } else if (TO_STRING.matches(method)) {
-                        return method.withTemplate(t, getCursor(), method.getCoordinates().replace(), method.getSelect());
+                        return t.apply(getCursor(), method.getCoordinates().replace(), method.getSelect());
                     }
                     return super.visitMethodInvocation(method, ctx);
                 }

@@ -78,11 +78,12 @@ public class PrintStackTraceToLogError extends Recipe {
                     J.ClassDeclaration clazz = getCursor().firstEnclosingOrThrow(J.ClassDeclaration.class);
                     Set<J.VariableDeclarations> loggers = FindFieldsOfType.find(clazz, framework.getLoggerType());
                     if (!loggers.isEmpty()) {
-                        m = m.withTemplate(framework.getErrorTemplate(this, "\"Exception\""),
-                                getCursor(),
-                                m.getCoordinates().replace(),
-                                loggers.iterator().next().getVariables().get(0).getName(),
-                                m.getSelect());
+                        m = framework.getErrorTemplate(this, "\"Exception\"")
+                                .apply(
+                                        new Cursor(getCursor().getParent(), m),
+                                        m.getCoordinates().replace(),
+                                        loggers.iterator().next().getVariables().get(0).getName(),
+                                        m.getSelect());
                         if (framework == LoggingFramework.JUL) {
                             maybeAddImport("java.util.logging.Level");
                         }

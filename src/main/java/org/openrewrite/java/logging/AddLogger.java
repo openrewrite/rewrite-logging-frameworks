@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.logging;
 
+import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
@@ -65,7 +66,7 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
         return new AddLogger(scope, "org.slf4j.Logger", "org.slf4j.LoggerFactory", loggerName, visitor ->
                 JavaTemplate
                         .builder("private static final Logger #{} = LoggerFactory.getLogger(#{}.class);")
-                        .context(visitor::getCursor)
+                        .contextSensitive()
                         .imports("org.slf4j.Logger", "org.slf4j.LoggerFactory")
                         .javaParser(JavaParser.fromJavaVersion().classpath("slf4j-api"))
                         .build()
@@ -76,7 +77,7 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
         return new AddLogger(scope, "java.util.logging.Logger", "java.util.logging.LogManager", loggerName, visitor ->
                 JavaTemplate
                         .builder("private static final Logger #{} = LogManager.getLogger(\"#{}\");")
-                        .context(visitor::getCursor)
+                        .contextSensitive()
                         .imports("java.util.logging.Logger", "java.util.logging.LogManager")
                         .build()
         );
@@ -86,7 +87,7 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
         return new AddLogger(scope, "org.apache.log4j.Logger", "org.apache.log4j.LogManager", loggerName, visitor ->
                 JavaTemplate
                         .builder("private static final Logger #{} = LogManager.getLogger(#{}.class);")
-                        .context(visitor::getCursor)
+                        .contextSensitive()
                         .imports("org.apache.log4j.Logger", "org.apache.log4j.LogManager")
                         .javaParser(JavaParser.fromJavaVersion().classpath("log4j"))
                         .build()
@@ -97,7 +98,7 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
         return new AddLogger(scope, "org.apache.logging.log4j.Logger", "org.apache.logging.log4j.LogManager", loggerName, visitor ->
                 JavaTemplate
                         .builder("private static final Logger #{} = LogManager.getLogger(#{}.class);")
-                        .context(visitor::getCursor)
+                        .contextSensitive()
                         .imports("org.apache.logging.log4j.Logger", "org.apache.logging.log4j.LogManager")
                         .javaParser(JavaParser.fromJavaVersion().classpath("log4j-api"))
                         .build()
@@ -113,7 +114,7 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
                 return cd;
             }
 
-            cd = cd.withTemplate(template, getCursor(), cd.getBody().getCoordinates().firstStatement(), loggerName, cd.getSimpleName());
+            cd = template.apply(new Cursor(getCursor().getParent(), cd), cd.getBody().getCoordinates().firstStatement(), loggerName, cd.getSimpleName());
 
             // ensure the appropriate number of blank lines on next statement after new field
             J.ClassDeclaration formatted = (J.ClassDeclaration) new AutoFormatVisitor<ExecutionContext>().visitNonNull(cd, ctx, getCursor());

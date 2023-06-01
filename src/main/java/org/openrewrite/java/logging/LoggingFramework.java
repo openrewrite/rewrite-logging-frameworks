@@ -58,27 +58,27 @@ public enum LoggingFramework {
             case SLF4J:
                 return JavaTemplate
                         .builder("#{any(org.slf4j.Logger)}.error(" + message + ", #{any(java.lang.Throwable)})")
-                        .context(visitor::getCursor)
+                        .contextSensitive()
                         .javaParser(JavaParser.fromJavaVersion().classpath("slf4j-api"))
                         .build();
             case Log4J1:
                 return JavaTemplate
                         .builder("#{any(org.apache.log4j.Category)}.error(" + message + ", #{any(java.lang.Throwable)})")
-                        .context(visitor::getCursor)
+                        .contextSensitive()
                         .javaParser(JavaParser.fromJavaVersion().classpath("log4j"))
                         .build();
 
             case Log4J2:
                 return JavaTemplate
                         .builder("#{any(org.apache.logging.log4j.Logger)}.error(" + message + ", #{any(java.lang.Throwable)})")
-                        .context(visitor::getCursor)
+                        .contextSensitive()
                         .javaParser(JavaParser.fromJavaVersion().classpath("log4j-api"))
                         .build();
             case JUL:
             default:
                 return JavaTemplate
                         .builder("#{any(java.util.logging.Logger)}.log(Level.SEVERE, " + message + ", #{any(java.lang.Throwable)})")
-                        .context(visitor::getCursor)
+                        .contextSensitive()
                         .imports("java.util.logging.Level")
                         .build();
 

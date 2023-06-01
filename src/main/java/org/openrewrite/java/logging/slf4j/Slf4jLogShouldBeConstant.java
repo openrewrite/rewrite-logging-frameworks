@@ -101,16 +101,16 @@ public class Slf4jLogShouldBeConstant extends Recipe {
                         } else if (STRING_VALUE_OF.matches(args.get(0))) {
                             Expression valueOf = ((J.MethodInvocation) args.get(0)).getArguments().get(0);
                             if (TypeUtils.isAssignableTo(JavaType.ShallowClass.build("java.lang.Throwable"), valueOf.getType())) {
-                                J.MethodInvocation m = method.withTemplate(JavaTemplate.builder("\"Exception\", #{any()}").context(getCursor()).build(),
-                                        getCursor(), method.getCoordinates().replaceArguments(), valueOf);
+                                J.MethodInvocation m = JavaTemplate.builder("\"Exception\", #{any()}").contextSensitive().build()
+                                        .apply(getCursor(), method.getCoordinates().replaceArguments(), valueOf);
                                 m = m.withSelect(method.getSelect());
                                 return m;
                             }
                         } else if (args.get(0) instanceof J.MethodInvocation && "toString".equals(((J.MethodInvocation) args.get(0)).getSimpleName())) {
                             Expression valueOf = ((J.MethodInvocation) args.get(0)).getSelect();
                             if (valueOf != null) {
-                                J.MethodInvocation m = method.withTemplate(JavaTemplate.builder("\"{}\", #{any()}").context(getCursor()).build(),
-                                        getCursor(), method.getCoordinates().replaceArguments(), valueOf);
+                                J.MethodInvocation m = JavaTemplate.builder("\"{}\", #{any()}").contextSensitive().build()
+                                        .apply(getCursor(), method.getCoordinates().replaceArguments(), valueOf);
                                 m = m.withSelect(method.getSelect());
                                 return m;
                             }

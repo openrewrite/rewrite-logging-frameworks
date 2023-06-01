@@ -15,10 +15,7 @@
  */
 package org.openrewrite.java.logging.logback;
 
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Preconditions;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
@@ -37,10 +34,10 @@ public class Log4jAppenderToLogback extends Recipe {
     @Override
     public String getDescription() {
         return "Migrates custom Log4j 2.x Appender components to `logback-classic`. This recipe operates on the following assumptions: " +
-                "1.) The contents of the `append()` method remains unchanged. " +
-                "2.) The `requiresLayout()` method is not used in logback and can be removed. " +
-                "3.) In logback, the `stop()` method is the equivalent of log4j's close() method. " +
-                "For more details, see this page from logback: [`Migration from log4j`](http://logback.qos.ch/manual/migrationFromLog4j.html).";
+               "1.) The contents of the `append()` method remains unchanged. " +
+               "2.) The `requiresLayout()` method is not used in logback and can be removed. " +
+               "3.) In logback, the `stop()` method is the equivalent of log4j's close() method. " +
+               "For more details, see this page from logback: [`Migration from log4j`](http://logback.qos.ch/manual/migrationFromLog4j.html).";
     }
 
     @Override
@@ -72,17 +69,14 @@ public class Log4jAppenderToLogback extends Recipe {
                         doAfterVisit(new ChangeType("org.apache.log4j.spi.LoggingEvent", "ch.qos.logback.classic.spi.ILoggingEvent", null).getVisitor());
                         doAfterVisit(new ChangeType("org.apache.log4j.Layout", "ch.qos.logback.core.LayoutBase", null).getVisitor());
 
-                        cd = cd.withTemplate(
-                                JavaTemplate.builder("AppenderBase<ILoggingEvent>")
-                                        .context(getCursor())
-                                        .imports("ch.qos.logback.core.AppenderBase", "ch.qos.logback.classic.spi.ILoggingEvent")
-                                        .javaParser(JavaParser.fromJavaVersion().dependsOn(
-                                                "package ch.qos.logback.classic.spi;public interface ILoggingEvent{ }",
-                                                "package org.apache.log4j.spi;public class LoggingEvent { public String getRenderedMessage() {return null;}}"))
-                                        .build(),
-                                getCursor(),
-                                cd.getCoordinates().replaceExtendsClause()
-                        );
+                        cd = JavaTemplate.builder("AppenderBase<ILoggingEvent>")
+                                .contextSensitive()
+                                .imports("ch.qos.logback.core.AppenderBase", "ch.qos.logback.classic.spi.ILoggingEvent")
+                                .javaParser(JavaParser.fromJavaVersion().dependsOn(
+                                        "package ch.qos.logback.classic.spi;public interface ILoggingEvent{ }",
+                                        "package org.apache.log4j.spi;public class LoggingEvent { public String getRenderedMessage() {return null;}}"))
+                                .build()
+                                .apply(new Cursor(getCursor().getParent(), cd), cd.getCoordinates().replaceExtendsClause());
 
                         // should be covered by maybeAddImport, todo
                         doAfterVisit(new AddImport<>("ch.qos.logback.core.AppenderBase", null, false));

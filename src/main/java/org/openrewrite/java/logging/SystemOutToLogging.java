@@ -88,27 +88,28 @@ public class SystemOutToLogging extends Recipe {
                     if (m.getSelect() != null && m.getSelect() instanceof J.FieldAccess) {
                         JavaType.Variable field = ((J.FieldAccess) m.getSelect()).getName().getFieldType();
                         if (field != null && "out".equals(field.getName()) && TypeUtils.isOfClassType(field.getOwner(), "java.lang.System")) {
-                            return logInsteadOfPrint(m, ctx);
+                            return logInsteadOfPrint(new Cursor(getCursor().getParent(), m), ctx);
                         }
                     }
                 }
                 return m;
             }
 
-            private J.MethodInvocation logInsteadOfPrint(J.MethodInvocation print, ExecutionContext ctx) {
+            private J.MethodInvocation logInsteadOfPrint(Cursor printCursor, ExecutionContext ctx) {
+                J.MethodInvocation print = printCursor.getValue();
                 J.ClassDeclaration clazz = getCursor().firstEnclosingOrThrow(J.ClassDeclaration.class);
                 Set<J.VariableDeclarations> loggers = FindFieldsOfType.find(clazz, framework.getLoggerType());
                 if (!loggers.isEmpty()) {
                     J.Identifier computedLoggerName = loggers.iterator().next().getVariables().get(0).getName();
-                    print = print.withTemplate(getInfoTemplate(this),
-                            getCursor(),
+                    print = getInfoTemplate(this).apply(
+                            printCursor,
                             print.getCoordinates().replace(),
                             computedLoggerName,
                             print.getArguments().get(0));
 
                     print = (J.MethodInvocation) new ParameterizedLogging(framework.getLoggerType() + " " + getLevel() + "(..)", false)
                             .getVisitor()
-                            .visitNonNull(print, ctx, getCursor());
+                            .visitNonNull(print, ctx, printCursor);
 
                     if (framework == LoggingFramework.JUL) {
                         maybeAddImport("java.util.logging.Level");
@@ -153,7 +154,7 @@ public class SystemOutToLogging extends Recipe {
 
             private String getLevel() {
                 String levelOrDefault = level == null ? "info" : level;
-                if(framework == LoggingFramework.JUL) {
+                if (framework == LoggingFramework.JUL) {
                     String julLevel = levelOrDefault.toUpperCase();
                     if ("debug".equals(levelOrDefault)) {
                         julLevel = "FINE";
