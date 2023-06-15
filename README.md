@@ -11,6 +11,8 @@
 
 This project implements a [Rewrite module](https://github.com/openrewrite/rewrite) that performs common Java logging framework tasks, like migrating from Log4j, Apache Commons Logging, and JUL, to SLF4J.
 
+Browse [a selection of recipes available through this module in the recipe catalog](https://docs.openrewrite.org/recipes/java/logging).
+
 ## Contributing
 
 We appreciate all types of contributions. See the [contributing guide](https://github.com/openrewrite/.github/blob/main/CONTRIBUTING.md) for detailed instructions on how to get started.
