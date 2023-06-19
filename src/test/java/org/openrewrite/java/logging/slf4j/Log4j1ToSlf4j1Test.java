@@ -16,6 +16,7 @@
 package org.openrewrite.java.logging.slf4j;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.Issue;
 import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
@@ -36,6 +37,7 @@ class Log4j1ToSlf4j1Test implements RewriteTest {
           .parser(JavaParser.fromJavaVersion().classpath("log4j"));
     }
 
+    @DocumentExample
     @Test
     void useLoggerFactory() {
         //language=java

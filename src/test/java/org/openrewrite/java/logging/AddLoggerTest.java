@@ -18,6 +18,7 @@ package org.openrewrite.java.logging;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
@@ -36,6 +37,7 @@ class AddLoggerTest implements RewriteTest {
         spec.parser(JavaParser.fromJavaVersion().classpath("slf4j-api"));
     }
 
+    @DocumentExample
     @Test
     void addLogger() {
         rewriteRun(

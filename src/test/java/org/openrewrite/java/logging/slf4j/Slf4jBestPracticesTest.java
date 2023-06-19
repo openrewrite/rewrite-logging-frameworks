@@ -16,6 +16,7 @@
 package org.openrewrite.java.logging.slf4j;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -34,6 +35,7 @@ class Slf4jBestPracticesTest implements RewriteTest {
           .parser(JavaParser.fromJavaVersion().classpath("slf4j-api"));
     }
 
+    @DocumentExample
     @SuppressWarnings("RedundantSlf4jDefinition")
     @Test
     void applyBestPractices() {
