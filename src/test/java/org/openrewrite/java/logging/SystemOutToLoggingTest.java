@@ -16,6 +16,7 @@
 package org.openrewrite.java.logging;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RewriteTest;
 
@@ -23,6 +24,7 @@ import static org.openrewrite.java.Assertions.java;
 
 class SystemOutToLoggingTest implements RewriteTest {
 
+    @DocumentExample
     @Test
     void useSlf4j() {
         rewriteRun(

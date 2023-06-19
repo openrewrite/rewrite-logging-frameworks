@@ -16,6 +16,7 @@
 package org.openrewrite.java.logging.slf4j;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -183,6 +184,7 @@ class Slf4jLogShouldBeConstantTest implements RewriteTest {
         );
     }
 
+    @DocumentExample
     @Test
     void differentFormatSpecifier() {
         //language=java
