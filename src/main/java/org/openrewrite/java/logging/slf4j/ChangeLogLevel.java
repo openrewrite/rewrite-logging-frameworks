@@ -17,14 +17,12 @@ package org.openrewrite.java.logging.slf4j;
 
 import lombok.EqualsAndHashCode;
 import lombok.Value;
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Option;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.internal.StringUtils;
 import org.openrewrite.java.ChangeMethodName;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 
@@ -73,8 +71,8 @@ public class ChangeLogLevel extends Recipe {
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         String methodPattern = "org.slf4j.Logger " + from.name().toLowerCase() + "(..)";
-        MethodMatcher logMatcher = new MethodMatcher(methodPattern);
-        return new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesMethod<>(methodPattern),  new JavaIsoVisitor<ExecutionContext>() {
+            final MethodMatcher logMatcher = new MethodMatcher(methodPattern);
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
@@ -101,6 +99,6 @@ public class ChangeLogLevel extends Recipe {
                         .visitNonNull(m, ctx);
                 return m;
             }
-        };
+        });
     }
 }
