@@ -61,4 +61,38 @@ public class ChangeLogLevelTest implements RewriteTest {
             """)
         );
     }
+
+    @Test
+    void concatenatedString() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+                import org.slf4j.Logger;
+                import org.slf4j.LoggerFactory;
+                
+                class Test {
+                    private static final Logger log = LoggerFactory.getLogger(Test.class);
+                    
+                    void test() {
+                        log.info("LaunchDarkly " + 1 + "Hello");
+                    }
+                }
+            """,
+            """
+                import org.slf4j.Logger;
+                import org.slf4j.LoggerFactory;
+                
+                class Test {
+                    private static final Logger log = LoggerFactory.getLogger(Test.class);
+                    
+                    void test() {
+                        log.debug("LaunchDarkly " + 1 + "Hello");
+                    }
+                }
+            """)
+        );
+    }
+
+
 }

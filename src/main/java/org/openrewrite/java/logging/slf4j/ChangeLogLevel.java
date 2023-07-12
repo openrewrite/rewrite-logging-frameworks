@@ -83,12 +83,8 @@ public class ChangeLogLevel extends Recipe {
                 if(args.size() == 0) {
                     return m;
                 }
-                Expression arg = args.get(0);
-                if(!(arg instanceof J.Literal)) {
-                    return m;
-                }
-                J.Literal lit = (J.Literal) arg;
-                if(lit.getValue() == null) {
+                J.Literal lit = leftMostLiteral(args.get(0));
+                if(lit == null || lit.getValue() == null) {
                     return m;
                 }
                 if(!StringUtils.isBlank(startsWith) && !lit.getValue().toString().startsWith(startsWith)) {
@@ -100,5 +96,16 @@ public class ChangeLogLevel extends Recipe {
                 return m;
             }
         });
+    }
+
+    @Nullable
+    J.Literal leftMostLiteral(Expression arg) {
+        if(arg instanceof J.Literal) {
+            return (J.Literal) arg;
+        }
+        if(arg instanceof J.Binary) {
+            return leftMostLiteral(((J.Binary) arg).getLeft());
+        }
+        return null;
     }
 }
