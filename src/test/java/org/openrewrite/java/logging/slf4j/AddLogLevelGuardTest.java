@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.openrewrite.java.logging;
+package org.openrewrite.java.logging.slf4j;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.java.JavaParser;
@@ -49,6 +49,33 @@ class AddLogLevelGuardTest implements RewriteTest {
                   void test() {
                       if (logger.isDebugEnabled()) {
                           logger.debug("Hello");
+                      }
+                  }
+              }
+            """));
+    }
+
+    @Test
+    void maybeNotAddTwoGuards() {
+        rewriteRun(
+          //language=java
+          java("""
+              import org.slf4j.Logger;
+              class Test {
+                  Logger logger;
+                  void test() {
+                      logger.debug("Hello one");
+                      logger.debug("Hello two");
+                  }
+              }
+            """, """
+              import org.slf4j.Logger;
+              class Test {
+                  Logger logger;
+                  void test() {
+                      if (logger.isDebugEnabled()) {
+                        logger.debug("Hello one");
+                        logger.debug("Hello two");
                       }
                   }
               }
