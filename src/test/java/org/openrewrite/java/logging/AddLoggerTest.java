@@ -17,6 +17,7 @@ package org.openrewrite.java.logging;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.ExecutionContext;
@@ -158,6 +159,7 @@ class AddLoggerTest implements RewriteTest {
         );
     }
 
+    @NoArgsConstructor(force = true)
     private static final class MaybeAddLoggerToClass extends Recipe {
         private final String simpleName;
         private final int times;
