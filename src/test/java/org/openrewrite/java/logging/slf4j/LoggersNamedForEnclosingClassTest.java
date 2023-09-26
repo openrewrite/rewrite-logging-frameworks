@@ -121,7 +121,7 @@ class LoggersNamedForEnclosingClassTest implements RewriteTest {
 
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/101")
     @Test
-    void doNotChangeGetClassOnNonFinalClass(){
+    void doNotChangeGetClassOnNonFinalClass() {
         //language=java
         rewriteRun(
           java(

@@ -43,7 +43,7 @@ public enum LoggingFramework {
     }
 
     public static LoggingFramework fromOption(@Nullable String option) {
-        if(option != null) {
+        if (option != null) {
             for (LoggingFramework value : values()) {
                 if (value.toString().equalsIgnoreCase(option)) {
                     return value;

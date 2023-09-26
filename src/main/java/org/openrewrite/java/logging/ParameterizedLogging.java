@@ -183,7 +183,7 @@ public class ParameterizedLogging extends Recipe {
         }
         return literal
                 .getValueSource()
-                .substring(1, literal.getValueSource().length() -1)
+                .substring(1, literal.getValueSource().length() - 1)
                 .replace("\\", "\\\\");
     }
 }

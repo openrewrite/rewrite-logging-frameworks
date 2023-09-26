@@ -71,23 +71,23 @@ public class ChangeLogLevel extends Recipe {
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         String methodPattern = "org.slf4j.Logger " + from.name().toLowerCase() + "(..)";
-        return Preconditions.check(new UsesMethod<>(methodPattern),  new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesMethod<>(methodPattern), new JavaIsoVisitor<ExecutionContext>() {
             final MethodMatcher logMatcher = new MethodMatcher(methodPattern);
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
-                if(!logMatcher.matches(m)) {
+                if (!logMatcher.matches(m)) {
                     return m;
                 }
                 List<Expression> args = m.getArguments();
-                if(args.size() == 0) {
+                if (args.size() == 0) {
                     return m;
                 }
                 J.Literal lit = leftMostLiteral(args.get(0));
-                if(lit == null || lit.getValue() == null) {
+                if (lit == null || lit.getValue() == null) {
                     return m;
                 }
-                if(!StringUtils.isBlank(startsWith) && !lit.getValue().toString().startsWith(startsWith)) {
+                if (!StringUtils.isBlank(startsWith) && !lit.getValue().toString().startsWith(startsWith)) {
                     return m;
                 }
                 m = (J.MethodInvocation) new ChangeMethodName(methodPattern, to.name().toLowerCase(), true, null)
@@ -100,10 +100,10 @@ public class ChangeLogLevel extends Recipe {
 
     @Nullable
     J.Literal leftMostLiteral(Expression arg) {
-        if(arg instanceof J.Literal) {
+        if (arg instanceof J.Literal) {
             return (J.Literal) arg;
         }
-        if(arg instanceof J.Binary) {
+        if (arg instanceof J.Binary) {
             return leftMostLiteral(((J.Binary) arg).getLeft());
         }
         return null;

@@ -96,7 +96,7 @@ public class CompleteExceptionLogging extends Recipe {
                     Expression lastParameter = args.get(args.size() - 1);
 
                     boolean isLastParameterAnException = lastParameter instanceof J.Identifier &&
-                                                         TypeUtils.isAssignableTo("java.lang.Throwable",lastParameter.getType());
+                                                         TypeUtils.isAssignableTo("java.lang.Throwable", lastParameter.getType());
                     if (isLastParameterAnException) {
                         return method;
                     }
