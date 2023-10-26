@@ -21,12 +21,15 @@ import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
-import org.openrewrite.xml.tree.Xml;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.java.Assertions.mavenProject;
 import static org.openrewrite.java.Assertions.srcMainJava;
 import static org.openrewrite.maven.Assertions.pomXml;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class Log4j1ToLog4j2Test implements RewriteTest {
 
@@ -163,7 +166,11 @@ class Log4j1ToLog4j2Test implements RewriteTest {
                           </dependencies>
                       </project>
                   """,
-                """
+                sourceSpecs -> sourceSpecs.after(after -> {
+                    Matcher matcher = Pattern.compile("<version>(2\\.2\\d\\.\\d)</version>").matcher(after);
+                    assertTrue(matcher.find());
+                    String version = matcher.group(1);
+                    return """
                       <project>
                           <groupId>com.mycompany.app</groupId>
                           <artifactId>my-app</artifactId>
@@ -177,21 +184,22 @@ class Log4j1ToLog4j2Test implements RewriteTest {
                               <dependency>
                                   <groupId>org.apache.logging.log4j</groupId>
                                   <artifactId>log4j-api</artifactId>
-                                  <version>2.20.0</version>
+                                  <version>%1$s</version>
                               </dependency>
                               <dependency>
                                   <groupId>org.apache.logging.log4j</groupId>
                                   <artifactId>log4j-core</artifactId>
-                                  <version>2.20.0</version>
+                                  <version>%1$s</version>
                               </dependency>
                               <dependency>
                                   <groupId>org.apache.logging.log4j</groupId>
                                   <artifactId>log4j-slf4j-impl</artifactId>
-                                  <version>2.20.0</version>
+                                  <version>%1$s</version>
                               </dependency>
                           </dependencies>
                       </project>
-                  """
+                  """.formatted(version);
+                })
               )
             )
           )
