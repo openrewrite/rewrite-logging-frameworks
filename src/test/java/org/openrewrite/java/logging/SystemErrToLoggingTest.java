@@ -179,7 +179,6 @@ class SystemErrToLoggingTest implements RewriteTest {
               @Slf4j
               class Test {
                   int n;
-                  Logger logger;
                   
                   void test() {
                       try {
@@ -195,7 +194,6 @@ class SystemErrToLoggingTest implements RewriteTest {
               @Slf4j
               class Test {
                   int n;
-                  Logger logger;
                   
                   void test() {
                       try {
