@@ -17,7 +17,6 @@ package org.openrewrite.java.logging;
 
 import lombok.EqualsAndHashCode;
 import lombok.Value;
-import org.jetbrains.annotations.NotNull;
 import org.openrewrite.*;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.AnnotationMatcher;
@@ -98,7 +97,6 @@ public class PrintStackTraceToLogError extends Recipe {
                 return m;
             }
 
-            @NotNull
             private J.MethodInvocation replaceMethodInvocation(J.MethodInvocation m, J.Identifier logField) {
                 if (framework == LoggingFramework.JUL) {
                     maybeAddImport("java.util.logging.Level");
@@ -109,7 +107,6 @@ public class PrintStackTraceToLogError extends Recipe {
                         logField,
                         m.getSelect());
             }
-
         };
         return addLogger != null && addLogger ? visitor : Preconditions.check(
                 Preconditions.or(
