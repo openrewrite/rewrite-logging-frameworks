@@ -17,10 +17,12 @@ package org.openrewrite.java.logging;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.logging.logback.Log4jAppenderToLogback;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
@@ -156,6 +158,50 @@ class SystemErrToLoggingTest implements RewriteTest {
                   
                   void test() {
                       Runnable r = () -> logger.error("single");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/114")
+    void supportLombokLogAnnotations() {
+        rewriteRun(
+          spec -> spec.recipe(new SystemErrToLogging(null, null, null))
+            .parser(JavaParser.fromJavaVersion().classpath("slf4j-api", "lombok"))
+            .typeValidationOptions(TypeValidation.builder().identifiers(false).build()),
+          //language=java
+          java(
+            """
+              import lombok.extern.slf4j.Slf4j;
+              @Slf4j
+              class Test {
+                  int n;
+                  Logger logger;
+                  
+                  void test() {
+                      try {
+                      } catch(Throwable t) {
+                          System.err.println("Oh " + n + " no");
+                          t.printStackTrace();
+                      }
+                  }
+              }
+              """,
+            """
+              import lombok.extern.slf4j.Slf4j;
+              @Slf4j
+              class Test {
+                  int n;
+                  Logger logger;
+                  
+                  void test() {
+                      try {
+                      } catch(Throwable t) {
+                          log.error("Oh {} no", n, t);
+                      }
                   }
               }
               """
