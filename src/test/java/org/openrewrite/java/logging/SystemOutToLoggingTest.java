@@ -17,8 +17,10 @@ package org.openrewrite.java.logging;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
@@ -82,6 +84,41 @@ class SystemOutToLoggingTest implements RewriteTest {
                   
                   void test() {
                       Runnable r = () -> logger.debug("single");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/114")
+    void supportLombokLogAnnotations() {
+        rewriteRun(
+          spec -> spec.recipe(new SystemOutToLogging(null, null, null, "info"))
+            .parser(JavaParser.fromJavaVersion().classpath("slf4j-api", "lombok"))
+            .typeValidationOptions(TypeValidation.builder().identifiers(false).build()),
+          //language=java
+          java(
+            """
+              import lombok.extern.slf4j.Slf4j;
+              @Slf4j
+              class Test {
+                  int n;
+                  
+                  void test() {
+                      System.out.println("Oh " + n + " no");
+                  }
+              }
+              """,
+            """
+              import lombok.extern.slf4j.Slf4j;
+              @Slf4j
+              class Test {
+                  int n;
+                  
+                  void test() {
+                      log.info("Oh {} no", n);
                   }
               }
               """
