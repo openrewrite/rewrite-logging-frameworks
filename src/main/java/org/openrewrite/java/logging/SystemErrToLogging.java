@@ -23,13 +23,13 @@ import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.FindFieldsOfType;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.java.tree.*;
+import org.openrewrite.marker.Markers;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -77,6 +77,7 @@ public class SystemErrToLogging extends Recipe {
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         LoggingFramework framework = LoggingFramework.fromOption(loggingFramework);
+        AnnotationMatcher lombokLogAnnotationMatcher = new AnnotationMatcher("@lombok.extern..*");
 
         return Preconditions.check(new UsesMethod<>(systemErrPrint), new JavaIsoVisitor<ExecutionContext>() {
             @Override
@@ -142,37 +143,44 @@ public class SystemErrToLogging extends Recipe {
                 Set<J.VariableDeclarations> loggers = FindFieldsOfType.find(clazz, framework.getLoggerType());
                 if (!loggers.isEmpty()) {
                     J.Identifier computedLoggerName = loggers.iterator().next().getVariables().get(0).getName();
-                    if (exceptionPrintStackTrace == null) {
-                        print = getErrorTemplateNoException(this)
-                                .apply(
-                                        printCursor,
-                                        print.getCoordinates().replace(),
-                                        computedLoggerName,
-                                        print.getArguments().get(0));
-                    } else {
-                        print = framework.getErrorTemplate(this, "#{any(String)}")
-                                .apply(
-                                        printCursor,
-                                        print.getCoordinates().replace(),
-                                        computedLoggerName,
-                                        print.getArguments().get(0),
-                                        exceptionPrintStackTrace);
-                    }
-
-                    print = (J.MethodInvocation) new ParameterizedLogging(framework.getLoggerType() + " error(..)", false)
-                            .getVisitor()
-                            .visitNonNull(print, ctx, printCursor);
-
-                    if (framework == LoggingFramework.JUL) {
-                        maybeAddImport("java.util.logging.Level");
-                    }
+                    print = replaceMethodInvocation(printCursor, ctx, exceptionPrintStackTrace, print, computedLoggerName);
+                } else if (clazz.getAllAnnotations().stream().anyMatch(lombokLogAnnotationMatcher::matches)) {
+                    String fieldName = loggerName == null ? "log" : loggerName;
+                    J.Identifier logField = new J.Identifier(UUID.randomUUID(), Space.SINGLE_SPACE, Markers.EMPTY, Collections.emptyList(), fieldName, null, null);
+                    print = replaceMethodInvocation(printCursor, ctx, exceptionPrintStackTrace, print, logField);
                 } else if (addLogger != null && addLogger) {
                     doAfterVisit(AddLogger.addLogger(clazz, framework, loggerName == null ? "logger" : loggerName));
-
                     // the print statement will be replaced on the subsequent pass
                     doAfterVisit(this);
                 }
                 return print;
+            }
+
+            private J.MethodInvocation replaceMethodInvocation(Cursor printCursor, ExecutionContext ctx, Expression exceptionPrintStackTrace, J.MethodInvocation print, J.Identifier computedLoggerName) {
+                if (exceptionPrintStackTrace == null) {
+                    print = getErrorTemplateNoException(this)
+                            .apply(
+                                    printCursor,
+                                    print.getCoordinates().replace(),
+                                    computedLoggerName,
+                                    print.getArguments().get(0));
+                } else {
+                    print = framework.getErrorTemplate(this, "#{any(String)}")
+                            .apply(
+                                    printCursor,
+                                    print.getCoordinates().replace(),
+                                    computedLoggerName,
+                                    print.getArguments().get(0),
+                                    exceptionPrintStackTrace);
+                }
+
+                if (framework == LoggingFramework.JUL) {
+                    maybeAddImport("java.util.logging.Level");
+                }
+
+                return (J.MethodInvocation) new ParameterizedLogging(framework.getLoggerType() + " error(..)", false)
+                        .getVisitor()
+                        .visitNonNull(print, ctx, printCursor);
             }
 
             public <P> JavaTemplate getErrorTemplateNoException(JavaVisitor<P> visitor) {

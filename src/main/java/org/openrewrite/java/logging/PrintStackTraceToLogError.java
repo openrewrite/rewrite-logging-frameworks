@@ -19,14 +19,19 @@ import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.openrewrite.*;
 import org.openrewrite.internal.lang.Nullable;
+import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.FindFieldsOfType;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.Space;
+import org.openrewrite.marker.Markers;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.Set;
+import java.util.UUID;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
@@ -69,6 +74,7 @@ public class PrintStackTraceToLogError extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         MethodMatcher printStackTrace = new MethodMatcher("java.lang.Throwable printStackTrace(..)");
         LoggingFramework framework = LoggingFramework.fromOption(loggingFramework);
+        AnnotationMatcher lombokLogAnnotationMatcher = new AnnotationMatcher("@lombok.extern..*");
 
         JavaIsoVisitor<ExecutionContext> visitor = new JavaIsoVisitor<ExecutionContext>() {
             @Override
@@ -78,23 +84,34 @@ public class PrintStackTraceToLogError extends Recipe {
                     J.ClassDeclaration clazz = getCursor().firstEnclosingOrThrow(J.ClassDeclaration.class);
                     Set<J.VariableDeclarations> loggers = FindFieldsOfType.find(clazz, framework.getLoggerType());
                     if (!loggers.isEmpty()) {
-                        m = framework.getErrorTemplate(this, "\"Exception\"")
-                                .apply(
-                                        new Cursor(getCursor().getParent(), m),
-                                        m.getCoordinates().replace(),
-                                        loggers.iterator().next().getVariables().get(0).getName(),
-                                        m.getSelect());
-                        if (framework == LoggingFramework.JUL) {
-                            maybeAddImport("java.util.logging.Level");
-                        }
+                        J.Identifier logField = loggers.iterator().next().getVariables().get(0).getName();
+                        m = replaceMethodInvocation(m, logField);
+                    } else if (clazz.getAllAnnotations().stream().anyMatch(lombokLogAnnotationMatcher::matches)) {
+                        String fieldName = loggerName == null ? "log" : loggerName;
+                        J.Identifier logField = new J.Identifier(UUID.randomUUID(), Space.SINGLE_SPACE, Markers.EMPTY, Collections.emptyList(), fieldName, null, null);
+                        m = replaceMethodInvocation(m, logField);
                     } else if (addLogger != null && addLogger) {
                         doAfterVisit(AddLogger.addLogger(clazz, framework, loggerName == null ? "logger" : loggerName));
                     }
                 }
                 return m;
             }
-        };
 
-        return addLogger != null && addLogger ? visitor : Preconditions.check(new UsesType<>(framework.getLoggerType(), null), visitor);
+            private J.MethodInvocation replaceMethodInvocation(J.MethodInvocation m, J.Identifier logField) {
+                if (framework == LoggingFramework.JUL) {
+                    maybeAddImport("java.util.logging.Level");
+                }
+                return framework.getErrorTemplate(this, "\"Exception\"").apply(
+                        new Cursor(getCursor().getParent(), m),
+                        m.getCoordinates().replace(),
+                        logField,
+                        m.getSelect());
+            }
+        };
+        return addLogger != null && addLogger ? visitor : Preconditions.check(
+                Preconditions.or(
+                        new UsesType<>(framework.getLoggerType(), null),
+                        new UsesType<>("lombok.extern..*", null))
+                , visitor);
     }
 }

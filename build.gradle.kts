@@ -29,6 +29,7 @@ dependencies {
     testImplementation("org.openrewrite:rewrite-test")
     testImplementation("org.openrewrite:rewrite-java-tck")
 
+    testImplementation("org.projectlombok:lombok:latest.release")
     testImplementation("org.assertj:assertj-core:latest.release")
 
     testRuntimeOnly("org.openrewrite:rewrite-java-17")

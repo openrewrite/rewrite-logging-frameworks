@@ -20,6 +20,7 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
@@ -228,6 +229,47 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
                           } catch ( java.io.IOException e ) {
                               LOGGER.error("Exception", e);
                           }
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/114")
+    void supportLombokLogAnnotations() {
+        rewriteRun(
+          spec -> spec.recipe(new PrintStackTraceToLogError(null, null, null))
+            .parser(JavaParser.fromJavaVersion().classpath("slf4j-api", "lombok"))
+            .typeValidationOptions(TypeValidation.builder().identifiers(false).build()),
+          //language=java
+          java(
+            """
+              import lombok.extern.slf4j.Slf4j;
+              @Slf4j
+              class Test {
+                  void test() {
+                      try {
+                      } catch(Throwable t) {
+                          t.printStackTrace();
+                          t.printStackTrace(System.err);
+                          t.printStackTrace(System.out);
+                      }
+                  }
+              }
+              """,
+            """
+              import lombok.extern.slf4j.Slf4j;
+              @Slf4j
+              class Test {
+                  void test() {
+                      try {
+                      } catch(Throwable t) {
+                          log.error("Exception", t);
+                          log.error("Exception", t);
+                          log.error("Exception", t);
                       }
                   }
               }
