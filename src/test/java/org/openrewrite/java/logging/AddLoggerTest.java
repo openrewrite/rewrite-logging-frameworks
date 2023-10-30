@@ -102,7 +102,7 @@ class AddLoggerTest implements RewriteTest {
               import org.slf4j.LoggerFactory;
                             
               class Test {
-                  private static final Logger LOGGER = LoggerFactory.getLogger(Inner.class);
+                  private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
               }
               """
           )
@@ -120,7 +120,7 @@ class AddLoggerTest implements RewriteTest {
               import org.slf4j.LoggerFactory;
                             
               class Base {
-                  protected static final Logger LOGGER = LoggerFactory.getLogger(Inner.class);
+                  protected static final Logger LOGGER = LoggerFactory.getLogger(Base.class);
               }
               """
           ),
