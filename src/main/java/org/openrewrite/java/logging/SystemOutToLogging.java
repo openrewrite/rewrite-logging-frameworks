@@ -68,7 +68,7 @@ public class SystemOutToLogging extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Use logger instead of system print statements";
+        return "Use logger instead of `System.out` print statements";
     }
 
     @Override
