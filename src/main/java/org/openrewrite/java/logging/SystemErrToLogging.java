@@ -66,7 +66,7 @@ public class SystemErrToLogging extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Use logger instead of system.err print statements";
+        return "Use logger instead of `System.err` print statements";
     }
 
     @Override
