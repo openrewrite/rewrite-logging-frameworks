@@ -51,6 +51,7 @@ public class Slf4jLogShouldBeConstant extends Recipe {
     }
 
     private static final MethodMatcher STRING_VALUE_OF = new MethodMatcher("java.lang.String valueOf(..)");
+    private static final MethodMatcher OBJECT_TO_STRING = new MethodMatcher("java.lang.Object toString()");
 
     @Override
     public String getDisplayName() {
@@ -106,11 +107,11 @@ public class Slf4jLogShouldBeConstant extends Recipe {
                                 m = m.withSelect(method.getSelect());
                                 return m;
                             }
-                        } else if (args.get(0) instanceof J.MethodInvocation && "toString".equals(((J.MethodInvocation) args.get(0)).getSimpleName())) {
-                            Expression valueOf = ((J.MethodInvocation) args.get(0)).getSelect();
-                            if (valueOf != null) {
+                        } else if (OBJECT_TO_STRING.matches(args.get(0))) {
+                            Expression toString = ((J.MethodInvocation) args.get(0)).getSelect();
+                            if (toString != null) {
                                 J.MethodInvocation m = JavaTemplate.builder("\"{}\", #{any()}").contextSensitive().build()
-                                        .apply(getCursor(), method.getCoordinates().replaceArguments(), valueOf);
+                                        .apply(getCursor(), method.getCoordinates().replaceArguments(), toString);
                                 m = m.withSelect(method.getSelect());
                                 return m;
                             }
