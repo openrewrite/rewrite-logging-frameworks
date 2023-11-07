@@ -155,7 +155,7 @@ class Slf4jLogShouldBeConstantTest implements RewriteTest {
           java("""
             import org.slf4j.Logger;
             import org.slf4j.LoggerFactory;
-            class A implements Cloneable {
+            class A {
                 private static final Logger log = LoggerFactory.getLogger(A.class);
             
                 public void foo() {
@@ -309,6 +309,54 @@ class Slf4jLogShouldBeConstantTest implements RewriteTest {
                   Logger log;
                   void method() {
                       log.info("    ");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void notObjectToString() {
+        //language=java
+        rewriteRun(
+          java("""
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+            import java.util.Arrays;
+            class A {
+                private static final Logger log = LoggerFactory.getLogger(A.class);
+                String[] values = new String[]{"test1", "test2"};
+                public void foo() {
+                    log.error(Arrays.toString(values));
+                }
+            }
+            """)
+        );
+    }
+
+    @Test
+    void doNotUseToStringOnAnyClass() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+              class Test {
+                  Logger log;
+                  void test() {
+                      Test t = new Test();
+                      log.info(t.toString());
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              class Test {
+                  Logger log;
+                  void test() {
+                      Test t = new Test();
+                      log.info("{}", t);
                   }
               }
               """
