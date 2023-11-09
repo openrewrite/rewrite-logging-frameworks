@@ -17,7 +17,9 @@
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.log4j.ParameterizedLogging
 displayName: Parameterize Log4j 2.x logging statements
-description: Log4j 2.x supports parameterized logging, which can significantly boost logging performance for disabled logging statements.
+description: Use Log4j 2.x parameterized logging, which can significantly boost performance for messages that
+  otherwise would be assembled with String concatenation. Particularly impactful when the log level is not enabled, as 
+  no work is done to assemble the message.
 tags:
   - logging
   - log4j
