@@ -43,7 +43,7 @@ public class SystemPrintToLogging extends Recipe {
 
     @Option(displayName = "Logging framework",
             description = "The logging framework to use.",
-            valid = {"SLF4J", "Log4J", "Log4J2", "JUL"},
+            valid = {"SLF4J", "Log4J1", "Log4J2", "JUL", "COMMONS"},
             required = false)
     @Nullable
     String loggingFramework;
