@@ -25,7 +25,6 @@ import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
-@SuppressWarnings("RedundantSlf4jDefinition")
 class CommonsLoggingToSlf4j1Test implements RewriteTest {
 
     @Override
@@ -35,7 +34,7 @@ class CommonsLoggingToSlf4j1Test implements RewriteTest {
             .scanRuntimeClasspath("org.openrewrite.java.logging")
             .build()
             .activateRecipes("org.openrewrite.java.logging.slf4j.CommonsLogging1ToSlf4j1"))
-          .parser(JavaParser.fromJavaVersion().classpath("slf4j-api", "commons-logging"));
+          .parser(JavaParser.fromJavaVersion().classpath("commons-logging", "slf4j-api"));
     }
 
     @DocumentExample
