@@ -24,7 +24,8 @@ public enum LoggingFramework {
     SLF4J("org.slf4j.Logger", "org.slf4j.LoggerFactory"),
     Log4J1("org.apache.log4j.Logger", "org.apache.log4j.LogManager"),
     Log4J2("org.apache.logging.log4j.Logger", "org.apache.logging.log4j.LogManager"),
-    JUL("java.util.logging.Logger", "java.util.logging.LogManager");
+    JUL("java.util.logging.Logger", "java.util.logging.LogManager"),
+    COMMONS("org.apache.commons.logging.Log", "org.apache.commons.logging.LogFactory");
 
     private final String loggerType;
     private final String factoryType;
@@ -73,6 +74,12 @@ public enum LoggingFramework {
                         .builder("#{any(org.apache.logging.log4j.Logger)}.error(" + message + ", #{any(java.lang.Throwable)})")
                         .contextSensitive()
                         .javaParser(JavaParser.fromJavaVersion().classpath("log4j-api"))
+                        .build();
+            case COMMONS:
+                return JavaTemplate
+                        .builder("#{any(org.apache.commons.logging.Log)}.error(" + message + ", #{any(java.lang.Throwable)})")
+                        .contextSensitive()
+                        .javaParser(JavaParser.fromJavaVersion().classpath("commons-logging"))
                         .build();
             case JUL:
             default:
