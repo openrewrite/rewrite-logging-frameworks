@@ -31,7 +31,7 @@ class CommonsLoggingToSlf4j1Test implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.typeValidationOptions(TypeValidation.builder().build())
-            .recipe(Environment.builder()
+          .recipe(Environment.builder()
             .scanRuntimeClasspath("org.openrewrite.java.logging")
             .build()
             .activateRecipes("org.openrewrite.java.logging.slf4j.CommonsLogging1ToSlf4j1"))

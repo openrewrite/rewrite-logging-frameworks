@@ -152,6 +152,12 @@ recipeList:
         - org.apache.commons.logging.LogFactory getInstance(..)
       newMethodName: getLogger
   - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.apache.commons.logging.LogFactory getLog(..)
+      newMethodName: getLogger
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.apache.commons.logging.LogFactory
+      newFullyQualifiedTypeName: org.slf4j.LoggerFactory
+  - org.openrewrite.java.ChangeMethodName:
       methodPattern: org.apache.commons.logging.Log fatal(..)
       newMethodName: error
   - org.openrewrite.java.ChangeMethodName:
@@ -160,12 +166,3 @@ recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.apache.commons.logging.Log
       newFullyQualifiedTypeName: org.slf4j.Logger
-  - org.openrewrite.java.ChangeType:
-      oldFullyQualifiedTypeName: org.apache.commons.logging.LogFactory
-      newFullyQualifiedTypeName: org.slf4j.LoggerFactory
-  - org.openrewrite.java.ChangeMethodName:
-      methodPattern: org.apache.commons.logging.Log getLog(..)
-      newMethodName: getLogger
-  - org.openrewrite.java.ChangeMethodName:
-      methodPattern: org.slf4j.Logger getLog(..)
-      newMethodName: getLogger
