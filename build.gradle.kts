@@ -41,4 +41,6 @@ dependencies {
 
     testRuntimeOnly("org.slf4j:slf4j-api:1.+")
     testRuntimeOnly("log4j:log4j:1.+")
+
+    testRuntimeOnly("commons-logging:commons-logging:1.+")
 }

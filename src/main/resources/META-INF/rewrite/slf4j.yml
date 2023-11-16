@@ -136,3 +136,33 @@ recipeList:
   - org.openrewrite.java.logging.slf4j.ParameterizedLogging
   - org.openrewrite.java.logging.slf4j.Slf4jLogShouldBeConstant
   - org.openrewrite.java.logging.slf4j.CompleteExceptionLogging
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.logging.slf4j.CommonsLogging1ToSlf4j1
+displayName: Migrate Apache Commons Logging 1.x to SLF4J 1.x
+description: Transforms usages of Apache Commons Logging 1.x to leveraging SLF4J 1.x directly.
+tags:
+  - logging
+  - slf4j
+  - commons-logging
+recipeList:
+  - org.openrewrite.java.SimplifyMethodChain:
+      methodPatternChain:
+        - org.apache.commons.logging.LogFactory getFactory()
+        - org.apache.commons.logging.LogFactory getInstance(..)
+      newMethodName: getLogger
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.apache.commons.logging.LogFactory getLog(..)
+      newMethodName: getLogger
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.apache.commons.logging.LogFactory
+      newFullyQualifiedTypeName: org.slf4j.LoggerFactory
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.apache.commons.logging.Log fatal(..)
+      newMethodName: error
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.apache.commons.logging.Log isFatalEnabled()
+      newMethodName: isErrorEnabled
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.apache.commons.logging.Log
+      newFullyQualifiedTypeName: org.slf4j.Logger
