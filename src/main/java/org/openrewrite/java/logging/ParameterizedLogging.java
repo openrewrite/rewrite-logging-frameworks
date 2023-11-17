@@ -19,6 +19,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
+import org.openrewrite.internal.lang.NonNull;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaTemplate;
@@ -91,14 +92,14 @@ public class ParameterizedLogging extends Recipe {
                         });
                         messageBuilder.append("\"");
                         newArgList.forEach(arg -> messageBuilder.append(", #{any()}"));
-                        m = JavaTemplate.builder(messageBuilder.toString())
+                        m = JavaTemplate.builder(escapeDollarSign(messageBuilder.toString()))
                                 .contextSensitive()
                                 .build()
                                 .apply(new Cursor(getCursor().getParent(), m), m.getCoordinates().replaceArguments(), newArgList.toArray());
                     } else if (!TypeUtils.isString(logMsg.getType()) && logMsg.getType() instanceof JavaType.Class) {
                         StringBuilder messageBuilder = new StringBuilder("\"{}\"");
                         m.getArguments().forEach(arg -> messageBuilder.append(", #{any()}"));
-                        m = JavaTemplate.builder(messageBuilder.toString())
+                        m = JavaTemplate.builder(escapeDollarSign(messageBuilder.toString()))
                                 .contextSensitive()
                                 .build()
                                 .apply(new Cursor(getCursor().getParent(), m), m.getCoordinates().replaceArguments(), m.getArguments().toArray());
@@ -181,5 +182,9 @@ public class ParameterizedLogging extends Recipe {
                 .getValueSource()
                 .substring(1, literal.getValueSource().length() - 1)
                 .replace("\\", "\\\\");
+    }
+
+    private static String escapeDollarSign(@NonNull String value) {
+        return value.replaceAll("\\$", "\\\\\\$");
     }
 }

@@ -506,4 +506,60 @@ class ParameterizedLoggingTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void logMethodWithDollarSign() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  static void method(Logger logger, String name) {
+                      logger.info("This is a message for " + name + " with a $ dollar sign");
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  static void method(Logger logger, String name) {
+                      logger.info("This is a message for {} with a $ dollar sign", name);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void logMethodWithCurlyBracketsLiteral() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  static void method(Logger logger, String name) {
+                      logger.info("This is a message for " + name + " with a curly bracket constant: ${exception}");
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  static void method(Logger logger, String name) {
+                      logger.info("This is a message for {} with a curly bracket constant: ${exception}", name);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
