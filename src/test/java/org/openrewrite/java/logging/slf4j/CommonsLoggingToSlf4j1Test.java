@@ -34,7 +34,7 @@ class CommonsLoggingToSlf4j1Test implements RewriteTest {
             .scanRuntimeClasspath("org.openrewrite.java.logging")
             .build()
             .activateRecipes("org.openrewrite.java.logging.slf4j.CommonsLogging1ToSlf4j1"))
-          .parser(JavaParser.fromJavaVersion().classpath("commons-logging", "slf4j-api"));
+          .parser(JavaParser.fromJavaVersion().classpath("commons-logging", "slf4j-api", "lombok"));
     }
 
     @DocumentExample
@@ -124,6 +124,36 @@ class CommonsLoggingToSlf4j1Test implements RewriteTest {
                       if (logger.isErrorEnabled()) {
                           logger.error("uh oh");
                       }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void changeLombokLogAnnotation() {
+        //language=java
+        rewriteRun(
+          spec -> spec.typeValidationOptions(TypeValidation.builder().identifiers(false).methodInvocations(false).build()),
+          java(
+            """
+              import lombok.extern.apachecommons.CommonsLog;
+
+              @CommonsLog
+              class Test {
+                  void method() {
+                      log.info("uh oh");
+                  }
+              }
+              """,
+            """
+              import lombok.extern.slf4j.Slf4j;
+
+              @Slf4j
+              class Test {
+                  void method() {
+                      log.info("uh oh");
                   }
               }
               """

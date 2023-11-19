@@ -62,6 +62,8 @@ tags:
   - logging
   - log4j
 recipeList:
+  - org.openrewrite.java.logging.ChangeLombokLogAnnotation:
+      loggingFramework: Log4J2
   - org.openrewrite.java.ChangePackage:
       oldPackageName: org.apache.log4j
       newPackageName: org.apache.logging.log4j

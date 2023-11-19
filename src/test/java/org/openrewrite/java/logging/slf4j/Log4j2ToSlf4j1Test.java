@@ -21,6 +21,7 @@ import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
@@ -31,7 +32,7 @@ class Log4j2ToSlf4j1Test implements RewriteTest {
             .scanRuntimeClasspath("org.openrewrite.java.logging")
             .build()
             .activateRecipes("org.openrewrite.java.logging.slf4j.Log4j2ToSlf4j1"))
-          .parser(JavaParser.fromJavaVersion().classpath("log4j-api", "log4j-core"));
+          .parser(JavaParser.fromJavaVersion().classpath("log4j-api", "log4j-core", "lombok"));
     }
 
     @DocumentExample
@@ -99,6 +100,36 @@ class Log4j2ToSlf4j1Test implements RewriteTest {
                  }
              }
              """
+          )
+        );
+    }
+
+    @Test
+    void changeLombokLogAnnotation() {
+        //language=java
+        rewriteRun(
+          spec -> spec.typeValidationOptions(TypeValidation.builder().identifiers(false).methodInvocations(false).build()),
+          java(
+            """
+              import lombok.extern.log4j.Log4j;
+
+              @Log4j
+              class Test {
+                  void method() {
+                      log.info("uh oh");
+                  }
+              }
+              """,
+            """
+              import lombok.extern.slf4j.Slf4j;
+
+              @Slf4j
+              class Test {
+                  void method() {
+                      log.info("uh oh");
+                  }
+              }
+              """
           )
         );
     }
