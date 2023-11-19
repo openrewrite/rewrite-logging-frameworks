@@ -21,26 +21,20 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
 
 public enum LoggingFramework {
-    SLF4J("org.slf4j.Logger", "org.slf4j.LoggerFactory"),
-    Log4J1("org.apache.log4j.Logger", "org.apache.log4j.LogManager"),
-    Log4J2("org.apache.logging.log4j.Logger", "org.apache.logging.log4j.LogManager"),
-    JUL("java.util.logging.Logger", "java.util.logging.LogManager"),
-    COMMONS("org.apache.commons.logging.Log", "org.apache.commons.logging.LogFactory");
+    SLF4J("org.slf4j.Logger"),
+    Log4J1("org.apache.log4j.Logger"),
+    Log4J2("org.apache.logging.log4j.Logger"),
+    JUL("java.util.logging.Logger"),
+    COMMONS("org.apache.commons.logging.Log");
 
     private final String loggerType;
-    private final String factoryType;
 
-    LoggingFramework(String loggerType, String factoryType) {
+    LoggingFramework(String loggerType) {
         this.loggerType = loggerType;
-        this.factoryType = factoryType;
     }
 
     public String getLoggerType() {
         return loggerType;
-    }
-
-    public String getFactoryType() {
-        return factoryType;
     }
 
     public static LoggingFramework fromOption(@Nullable String option) {
@@ -54,7 +48,7 @@ public enum LoggingFramework {
         return SLF4J;
     }
 
-    public <P> JavaTemplate getErrorTemplate(JavaVisitor<P> visitor, String message) {
+    public JavaTemplate getErrorTemplate(String message) {
         switch (this) {
             case SLF4J:
                 return JavaTemplate
@@ -88,7 +82,6 @@ public enum LoggingFramework {
                         .contextSensitive()
                         .imports("java.util.logging.Level")
                         .build();
-
         }
     }
 }

@@ -37,12 +37,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 @EqualsAndHashCode(callSuper = false)
 public class SystemErrToLogging extends Recipe {
     private static final MethodMatcher systemErrPrint = new MethodMatcher("java.io.PrintStream print*(String)");
-
-    @Override
-    public Duration getEstimatedEffortPerOccurrence() {
-        return Duration.ofMinutes(5);
-    }
-
     private static final MethodMatcher printStackTrace = new MethodMatcher("java.lang.Throwable printStackTrace(..)");
 
     @Option(displayName = "Add logger",
@@ -165,7 +159,7 @@ public class SystemErrToLogging extends Recipe {
                                     computedLoggerName,
                                     print.getArguments().get(0));
                 } else {
-                    print = framework.getErrorTemplate(this, "#{any(String)}")
+                    print = framework.getErrorTemplate("#{any(String)}")
                             .apply(
                                     printCursor,
                                     print.getCoordinates().replace(),

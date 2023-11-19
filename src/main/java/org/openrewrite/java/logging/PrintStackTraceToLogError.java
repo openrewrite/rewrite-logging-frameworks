@@ -66,11 +66,6 @@ public class PrintStackTraceToLogError extends Recipe {
     }
 
     @Override
-    public Duration getEstimatedEffortPerOccurrence() {
-        return Duration.ofMinutes(5);
-    }
-
-    @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         MethodMatcher printStackTrace = new MethodMatcher("java.lang.Throwable printStackTrace(..)");
         LoggingFramework framework = LoggingFramework.fromOption(loggingFramework);
@@ -101,7 +96,7 @@ public class PrintStackTraceToLogError extends Recipe {
                 if (framework == LoggingFramework.JUL) {
                     maybeAddImport("java.util.logging.Level");
                 }
-                return framework.getErrorTemplate(this, "\"Exception\"").apply(
+                return framework.getErrorTemplate("\"Exception\"").apply(
                         new Cursor(getCursor().getParent(), m),
                         m.getCoordinates().replace(),
                         logField,

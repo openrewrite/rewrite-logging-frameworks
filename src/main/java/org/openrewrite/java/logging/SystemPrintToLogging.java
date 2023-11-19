@@ -68,19 +68,7 @@ public class SystemPrintToLogging extends Recipe {
     }
 
     @Override
-    public Duration getEstimatedEffortPerOccurrence() {
-        return Duration.ofMinutes(5);
-    }
-
-    @Override
     public String getDescription() {
         return "Replace `System.out` and `System.err` print statements with a logger.";
-    }
-
-    public SystemPrintToLogging(@Nullable Boolean addLogger, @Nullable String loggerName, @Nullable String loggingFramework, @Nullable String level) {
-        this.addLogger = addLogger;
-        this.loggerName = loggerName;
-        this.loggingFramework = loggingFramework;
-        this.level = level;
     }
 }

@@ -62,11 +62,6 @@ public class SystemOutToLogging extends Recipe {
     String level;
 
     @Override
-    public Duration getEstimatedEffortPerOccurrence() {
-        return Duration.ofMinutes(5);
-    }
-
-    @Override
     public String getDisplayName() {
         return "Use logger instead of `System.out` print statements";
     }
