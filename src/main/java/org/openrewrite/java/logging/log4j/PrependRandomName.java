@@ -51,11 +51,6 @@ public class PrependRandomName extends Recipe {
     }
 
     @Override
-    public Duration getEstimatedEffortPerOccurrence() {
-        return Duration.ofMinutes(5);
-    }
-
-    @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new UsesMethod<>(logStatement), new JavaIsoVisitor<ExecutionContext>() {
             @Override

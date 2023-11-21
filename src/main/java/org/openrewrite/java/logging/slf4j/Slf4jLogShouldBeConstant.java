@@ -44,12 +44,6 @@ public class Slf4jLogShouldBeConstant extends Recipe {
     private static final Pattern INDEXED_FORMAT_SPECIFIER_PATTERN = Pattern.compile("%(\\d+\\$)[a-zA-Z]");
     private static final MethodMatcher SLF4J_LOG = new MethodMatcher("org.slf4j.Logger *(..)");
     private static final MethodMatcher STRING_FORMAT = new MethodMatcher("java.lang.String format(..)");
-
-    @Override
-    public Duration getEstimatedEffortPerOccurrence() {
-        return Duration.ofMinutes(5);
-    }
-
     private static final MethodMatcher STRING_VALUE_OF = new MethodMatcher("java.lang.String valueOf(..)");
     private static final MethodMatcher OBJECT_TO_STRING = new MethodMatcher("java.lang.Object toString()");
 
