@@ -77,40 +77,40 @@ recipeList:
       methodPattern: org.apache.logging.log4j.Category getEffectiveLevel()
       newMethodName: getLevel
   - org.openrewrite.java.logging.log4j.ParameterizedLogging
-  - org.openrewrite.maven.AddDependency:
+  - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.apache.logging.log4j
       artifactId: log4j-api
       version: latest.release
       onlyIfUsing: org.apache.log4j.*
-  - org.openrewrite.maven.AddDependency:
+  - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.apache.logging.log4j
       artifactId: log4j-core
       version: latest.release
       onlyIfUsing: org.apache.log4j.*
-  - org.openrewrite.maven.RemoveDependency:
+  - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: log4j
       artifactId: log4j
-  - org.openrewrite.maven.RemoveDependency:
+  - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: ch.qos.reload4j
       artifactId: reload4j
   ### Additional AddDependency's since "onlyIfUsing" may think it isn't using log4j 2.x if doing an upgrade chaining from log4j1 recipes todo
-  - org.openrewrite.maven.AddDependency:
+  - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.apache.logging.log4j
       artifactId: log4j-api
       version: latest.release
       onlyIfUsing: org.apache.logging.log4j.*
-  - org.openrewrite.maven.AddDependency:
+  - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.apache.logging.log4j
       artifactId: log4j-core
       version: latest.release
       onlyIfUsing: org.apache.logging.log4j.*
-  - org.openrewrite.maven.ChangeDependencyGroupIdAndArtifactId:
+  - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.slf4j
       oldArtifactId: slf4j-log4j12
       newGroupId: org.apache.logging.log4j
       newArtifactId: log4j-slf4j-impl
       newVersion: latest.release
-  - org.openrewrite.maven.ChangeDependencyGroupIdAndArtifactId:
+  - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.slf4j
       oldArtifactId: slf4j-reload4j
       newGroupId: org.apache.logging.log4j

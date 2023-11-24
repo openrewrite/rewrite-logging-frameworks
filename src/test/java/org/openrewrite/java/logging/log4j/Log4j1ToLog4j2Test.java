@@ -17,7 +17,6 @@ package org.openrewrite.java.logging.log4j;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
-import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -35,10 +34,7 @@ class Log4j1ToLog4j2Test implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.recipe(Environment.builder()
-            .scanRuntimeClasspath("org.openrewrite.java.logging")
-            .build()
-            .activateRecipes("org.openrewrite.java.logging.log4j.Log4j1ToLog4j2"))
+        spec.recipeFromResource("/META-INF/rewrite/log4j.yml","org.openrewrite.java.logging.log4j.Log4j1ToLog4j2")
           .parser(JavaParser.fromJavaVersion().classpath("log4j"));
     }
 

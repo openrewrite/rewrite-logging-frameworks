@@ -5,12 +5,7 @@ plugins {
 group = "org.openrewrite.recipe"
 description = "Enforce logging best practices and migrate between logging frameworks. Automatically."
 
-val rewriteVersion = if (project.hasProperty("releasing")) {
-    "latest.release"
-} else {
-    "latest.integration"
-}
-
+val rewriteVersion = rewriteRecipe.rewriteVersion.get()
 dependencies {
     compileOnly("org.projectlombok:lombok:latest.release")
     annotationProcessor("org.projectlombok:lombok:latest.release")
@@ -19,13 +14,14 @@ dependencies {
 
     implementation(platform("org.openrewrite:rewrite-bom:${rewriteVersion}"))
     implementation("org.openrewrite:rewrite-java")
-    implementation("org.openrewrite:rewrite-maven")
+    implementation("org.openrewrite.recipe:rewrite-java-dependencies:${rewriteVersion}")
     runtimeOnly("org.openrewrite:rewrite-java-17")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:latest.release")
     testImplementation("org.junit.jupiter:junit-jupiter-params:latest.release")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:latest.release")
 
+    testImplementation("org.openrewrite:rewrite-maven")
     testImplementation("org.openrewrite:rewrite-test")
     testImplementation("org.openrewrite:rewrite-java-tck")
 
