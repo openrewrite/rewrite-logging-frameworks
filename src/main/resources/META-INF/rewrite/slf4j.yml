@@ -27,36 +27,36 @@ recipeList:
   # and migrate it to the latest version of slf4j (1.x currently, but will be 2.x in the future)
   - org.openrewrite.java.logging.slf4j.Log4j1ToSlf4j1
   - org.openrewrite.java.logging.slf4j.LoggersNamedForEnclosingClass
-  - org.org.openrewrite.java.dependencies.RemoveDependency:
+  - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: org.apache.logging.log4j
       artifactId: log4j-to-slf4j
-  - org.org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
       groupId: org.apache.logging.log4j
       artifactId: log4j-api
       newVersion: latest.release
       overrideManagedVersion: true
-  - org.org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
       groupId: org.apache.logging.log4j
       artifactId: log4j-core
       newVersion: latest.release
       overrideManagedVersion: true
-  - org.org.openrewrite.java.dependencies.AddDependency:
+  - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.slf4j
       artifactId: slf4j-api
       version: latest.release
       onlyIfUsing: org.apache.logging.log4j.*
-  - org.org.openrewrite.java.dependencies.AddDependency:
+  - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.apache.logging.log4j
       artifactId: log4j-slf4j-impl
       version: latest.release
       onlyIfUsing: org.apache.logging.log4j.*
   ### Additional AddDependency's since "onlyIfUsing" may think it isn't using log4j 2.x if doing an upgrade chaining from log4j1 recipes todo
-  - org.org.openrewrite.java.dependencies.AddDependency:
+  - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.slf4j
       artifactId: slf4j-api
       version: latest.release
       onlyIfUsing: org.apache.log4j.*
-  - org.org.openrewrite.java.dependencies.AddDependency:
+  - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.apache.logging.log4j
       artifactId: log4j-slf4j-impl
       version: latest.release

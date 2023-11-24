@@ -27,21 +27,21 @@ recipeList:
   - org.openrewrite.java.logging.slf4j.Log4jToSlf4j
   - org.openrewrite.java.logging.logback.Log4jAppenderToLogback
   - org.openrewrite.java.logging.logback.Log4jLayoutToLogback
-  - org.org.openrewrite.java.dependencies.AddDependency:
+  - org.openrewrite.java.dependencies.AddDependency:
       groupId: ch.qos.logback
       artifactId: logback-core
       version: latest.release
       onlyIfUsing: org.apache.logging.log4j.*
-  - org.org.openrewrite.java.dependencies.AddDependency:
+  - org.openrewrite.java.dependencies.AddDependency:
       groupId: ch.qos.logback
       artifactId: logback-classic
       version: latest.release
       onlyIfUsing: org.apache.logging.log4j.*
-  - org.org.openrewrite.java.dependencies.AddDependency:
+  - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.slf4j
       artifactId: slf4j-api
       version: latest.release
       onlyIfUsing: org.apache.logging.log4j.*
-  - org.org.openrewrite.java.dependencies.RemoveDependency:
+  - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: org.apache.logging.log4j
       artifactId: log4j-*
