@@ -64,6 +64,7 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.slf4j.ParameterizedLogging
+displayName: Parameterize SLF4J's logging statements
 description: Use SLF4J's parameterized logging, which can significantly boost performance for messages that
   otherwise would be assembled with String concatenation. Particularly impactful when the log level is not enabled, as
   no work is done to assemble the message.
