@@ -109,15 +109,12 @@ public class SystemOutToLogging extends Recipe {
                     print = replaceMethodInvocation(printCursor, ctx, print, logField);
                 } else if (addLogger != null && addLogger) {
                     doAfterVisit(AddLogger.addLogger(clazz, framework, loggerName == null ? "logger" : loggerName));
-
-                    // the print statement will be replaced on the subsequent pass
-                    doAfterVisit(this);
                 }
                 return print;
             }
 
             private J.MethodInvocation replaceMethodInvocation(Cursor printCursor, ExecutionContext ctx, J.MethodInvocation print, J.Identifier computedLoggerName) {
-                print = getInfoTemplate(this).apply(
+                print = getInfoTemplate().apply(
                         printCursor,
                         print.getCoordinates().replace(),
                         computedLoggerName,
@@ -133,7 +130,7 @@ public class SystemOutToLogging extends Recipe {
                 return print;
             }
 
-            private <P> JavaTemplate getInfoTemplate(JavaVisitor<P> visitor) {
+            private JavaTemplate getInfoTemplate() {
                 String levelOrDefault = getLevel();
                 switch (framework) {
                     case SLF4J:
