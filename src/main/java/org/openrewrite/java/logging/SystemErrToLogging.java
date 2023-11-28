@@ -144,15 +144,13 @@ public class SystemErrToLogging extends Recipe {
                     print = replaceMethodInvocation(printCursor, ctx, exceptionPrintStackTrace, print, logField);
                 } else if (addLogger != null && addLogger) {
                     doAfterVisit(AddLogger.addLogger(clazz, framework, loggerName == null ? "logger" : loggerName));
-                    // the print statement will be replaced on the subsequent pass
-                    doAfterVisit(this);
                 }
                 return print;
             }
 
-            private J.MethodInvocation replaceMethodInvocation(Cursor printCursor, ExecutionContext ctx, Expression exceptionPrintStackTrace, J.MethodInvocation print, J.Identifier computedLoggerName) {
+            private J.MethodInvocation replaceMethodInvocation(Cursor printCursor, ExecutionContext ctx, @Nullable Expression exceptionPrintStackTrace, J.MethodInvocation print, J.Identifier computedLoggerName) {
                 if (exceptionPrintStackTrace == null) {
-                    print = getErrorTemplateNoException(this)
+                    print = getErrorTemplateNoException()
                             .apply(
                                     printCursor,
                                     print.getCoordinates().replace(),
@@ -177,7 +175,7 @@ public class SystemErrToLogging extends Recipe {
                         .visitNonNull(print, ctx, printCursor);
             }
 
-            public <P> JavaTemplate getErrorTemplateNoException(JavaVisitor<P> visitor) {
+            public JavaTemplate getErrorTemplateNoException() {
                 switch (framework) {
                     case SLF4J:
                         return JavaTemplate

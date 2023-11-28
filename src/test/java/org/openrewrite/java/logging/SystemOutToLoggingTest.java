@@ -125,4 +125,36 @@ class SystemOutToLoggingTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/125")
+    void doNotDeleteFile() {
+        rewriteRun(
+          spec -> spec
+            .recipe(new SystemOutToLogging(true, "log", "JUL", null)),
+          //language=java
+          java(
+            """
+              class Foo {
+                void bar() {
+                  System.out.println("Test");
+                }
+              }
+              """,
+            """
+              import java.util.logging.Level;
+              import java.util.logging.LogManager;
+              import java.util.logging.Logger;
+                            
+              class Foo {
+                  private static final Logger log = LogManager.getLogger("Foo");
+                            
+                  void bar() {
+                      log.log(Level.INFO, "Test");
+                }
+              }
+              """
+          )
+        );
+    }
 }
