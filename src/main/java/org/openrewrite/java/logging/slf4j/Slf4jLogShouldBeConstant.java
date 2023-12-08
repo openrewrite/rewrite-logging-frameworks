@@ -66,7 +66,7 @@ public class Slf4jLogShouldBeConstant extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new UsesMethod<>(SLF4J_LOG), new JavaVisitor<ExecutionContext>() {
             @Override
-            public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
+            public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 if (SLF4J_LOG.matches(method)) {
                     String name = method.getSimpleName();
                     if ("trace".equals(name) || "debug".equals(name) || "info".equals(name) || "warn".equals(name) || "error".equals(name)) {
@@ -112,7 +112,7 @@ public class Slf4jLogShouldBeConstant extends Recipe {
                         }
                     }
                 }
-                return super.visitMethodInvocation(method, executionContext);
+                return super.visitMethodInvocation(method, ctx);
             }
         });
     }

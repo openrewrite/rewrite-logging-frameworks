@@ -36,28 +36,28 @@ public class ChangeLogLevelTest implements RewriteTest {
           //language=java
           java(
             """
-                import org.slf4j.Logger;
-                import org.slf4j.LoggerFactory;
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+            
+            class Test {
+                private static final Logger log = LoggerFactory.getLogger(Test.class);
                 
-                class Test {
-                    private static final Logger log = LoggerFactory.getLogger(Test.class);
-                    
-                    void test() {
-                        log.info("LaunchDarkly Hello");
-                    }
+                void test() {
+                    log.info("LaunchDarkly Hello");
                 }
+            }
             """,
             """
-                import org.slf4j.Logger;
-                import org.slf4j.LoggerFactory;
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+            
+            class Test {
+                private static final Logger log = LoggerFactory.getLogger(Test.class);
                 
-                class Test {
-                    private static final Logger log = LoggerFactory.getLogger(Test.class);
-                    
-                    void test() {
-                        log.debug("LaunchDarkly Hello");
-                    }
+                void test() {
+                    log.debug("LaunchDarkly Hello");
                 }
+            }
             """)
         );
     }
@@ -68,28 +68,28 @@ public class ChangeLogLevelTest implements RewriteTest {
           //language=java
           java(
             """
-                import org.slf4j.Logger;
-                import org.slf4j.LoggerFactory;
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+            
+            class Test {
+                private static final Logger log = LoggerFactory.getLogger(Test.class);
                 
-                class Test {
-                    private static final Logger log = LoggerFactory.getLogger(Test.class);
-                    
-                    void test() {
-                        log.info("LaunchDarkly " + 1 + "Hello");
-                    }
+                void test() {
+                    log.info("LaunchDarkly " + 1 + "Hello");
                 }
+            }
             """,
             """
-                import org.slf4j.Logger;
-                import org.slf4j.LoggerFactory;
+            import org.slf4j.Logger;
+            import org.slf4j.LoggerFactory;
+            
+            class Test {
+                private static final Logger log = LoggerFactory.getLogger(Test.class);
                 
-                class Test {
-                    private static final Logger log = LoggerFactory.getLogger(Test.class);
-                    
-                    void test() {
-                        log.debug("LaunchDarkly " + 1 + "Hello");
-                    }
+                void test() {
+                    log.debug("LaunchDarkly " + 1 + "Hello");
                 }
+            }
             """)
         );
     }
