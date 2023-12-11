@@ -58,15 +58,15 @@ public class LoggersNamedForEnclosingClass extends Recipe {
             protected JavadocVisitor<ExecutionContext> getJavadocVisitor() {
                 return new JavadocVisitor<ExecutionContext>(this) {
                     @Override
-                    public Javadoc visitDocComment(Javadoc.DocComment javadoc, ExecutionContext executionContext) {
+                    public Javadoc visitDocComment(Javadoc.DocComment javadoc, ExecutionContext ctx) {
                         return javadoc;
                     }
                 };
             }
 
             @Override
-            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext p) {
-                J.MethodInvocation mi = super.visitMethodInvocation(method, p);
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
                 if (!LOGGERFACTORY_GETLOGGER.matches(mi)) {
                     return mi;
                 }

@@ -152,7 +152,8 @@ class Slf4jLogShouldBeConstantTest implements RewriteTest {
     void toStringWithoutSelect() {
         //language=java
         rewriteRun(
-          java("""
+          java(
+               """
             import org.slf4j.Logger;
             import org.slf4j.LoggerFactory;
             class A {
@@ -320,7 +321,8 @@ class Slf4jLogShouldBeConstantTest implements RewriteTest {
     void notObjectToString() {
         //language=java
         rewriteRun(
-          java("""
+          java(
+               """
             import org.slf4j.Logger;
             import org.slf4j.LoggerFactory;
             import java.util.Arrays;
