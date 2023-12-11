@@ -15,8 +15,6 @@
  */
 package org.openrewrite.java.logging.log4j;
 
-import static org.openrewrite.java.Assertions.java;
-
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.java.JavaParser;
@@ -24,66 +22,78 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
 
-public class CommonsLoggingToLog4jTest implements RewriteTest {
+import static org.openrewrite.java.Assertions.java;
 
+class CommonsLoggingToLog4jTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipeFromResource("/META-INF/rewrite/log4j.yml",
-                        "org.openrewrite.java.logging.log4j.CommonsLoggingToLog4j")
-                .parser(JavaParser.fromJavaVersion().classpath("log4j-api", "commons-logging", "lombok"));
+            "org.openrewrite.java.logging.log4j.CommonsLoggingToLog4j")
+          .parser(JavaParser.fromJavaVersion().classpath("log4j-api", "commons-logging", "lombok"));
     }
 
     @DocumentExample
     @Test
     void loggerFactoryToLogManager() {
         // language=java
-        rewriteRun(java("""
-                import org.apache.commons.logging.LogFactory;
-                import org.apache.commons.logging.Log;
+        rewriteRun(
+          java(
+            """
+              import org.apache.commons.logging.LogFactory;
+              import org.apache.commons.logging.Log;
 
-                class Test {
-                    Log log1 = LogFactory.getLog(Test.class);
-                    Log log2 = LogFactory.getLog("Test");
-                    Log log3 = LogFactory.getFactory().getInstance(Test.class);
-                    Log log4 = LogFactory.getFactory().getInstance("Test");
-                }
-                """, """
-                import org.apache.logging.log4j.LogManager;
-                import org.apache.logging.log4j.Logger;
+              class Test {
+                  Log log1 = LogFactory.getLog(Test.class);
+                  Log log2 = LogFactory.getLog("Test");
+                  Log log3 = LogFactory.getFactory().getInstance(Test.class);
+                  Log log4 = LogFactory.getFactory().getInstance("Test");
+              }
+              """,
+            """
+              import org.apache.logging.log4j.LogManager;
+              import org.apache.logging.log4j.Logger;
 
-                class Test {
-                    Logger log1 = LogManager.getLogger(Test.class);
-                    Logger log2 = LogManager.getLogger("Test");
-                    Logger log3 = LogManager.getLogger(Test.class);
-                    Logger log4 = LogManager.getLogger("Test");
-                }
-                """));
+              class Test {
+                  Logger log1 = LogManager.getLogger(Test.class);
+                  Logger log2 = LogManager.getLogger("Test");
+                  Logger log3 = LogManager.getLogger(Test.class);
+                  Logger log4 = LogManager.getLogger("Test");
+              }
+              """
+          )
+        );
     }
 
     @Test
     void changeLombokLogAnnotation() {
         // language=java
-        rewriteRun(spec -> spec.typeValidationOptions(TypeValidation.builder()
-                .identifiers(false)
-                .methodInvocations(false)
-                .build()), java("""
-                import lombok.extern.apachecommons.CommonsLog;
+        rewriteRun(
+          spec -> spec.typeValidationOptions(TypeValidation.builder()
+            .identifiers(false)
+            .methodInvocations(false)
+            .build()),
+          java(
+            """
+              import lombok.extern.apachecommons.CommonsLog;
 
-                @CommonsLog
-                class Test {
-                    void method() {
-                        log.info("uh oh");
-                    }
-                }
-                """, """
-                import lombok.extern.log4j.Log4j2;
+              @CommonsLog
+              class Test {
+                  void method() {
+                      log.info("uh oh");
+                  }
+              }
+              """,
+            """
+              import lombok.extern.log4j.Log4j2;
 
-                @Log4j2
-                class Test {
-                    void method() {
-                        log.info("uh oh");
-                    }
-                }
-                """));
+              @Log4j2
+              class Test {
+                  void method() {
+                      log.info("uh oh");
+                  }
+              }
+              """
+          )
+        );
     }
 }
