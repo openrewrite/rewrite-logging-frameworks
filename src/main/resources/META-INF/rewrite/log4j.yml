@@ -116,3 +116,29 @@ recipeList:
       newGroupId: org.apache.logging.log4j
       newArtifactId: log4j-slf4j-impl
       newVersion: latest.release
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.logging.log4j.CommonsLoggingToLog4j
+displayName: Migrate JCL to Log4j 2.x API.
+description: Transforms code written using Apache Commons Logging to use Log4j 2.x API.
+tags:
+  - logging
+  - commons-logging
+  - log4j
+recipeList:
+  - org.openrewrite.java.SimplifyMethodChain:
+      methodPatternChain:
+        - org.apache.commons.logging.LogFactory getFactory()
+        - org.apache.commons.logging.LogFactory getInstance(..)
+      newMethodName: getLogger
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.apache.commons.logging.LogFactory getLog(..)
+      newMethodName: getLogger
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.apache.commons.logging.LogFactory
+      newFullyQualifiedTypeName: org.apache.logging.log4j.LogManager
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.apache.commons.logging.Log
+      newFullyQualifiedTypeName: org.apache.logging.log4j.Logger
+  - org.openrewrite.java.logging.ChangeLombokLogAnnotation:
+      loggingFramework: Log4j2
