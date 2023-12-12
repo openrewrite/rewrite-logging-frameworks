@@ -70,12 +70,11 @@ public class ConvertJulEntering extends Recipe {
                             }
                             List<Expression> modifiedArgs = new ArrayList<>();
                             List<JavaType> modifiedTypes = new ArrayList<>();
-                            modifiedArgs.add(buildNullString());
-                            modifiedTypes.add(Primitive.String);
-                            if (originalArgCount > 2) {
-                                JavaType varargType = JavaType.buildType("java.lang.Object[]");
+                            if (2 < originalArgCount) {
+                                modifiedArgs.add(buildNullString());
+                                modifiedTypes.add(Primitive.String);
                                 modifiedArgs.add(originalArgs.get(2));
-                                modifiedTypes.add(varargType);
+                                modifiedTypes.add(JavaType.buildType("java.lang.Object[]"));
                             }
                             Method mt = m.getMethodType().withParameterTypes(modifiedTypes);
                             JavaType.FullyQualified dt = mt.getDeclaringType().withFullyQualifiedName("org.apache.logging.log4j.Logger");

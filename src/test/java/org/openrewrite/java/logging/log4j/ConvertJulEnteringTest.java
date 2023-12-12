@@ -54,7 +54,7 @@ class ConvertJulEnteringTest implements RewriteTest {
 
               class Test {
                   void method(Logger logger) {
-                    logger.traceEntry(null);
+                    logger.traceEntry();
                     logger.traceEntry(null, "param");
                     logger.traceEntry(null, new Object[]{"param1", "param2"});
                   }
