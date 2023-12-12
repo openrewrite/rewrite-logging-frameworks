@@ -15,14 +15,14 @@
  */
 package org.openrewrite.java.logging.log4j;
 
-import static org.openrewrite.java.Assertions.java;
-
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
+
+import static org.openrewrite.java.Assertions.java;
 
 class JulToLog4jTest implements RewriteTest {
     @Override
@@ -42,7 +42,8 @@ class JulToLog4jTest implements RewriteTest {
               class Test {
                   Logger log = Logger.getLogger("Test");
               }
-              """, """
+              """,
+            """
               import org.apache.logging.log4j.LogManager;
               import org.apache.logging.log4j.Logger;
 
@@ -125,7 +126,8 @@ class JulToLog4jTest implements RewriteTest {
                       log.info("uh oh");
                   }
               }
-              """, """
+              """,
+            """
               import lombok.extern.log4j.Log4j2;
 
               @Log4j2
