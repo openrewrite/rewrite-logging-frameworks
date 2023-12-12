@@ -25,15 +25,10 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
-import org.openrewrite.java.tree.J.Identifier;
 import org.openrewrite.java.tree.JavaType.Method;
-import org.openrewrite.java.tree.JavaType.Primitive;
-import org.openrewrite.marker.Markers;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import static org.openrewrite.Tree.randomId;
 
 /**
  * This recipe rewrites JUL's {@link java.util.logging.Logger#entering} method.
