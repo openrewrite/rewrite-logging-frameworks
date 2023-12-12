@@ -15,18 +15,13 @@
  */
 package org.openrewrite.java.logging.log4j;
 
-import static java.util.Objects.requireNonNull;
-import static org.openrewrite.Tree.randomId;
-
-import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-import java.util.ArrayList;
-import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
-import org.openrewrite.*;
-import org.openrewrite.internal.lang.Nullable;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
+import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
@@ -35,6 +30,11 @@ import org.openrewrite.java.tree.JavaType.Method;
 import org.openrewrite.java.tree.JavaType.Primitive;
 import org.openrewrite.marker.Markers;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.openrewrite.Tree.randomId;
+
 /**
  * This recipe rewrites JUL's {@link java.util.logging.Logger#entering} method.
  */
@@ -42,11 +42,7 @@ import org.openrewrite.marker.Markers;
 @EqualsAndHashCode(callSuper = true)
 public class ConvertJulExiting extends Recipe {
 
-    private static final String METHOD_PATTERN = "java.util.logging.Logger exiting(..)";
-
-    @JsonPOJOBuilder(withPrefix = "")
-    public static class Builder {
-    }
+    private static final MethodMatcher METHOD_MATCHER = new MethodMatcher("java.util.logging.Logger exiting(String, String, ..)", false);
 
     @Override
     public String getDisplayName() {
@@ -60,60 +56,36 @@ public class ConvertJulExiting extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new JavaVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesMethod<>(METHOD_MATCHER), new JavaIsoVisitor<ExecutionContext>() {
             @Override
-            public J visit(@Nullable Tree tree, ExecutionContext ctx) {
-                if (tree instanceof JavaSourceFile) {
-                    JavaSourceFile cu = (JavaSourceFile) requireNonNull(tree);
-                    return new UsesMethod<>(METHOD_PATTERN).visitNonNull(cu, ctx);
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
+                if (METHOD_MATCHER.matches(m) && m.getMethodType() != null) {
+                    List<JRightPadded<Expression>> originalArgs = m.getPadding()
+                            .getArguments()
+                            .getPadding()
+                            .getElements();
+                    List<JavaType> originalTypes = m.getMethodType().getParameterTypes();
+                    int originalArgCount = originalArgs.size();
+                    if (3 < originalArgCount) {
+                        return m;
+                    }
+                    List<Expression> modifiedArgs = new ArrayList<>();
+                    List<JavaType> modifiedTypes = new ArrayList<>();
+                    if (originalArgCount > 2) {
+                        modifiedArgs.add(originalArgs.get(2).getElement().withPrefix(Space.EMPTY));
+                        modifiedTypes.add(originalTypes.get(2));
+                    }
+                    Method mt = m.getMethodType().withParameterTypes(modifiedTypes);
+                    JavaType.FullyQualified dt = mt.getDeclaringType()
+                            .withFullyQualifiedName("org.apache.logging.log4j.Logger");
+                    return m.withMethodType(mt)
+                            .withName(m.getName().withSimpleName("traceExit"))
+                            .withArguments(modifiedArgs)
+                            .withDeclaringType(dt);
                 }
-                return super.visit(tree, ctx);
+                return m;
             }
-        }, new EnteringMethodVisitor(new MethodMatcher(METHOD_PATTERN, false)));
-    }
-
-    private class EnteringMethodVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private final MethodMatcher methodMatcher;
-
-        private EnteringMethodVisitor(MethodMatcher methodMatcher) {
-            this.methodMatcher = methodMatcher;
-        }
-
-        @Override
-        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-            return (J.MethodInvocation) visitMethodCall(super.visitMethodInvocation(method, ctx));
-        }
-
-        private J.MethodInvocation visitMethodCall(J.MethodInvocation m) {
-            if (methodMatcher.matches(m) && m.getMethodType() != null) {
-                final List<JRightPadded<Expression>> originalArgs = m.getPadding()
-                        .getArguments()
-                        .getPadding()
-                        .getElements();
-                final List<JavaType> originalTypes = m.getMethodType().getParameterTypes();
-                final int originalArgCount = originalArgs.size();
-                if (originalArgCount < 2 || 3 < originalArgCount) {
-                    throw new IllegalArgumentException("Unsupported Logger#entering method: " + m.getMethodType());
-                }
-                final List<Expression> modifiedArgs = new ArrayList<>();
-                final List<JavaType> modifiedTypes = new ArrayList<>();
-                if (originalArgCount > 2) {
-                    modifiedArgs.add(originalArgs.get(2).getElement().withPrefix(Space.EMPTY));
-                    modifiedTypes.add(originalTypes.get(2));
-                }
-                final Identifier traceEntry = m.getName().withSimpleName("traceExit");
-                final Method mt = m.getMethodType().withParameterTypes(modifiedTypes);
-                return m.withMethodType(mt)
-                        .withName(traceEntry)
-                        .withDeclaringType(mt.getDeclaringType()
-                                .withFullyQualifiedName("org.apache.logging.log4j.Logger"))
-                        .withArguments(modifiedArgs);
-            }
-            return m;
-        }
-    }
-
-    private static J.Literal buildNullString() {
-        return new J.Literal(randomId(), Space.EMPTY, Markers.EMPTY, null, "null", null, Primitive.String);
+        });
     }
 }
