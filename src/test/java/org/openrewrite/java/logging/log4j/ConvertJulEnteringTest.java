@@ -15,8 +15,6 @@
  */
 package org.openrewrite.java.logging.log4j;
 
-import static org.openrewrite.java.Assertions.java;
-
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.java.ChangeType;
@@ -24,7 +22,9 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
-public class ConvertJulEnteringTest implements RewriteTest {
+import static org.openrewrite.java.Assertions.java;
+
+class ConvertJulEnteringTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipes(new ConvertJulEntering(),
@@ -35,27 +35,32 @@ public class ConvertJulEnteringTest implements RewriteTest {
     @Test
     @DocumentExample
     void enteringToTraceEntry() {
-        // language=java
-        rewriteRun(java("""
-          import java.util.logging.Logger;
+        rewriteRun(
+          // language=java
+          java(
+            """
+              import java.util.logging.Logger;
 
-          class Test {
-              void method(Logger logger) {
-                logger.entering("Test", "method");
-                logger.entering("Test", "method", "param");
-                logger.entering("Test", "method", new Object[]{"param1", "param2"});
+              class Test {
+                  void method(Logger logger) {
+                    logger.entering("Test", "method");
+                    logger.entering("Test", "method", "param");
+                    logger.entering("Test", "method", new Object[]{"param1", "param2"});
+                  }
               }
-          }
-          """, """
-          import org.apache.logging.log4j.Logger;
+              """,
+            """
+              import org.apache.logging.log4j.Logger;
 
-          class Test {
-              void method(Logger logger) {
-                logger.traceEntry(null);
-                logger.traceEntry(null, "param");
-                logger.traceEntry(null, new Object[]{"param1", "param2"});
+              class Test {
+                  void method(Logger logger) {
+                    logger.traceEntry(null);
+                    logger.traceEntry(null, "param");
+                    logger.traceEntry(null, new Object[]{"param1", "param2"});
+                  }
               }
-          }
-          """));
+              """
+          )
+        );
     }
 }

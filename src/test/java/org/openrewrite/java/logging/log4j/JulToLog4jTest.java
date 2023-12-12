@@ -24,7 +24,7 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
 
-public class JulToLog4jTest implements RewriteTest {
+class JulToLog4jTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipeFromResource("/META-INF/rewrite/log4j.yml", "org.openrewrite.java.logging.log4j.JulToLog4j")
@@ -33,96 +33,109 @@ public class JulToLog4jTest implements RewriteTest {
 
     @Test
     void loggerToLogManager() {
-        // language=java
-        rewriteRun(java("""
-          import java.util.logging.Logger;
+        rewriteRun(
+          // language=java
+          java(
+            """
+              import java.util.logging.Logger;
 
-          class Test {
-              Logger log = Logger.getLogger("Test");
-          }
-          """, """
-          import org.apache.logging.log4j.LogManager;
-          import org.apache.logging.log4j.Logger;
+              class Test {
+                  Logger log = Logger.getLogger("Test");
+              }
+              """, """
+              import org.apache.logging.log4j.LogManager;
+              import org.apache.logging.log4j.Logger;
 
-          class Test {
-              Logger log = LogManager.getLogger("Test");
-          }
-          """));
+              class Test {
+                  Logger log = LogManager.getLogger("Test");
+              }
+              """
+          )
+        );
     }
 
     @Test
     @DocumentExample
     void simpleLoggerCalls() {
-        // language=java
-        rewriteRun(java("""
-          import java.util.logging.Logger;
+        rewriteRun(
+          // language=java
+          java(
+            """
+              import java.util.logging.Logger;
 
-          class Test {
-              void method(Logger logger) {
-                logger.config("Hello");
-                logger.config(() -> "Hello");
-                logger.fine("Hello");
-                logger.fine(() -> "Hello");
-                logger.finer("Hello");
-                logger.finer(() -> "Hello");
-                logger.finest("Hello");
-                logger.finest(() -> "Hello");
-                logger.info("Hello");
-                logger.info(() -> "Hello");
-                logger.severe("Hello");
-                logger.severe(() -> "Hello");
-                logger.warning("Hello");
-                logger.warning(() -> "Hello");
+              class Test {
+                  void method(Logger logger) {
+                    logger.config("Hello");
+                    logger.config(() -> "Hello");
+                    logger.fine("Hello");
+                    logger.fine(() -> "Hello");
+                    logger.finer("Hello");
+                    logger.finer(() -> "Hello");
+                    logger.finest("Hello");
+                    logger.finest(() -> "Hello");
+                    logger.info("Hello");
+                    logger.info(() -> "Hello");
+                    logger.severe("Hello");
+                    logger.severe(() -> "Hello");
+                    logger.warning("Hello");
+                    logger.warning(() -> "Hello");
+                  }
               }
-          }
-          """, """
-          import org.apache.logging.log4j.Logger;
+              """,
+            """
+              import org.apache.logging.log4j.Logger;
 
-          class Test {
-              void method(Logger logger) {
-                logger.info("Hello");
-                logger.info(() -> "Hello");
-                logger.debug("Hello");
-                logger.debug(() -> "Hello");
-                logger.trace("Hello");
-                logger.trace(() -> "Hello");
-                logger.trace("Hello");
-                logger.trace(() -> "Hello");
-                logger.info("Hello");
-                logger.info(() -> "Hello");
-                logger.error("Hello");
-                logger.error(() -> "Hello");
-                logger.warn("Hello");
-                logger.warn(() -> "Hello");
+              class Test {
+                  void method(Logger logger) {
+                    logger.info("Hello");
+                    logger.info(() -> "Hello");
+                    logger.debug("Hello");
+                    logger.debug(() -> "Hello");
+                    logger.trace("Hello");
+                    logger.trace(() -> "Hello");
+                    logger.trace("Hello");
+                    logger.trace(() -> "Hello");
+                    logger.info("Hello");
+                    logger.info(() -> "Hello");
+                    logger.error("Hello");
+                    logger.error(() -> "Hello");
+                    logger.warn("Hello");
+                    logger.warn(() -> "Hello");
+                  }
               }
-          }
-          """));
+              """
+          )
+        );
     }
 
     @Test
     void changeLombokLogAnnotation() {
-        // language=java
         rewriteRun(spec -> spec.typeValidationOptions(TypeValidation.builder()
-          .identifiers(false)
-          .methodInvocations(false)
-          .build()), java("""
-          import lombok.extern.java.Log;
+            .identifiers(false)
+            .methodInvocations(false)
+            .build()),
+          // language=java
+          java(
+            """
+              import lombok.extern.java.Log;
 
-          @Log
-          class Test {
-              void method() {
-                  log.info("uh oh");
+              @Log
+              class Test {
+                  void method() {
+                      log.info("uh oh");
+                  }
               }
-          }
-          """, """
-          import lombok.extern.log4j.Log4j2;
+              """, """
+              import lombok.extern.log4j.Log4j2;
 
-          @Log4j2
-          class Test {
-              void method() {
-                  log.info("uh oh");
+              @Log4j2
+              class Test {
+                  void method() {
+                      log.info("uh oh");
+                  }
               }
-          }
-          """));
+              """
+          )
+        );
     }
 }

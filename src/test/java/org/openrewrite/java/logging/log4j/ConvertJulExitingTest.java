@@ -15,8 +15,6 @@
  */
 package org.openrewrite.java.logging.log4j;
 
-import static org.openrewrite.java.Assertions.java;
-
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.java.ChangeType;
@@ -24,7 +22,9 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
-public class ConvertJulExitingTest implements RewriteTest {
+import static org.openrewrite.java.Assertions.java;
+
+class ConvertJulExitingTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipes(new ConvertJulExiting(),
@@ -35,25 +35,30 @@ public class ConvertJulExitingTest implements RewriteTest {
     @Test
     @DocumentExample
     void exitingToTraceExit() {
-        // language=java
-        rewriteRun(java("""
-          import java.util.logging.Logger;
+        rewriteRun(
+          // language=java
+          java(
+            """
+              import java.util.logging.Logger;
 
-          class Test {
-              void method(Logger logger) {
-                logger.exiting("Test", "method");
-                logger.exiting("Test", "method", "result");
+              class Test {
+                  void method(Logger logger) {
+                    logger.exiting("Test", "method");
+                    logger.exiting("Test", "method", "result");
+                  }
               }
-          }
-          """, """
-          import org.apache.logging.log4j.Logger;
+              """,
+            """
+              import org.apache.logging.log4j.Logger;
 
-          class Test {
-              void method(Logger logger) {
-                logger.traceExit();
-                logger.traceExit("result");
+              class Test {
+                  void method(Logger logger) {
+                    logger.traceExit();
+                    logger.traceExit("result");
+                  }
               }
-          }
-          """));
+              """
+          )
+        );
     }
 }
