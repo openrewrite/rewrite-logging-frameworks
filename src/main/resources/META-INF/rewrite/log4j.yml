@@ -142,3 +142,45 @@ recipeList:
       newFullyQualifiedTypeName: org.apache.logging.log4j.Logger
   - org.openrewrite.java.logging.ChangeLombokLogAnnotation:
       loggingFramework: Log4j2
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.logging.log4j.JulToLog4j
+displayName: Migrate JUL to Log4j 2.x API.
+description: Transforms code written using `java.util.logging` to use Log4j 2.x API.
+tags:
+  - logging
+  - java-util-logging
+  - log4j
+recipeList:
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: java.util.logging.Logger getLogger(..)
+      fullyQualifiedTargetTypeName: org.apache.logging.log4j.LogManager
+  # Change method names.
+  # The levels that do not have an equivalent are rounded up (less specific)
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: java.util.logging.Logger config(..)
+      newMethodName: info
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: java.util.logging.Logger fine(..)
+      newMethodName: debug
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: java.util.logging.Logger finer(..)
+      newMethodName: trace
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: java.util.logging.Logger finest(..)
+      newMethodName: trace
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: java.util.logging.Logger severe(..)
+      newMethodName: error
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: java.util.logging.Logger warning(..)
+      newMethodName: warn
+  # entering/exiting calls
+  - org.openrewrite.java.logging.log4j.ConvertJulEntering
+  - org.openrewrite.java.logging.log4j.ConvertJulExiting
+  # Change logger type
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: java.util.logging.Logger
+      newFullyQualifiedTypeName: org.apache.logging.log4j.Logger
+  - org.openrewrite.java.logging.ChangeLombokLogAnnotation:
+      loggingFramework: Log4j2
