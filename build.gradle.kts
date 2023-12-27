@@ -30,12 +30,12 @@ dependencies {
 
     testRuntimeOnly("org.openrewrite:rewrite-java-17")
     testRuntimeOnly("commons-logging:commons-logging:1.2")
-    testRuntimeOnly("ch.qos.logback:logback-classic:1.2.11")
+    testRuntimeOnly("ch.qos.logback:logback-classic:1.3.11")
 
     testRuntimeOnly("org.apache.logging.log4j:log4j-core:2.+")
     testRuntimeOnly("org.apache.logging.log4j:log4j-api:2.+")
 
-    testRuntimeOnly("org.slf4j:slf4j-api:1.+")
+    testRuntimeOnly("org.slf4j:slf4j-api:2.+")
     testRuntimeOnly("log4j:log4j:1.+")
 
     testRuntimeOnly("commons-logging:commons-logging:1.+")
