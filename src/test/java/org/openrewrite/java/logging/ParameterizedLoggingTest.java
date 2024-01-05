@@ -65,45 +65,6 @@ class ParameterizedLoggingTest implements RewriteTest {
         );
     }
 
-    @Test
-    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/135")
-    void exceptionAppended() {
-        rewriteRun(
-          spec -> spec.recipeFromResources("org.openrewrite.java.logging.slf4j.ParameterizedLogging"),
-          //language=java
-          java(
-            """
-              import org.slf4j.Logger;
-
-              class Test {
-                  static void method(Logger logger, Class<?> clazz) {
-                      try {
-                          return clazz.newInstance();
-                      } catch (InstantiationException | IllegalAccessException ex) {
-                          logger.error("Cannot instantiate dependency: " + clazz, ex);
-                          return null;
-                      }
-                  }
-              }
-              """,
-            """
-              import org.slf4j.Logger;
-
-              class Test {
-                  static void method(Logger logger, Class<?> clazz) {
-                      try {
-                          return clazz.newInstance();
-                      } catch (InstantiationException | IllegalAccessException ex) {
-                          logger.error("Cannot instantiate dependency: {}", clazz, ex);
-                          return null;
-                      }
-                  }
-              }
-              """
-          )
-        );
-    }
-
     @SuppressWarnings("UnnecessaryToStringCall")
     @Test
     void noNeedToCallToStringOnParameterizedArgument() {
@@ -337,6 +298,7 @@ class ParameterizedLoggingTest implements RewriteTest {
     }
 
     @Test
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/135")
     void exceptionArgumentsWithThrowable() {
         rewriteRun(
           spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger warn(..)", false)),
