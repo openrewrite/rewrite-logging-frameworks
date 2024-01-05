@@ -108,6 +108,7 @@ class ParameterizedLoggingTest implements RewriteTest {
     void noNeedToCallToStringOnParameterizedArgument() {
         rewriteRun(
           spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", true)),
+          //language=java
           java(
             """
               import org.slf4j.Logger;
