@@ -66,6 +66,7 @@ class ParameterizedLoggingTest implements RewriteTest {
     }
 
     @Test
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/135")
     void exceptionAppended() {
         rewriteRun(
           spec -> spec.recipeFromResources("org.openrewrite.java.logging.slf4j.ParameterizedLogging"),
