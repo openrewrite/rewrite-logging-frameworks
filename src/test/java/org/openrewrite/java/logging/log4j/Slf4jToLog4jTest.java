@@ -221,24 +221,24 @@ class Slf4jToLog4jTest implements RewriteTest {
           //language=java
           java(
             """
-                import lombok.extern.slf4j.Slf4j;
+              import lombok.extern.slf4j.Slf4j;
 
-                @Slf4j
-                class Test {
-                    void method() {
-                        log.info("uh oh");
-                    }
-                }
+              @Slf4j
+              class Test {
+                  void method() {
+                      log.info("uh oh");
+                  }
+              }
               """,
             """
-                import lombok.extern.log4j.Log4j2;
+              import lombok.extern.log4j.Log4j2;
 
-                @Log4j2
-                class Test {
-                    void method() {
-                        log.info("uh oh");
-                    }
-                }
+              @Log4j2
+              class Test {
+                  void method() {
+                      log.info("uh oh");
+                  }
+              }
               """
           )
         );
