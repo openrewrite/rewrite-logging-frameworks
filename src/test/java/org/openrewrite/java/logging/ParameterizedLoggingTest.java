@@ -68,7 +68,7 @@ class ParameterizedLoggingTest implements RewriteTest {
     @Test
     void exceptionAppended() {
         rewriteRun(
-          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger error(..)", false)),
+          spec -> spec.recipeFromResources("org.openrewrite.java.logging.slf4j.ParameterizedLogging"),
           //language=java
           java(
             """
