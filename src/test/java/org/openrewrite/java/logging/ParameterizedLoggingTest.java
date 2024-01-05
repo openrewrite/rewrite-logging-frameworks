@@ -65,6 +65,44 @@ class ParameterizedLoggingTest implements RewriteTest {
         );
     }
 
+    @Test
+    void exceptionAppended() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  static void method(Logger logger, Class<?> clazz) {
+                      try {
+                          return clazz.newInstance();
+                      } catch (InstantiationException | IllegalAccessException ex) {
+                          logger.error("Cannot instantiate dependency: " + clazz, ex);
+                          return null;
+                      }
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  static void method(Logger logger, Class<?> clazz) {
+                      try {
+                          return clazz.newInstance();
+                      } catch (InstantiationException | IllegalAccessException ex) {
+                          logger.error("Cannot instantiate dependency: {}", clazz, ex);
+                          return null;
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @SuppressWarnings("UnnecessaryToStringCall")
     @Test
     void noNeedToCallToStringOnParameterizedArgument() {
