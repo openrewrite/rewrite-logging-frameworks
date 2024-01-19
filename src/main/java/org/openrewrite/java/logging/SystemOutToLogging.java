@@ -22,10 +22,10 @@ import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.FindFieldsOfType;
 import org.openrewrite.java.search.UsesMethod;
+import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
-import java.time.Duration;
 import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
@@ -76,15 +76,16 @@ public class SystemOutToLogging extends Recipe {
         LoggingFramework framework = LoggingFramework.fromOption(loggingFramework);
         AnnotationMatcher lombokLogAnnotationMatcher = new AnnotationMatcher("@lombok.extern..*");
 
-        return Preconditions.check(new UsesMethod<>(systemOutPrint), new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesMethod<>(systemOutPrint), Repeat.repeatUntilStable(new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
+                Cursor cursor = updateCursor(m);
                 if (systemOutPrint.matches((Expression) method)) {
                     if (m.getSelect() != null && m.getSelect() instanceof J.FieldAccess) {
                         JavaType.Variable field = ((J.FieldAccess) m.getSelect()).getName().getFieldType();
                         if (field != null && "out".equals(field.getName()) && TypeUtils.isOfClassType(field.getOwner(), "java.lang.System")) {
-                            return logInsteadOfPrint(new Cursor(getCursor().getParent(), m), ctx);
+                            return logInsteadOfPrint(cursor, ctx);
                         }
                     }
                 }
@@ -93,17 +94,18 @@ public class SystemOutToLogging extends Recipe {
 
             private J.MethodInvocation logInsteadOfPrint(Cursor printCursor, ExecutionContext ctx) {
                 J.MethodInvocation print = printCursor.getValue();
-                J.ClassDeclaration clazz = getCursor().firstEnclosingOrThrow(J.ClassDeclaration.class);
-                Set<J.VariableDeclarations> loggers = FindFieldsOfType.find(clazz, framework.getLoggerType());
+                Cursor classCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
+                AnnotationService annotationService = service(AnnotationService.class);
+                Set<J.VariableDeclarations> loggers = FindFieldsOfType.find(classCursor.getValue(), framework.getLoggerType());
                 if (!loggers.isEmpty()) {
                     J.Identifier computedLoggerName = loggers.iterator().next().getVariables().get(0).getName();
                     print = replaceMethodInvocation(printCursor, ctx, print, computedLoggerName);
-                } else if (clazz.getAllAnnotations().stream().anyMatch(lombokLogAnnotationMatcher::matches)) {
+                } else if (annotationService.matches(classCursor, lombokLogAnnotationMatcher)) {
                     String fieldName = loggerName == null ? "log" : loggerName;
                     J.Identifier logField = new J.Identifier(UUID.randomUUID(), Space.SINGLE_SPACE, Markers.EMPTY, Collections.emptyList(), fieldName, null, null);
                     print = replaceMethodInvocation(printCursor, ctx, print, logField);
                 } else if (addLogger != null && addLogger) {
-                    doAfterVisit(AddLogger.addLogger(clazz, framework, loggerName == null ? "logger" : loggerName));
+                    doAfterVisit(AddLogger.addLogger(classCursor.getValue(), framework, loggerName == null ? "logger" : loggerName));
                 }
                 return print;
             }
@@ -167,6 +169,6 @@ public class SystemOutToLogging extends Recipe {
                 }
                 return levelOrDefault;
             }
-        });
+        }));
     }
 }

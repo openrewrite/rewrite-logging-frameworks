@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.logging;
 
-import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
@@ -114,10 +113,10 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
                 return cd;
             }
 
-            cd = template.apply(new Cursor(getCursor().getParent(), cd), cd.getBody().getCoordinates().firstStatement(), loggerName, cd.getSimpleName());
+            cd = template.apply(updateCursor(cd), cd.getBody().getCoordinates().firstStatement(), loggerName, cd.getSimpleName());
 
             // ensure the appropriate number of blank lines on next statement after new field
-            J.ClassDeclaration formatted = (J.ClassDeclaration) new AutoFormatVisitor<ExecutionContext>().visitNonNull(cd, ctx, getCursor());
+            J.ClassDeclaration formatted = (J.ClassDeclaration) new AutoFormatVisitor<ExecutionContext>().visitNonNull(cd, ctx, getCursor().getParent());
             cd = cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), (i, stat) -> {
                 if (i == 1) {
                     return stat.withPrefix(formatted.getBody().getStatements().get(i).getPrefix());

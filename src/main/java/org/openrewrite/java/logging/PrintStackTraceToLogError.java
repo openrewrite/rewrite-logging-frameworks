@@ -24,11 +24,11 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.FindFieldsOfType;
 import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Space;
 import org.openrewrite.marker.Markers;
 
-import java.time.Duration;
 import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
@@ -76,17 +76,18 @@ public class PrintStackTraceToLogError extends Recipe {
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
                 if (printStackTrace.matches(m)) {
-                    J.ClassDeclaration clazz = getCursor().firstEnclosingOrThrow(J.ClassDeclaration.class);
-                    Set<J.VariableDeclarations> loggers = FindFieldsOfType.find(clazz, framework.getLoggerType());
+                    Cursor classCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
+                    AnnotationService annotationService = service(AnnotationService.class);
+                    Set<J.VariableDeclarations> loggers = FindFieldsOfType.find(classCursor.getValue(), framework.getLoggerType());
                     if (!loggers.isEmpty()) {
                         J.Identifier logField = loggers.iterator().next().getVariables().get(0).getName();
                         m = replaceMethodInvocation(m, logField);
-                    } else if (clazz.getAllAnnotations().stream().anyMatch(lombokLogAnnotationMatcher::matches)) {
+                    } else if (annotationService.matches(classCursor, lombokLogAnnotationMatcher)) {
                         String fieldName = loggerName == null ? "log" : loggerName;
                         J.Identifier logField = new J.Identifier(UUID.randomUUID(), Space.SINGLE_SPACE, Markers.EMPTY, Collections.emptyList(), fieldName, null, null);
                         m = replaceMethodInvocation(m, logField);
                     } else if (addLogger != null && addLogger) {
-                        doAfterVisit(AddLogger.addLogger(clazz, framework, loggerName == null ? "logger" : loggerName));
+                        doAfterVisit(AddLogger.addLogger(classCursor.getValue(), framework, loggerName == null ? "logger" : loggerName));
                     }
                 }
                 return m;
@@ -103,10 +104,10 @@ public class PrintStackTraceToLogError extends Recipe {
                         m.getSelect());
             }
         };
-        return addLogger != null && addLogger ? visitor : Preconditions.check(
+        return Repeat.repeatUntilStable(addLogger != null && addLogger ? visitor : Preconditions.check(
                 Preconditions.or(
                         new UsesType<>(framework.getLoggerType(), null),
                         new UsesType<>("lombok.extern..*", null))
-                , visitor);
+                , visitor));
     }
 }
