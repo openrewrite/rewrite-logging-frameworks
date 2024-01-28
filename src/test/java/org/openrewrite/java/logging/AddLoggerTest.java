@@ -19,10 +19,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.Test;
-import org.openrewrite.DocumentExample;
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.tree.J;
@@ -153,6 +150,33 @@ class AddLoggerTest implements RewriteTest {
                   private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
                             
                   enum Status { TRUE, FALSE, FILE_NOT_FOUND }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/137")
+    void addLoggerInEnum() {
+        rewriteRun(
+          spec -> spec.recipe(new MaybeAddLoggerToClass("Test")),
+          //language=java
+          java(
+            """
+              enum Test {
+                  One,
+                  Two;
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              enum Test {
+                  One,
+                  Two;
+                  private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
               }
               """
           )
