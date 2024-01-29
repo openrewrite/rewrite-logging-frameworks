@@ -123,34 +123,6 @@ class ParameterizedLoggingTest implements RewriteTest {
     }
 
     @Test
-    void concatenateLiteralStrings() {
-        rewriteRun(
-          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
-          //language=java
-          java(
-            """
-              import org.slf4j.Logger;
-
-              class Test {
-                  static void method(Logger logger) {
-                      logger.info("left" + " " + "right");
-                  }
-              }
-              """,
-            """
-              import org.slf4j.Logger;
-
-              class Test {
-                  static void method(Logger logger) {
-                      logger.info("left right");
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/36")
     void handleEscapedCharacters() {
         rewriteRun(
@@ -556,6 +528,40 @@ class ParameterizedLoggingTest implements RewriteTest {
               class Test {
                   static void method(Logger logger, String name) {
                       logger.info("This is a message for {} with a curly bracket constant: ${exception}", name);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void multilineStringLiteralLeftAlone() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              
+              class Test {
+                  static void method(Logger logger) {
+                      String one = "one";
+                      logger.info("This is a long message, too long to all fit comfortably on " + one + " line. " +
+                              "So it is split up into multiple lines. There is no need for the recipe to attempt to optimize this " +
+                              "because the compiler will combine these into a single string literal in the bytecode");
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              
+              class Test {
+                  static void method(Logger logger) {
+                      String one = "one";
+                      logger.info("This is a long message, too long to all fit comfortably on {} line. " +
+                              "So it is split up into multiple lines. There is no need for the recipe to attempt to optimize this " +
+                              "because the compiler will combine these into a single string literal in the bytecode", one);
                   }
               }
               """

@@ -109,6 +109,10 @@ public class ParameterizedLogging extends Recipe {
                     }
                 }
 
+                // Avoid changing reference if the templating didn't actually change the contents of the method
+                if(m != method && m.print(getCursor()).equals(method.print(getCursor()))) {
+                    return method;
+                }
                 return m;
             }
 
@@ -135,6 +139,8 @@ public class ParameterizedLogging extends Recipe {
         private final List<Expression> arguments;
         private String message;
 
+        boolean previousMessageWasStringLiteral;
+
         private MessageAndArguments(String message, List<Expression> arguments) {
             this.message = message;
             this.arguments = arguments;
@@ -151,16 +157,26 @@ public class ParameterizedLogging extends Recipe {
         if (concat.getLeft() instanceof J.Binary && ((J.Binary) concat.getLeft()).getOperator() == J.Binary.Type.Addition) {
             concatenationToLiteral(concat.getLeft(), result);
         } else if (concat.getLeft() instanceof J.Literal) {
-            result.message = getLiteralValue((J.Literal) concat.getLeft()) + result.message;
+            J.Literal left = (J.Literal) concat.getLeft();
+            result.message = getLiteralValue(left) + result.message;
+            result.previousMessageWasStringLiteral = left.getType() == JavaType.Primitive.String;
         } else {
             result.message = "{}" + result.message;
             result.arguments.add(concat.getLeft());
+            result.previousMessageWasStringLiteral = false;
         }
 
         if (concat.getRight() instanceof J.Binary && ((J.Binary) concat.getRight()).getOperator() == J.Binary.Type.Addition) {
             concatenationToLiteral(concat.getRight(), result);
         } else if (concat.getRight() instanceof J.Literal) {
-            result.message += getLiteralValue((J.Literal) concat.getRight());
+            J.Literal right = (J.Literal) concat.getRight();
+            boolean rightIsStringLiteral = right.getType() == JavaType.Primitive.String;
+            if(result.previousMessageWasStringLiteral && rightIsStringLiteral) {
+                result.message += "\" +" + right.getPrefix().getWhitespace() + "\"" + getLiteralValue(right);
+            } else {
+                result.message += getLiteralValue(right);
+            }
+            result.previousMessageWasStringLiteral = rightIsStringLiteral;
         } else {
             // prevent inadvertently appending {} to # to create #{}, which creates an additional JavaTemplate argument
             if (result.message.endsWith("#")) {
@@ -168,6 +184,7 @@ public class ParameterizedLogging extends Recipe {
             }
             result.message += "{}";
             result.arguments.add(concat.getRight());
+            result.previousMessageWasStringLiteral = false;
         }
 
         return result;

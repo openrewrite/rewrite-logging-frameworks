@@ -80,7 +80,7 @@ public class ChangeLogLevel extends Recipe {
                     return m;
                 }
                 List<Expression> args = m.getArguments();
-                if (args.size() == 0) {
+                if (args.isEmpty()) {
                     return m;
                 }
                 J.Literal lit = leftMostLiteral(args.get(0));
