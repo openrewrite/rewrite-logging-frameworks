@@ -30,7 +30,7 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 @Value
-@EqualsAndHashCode(callSuper = true)
+@EqualsAndHashCode(callSuper = false)
 public class ChangeLogLevel extends Recipe {
     @Override
     public String getDisplayName() {

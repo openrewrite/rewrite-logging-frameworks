@@ -34,7 +34,7 @@ import org.openrewrite.java.tree.TypeUtils;
 import java.util.*;
 
 @Value
-@EqualsAndHashCode(callSuper = true)
+@EqualsAndHashCode(callSuper = false)
 public class ParameterizedLogging extends Recipe {
     @Option(displayName = "Method pattern",
             description = "A method used to find matching statements to parameterize.",
