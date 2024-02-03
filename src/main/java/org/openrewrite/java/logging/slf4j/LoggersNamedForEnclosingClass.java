@@ -71,6 +71,10 @@ public class LoggersNamedForEnclosingClass extends Recipe {
                     return mi;
                 }
 
+                if (getCursor().firstEnclosing(J.MethodDeclaration.class) != null) {
+                    return mi;
+                }
+
                 J.ClassDeclaration firstEnclosingClass = getCursor().firstEnclosing(J.ClassDeclaration.class);
                 if (firstEnclosingClass == null) {
                     return mi;

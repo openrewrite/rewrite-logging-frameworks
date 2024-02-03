@@ -135,4 +135,23 @@ class LoggersNamedForEnclosingClassTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void shouldNotReplaceLoggerInMethod() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+              class WrongClass {}
+              class A {
+                  public Logger getLoggerFor(Class<?> clazz) {
+                      return LoggerFactory.getLogger(clazz);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
