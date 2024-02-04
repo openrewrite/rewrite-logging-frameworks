@@ -16,6 +16,7 @@
 package org.openrewrite.java.logging.slf4j;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -30,6 +31,7 @@ public class ChangeLogLevelTest implements RewriteTest {
           .parser(JavaParser.fromJavaVersion().classpath("slf4j-api"));
     }
 
+    @DocumentExample
     @Test
     void basic() {
         rewriteRun(
