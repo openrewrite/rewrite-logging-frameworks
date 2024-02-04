@@ -29,7 +29,6 @@ import org.openrewrite.marker.Markers;
 
 import java.util.Collections;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -142,7 +141,7 @@ public class SystemErrToLogging extends Recipe {
                     print = replaceMethodInvocation(printCursor, ctx, exceptionPrintStackTrace, print, computedLoggerName);
                 } else if (annotationService.matches(classCursor, lombokLogAnnotationMatcher)) {
                     String fieldName = loggerName == null ? "log" : loggerName;
-                    J.Identifier logField = new J.Identifier(UUID.randomUUID(), Space.SINGLE_SPACE, Markers.EMPTY, Collections.emptyList(), fieldName, null, null);
+                    J.Identifier logField = new J.Identifier(Tree.randomId(), Space.SINGLE_SPACE, Markers.EMPTY, Collections.emptyList(), fieldName, null, null);
                     print = replaceMethodInvocation(printCursor, ctx, exceptionPrintStackTrace, print, logField);
                 } else if (addLogger != null && addLogger) {
                     doAfterVisit(AddLogger.addLogger(classCursor.getValue(), framework, loggerName == null ? "logger" : loggerName));
