@@ -18,6 +18,7 @@ package org.openrewrite.java.logging.slf4j;
 import org.openrewrite.*;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Javadoc;
 
@@ -71,26 +72,24 @@ public class LoggersNamedForEnclosingClass extends Recipe {
                     return mi;
                 }
 
-                if (getCursor().firstEnclosing(J.MethodDeclaration.class) != null) {
-                    return mi;
-                }
-
                 J.ClassDeclaration firstEnclosingClass = getCursor().firstEnclosing(J.ClassDeclaration.class);
                 if (firstEnclosingClass == null) {
                     return mi;
                 }
 
                 String enclosingClazzName = firstEnclosingClass.getSimpleName() + ".class";
-                if (mi.getArguments().get(0) instanceof J.FieldAccess) {
-                    String argumentClazzName = ((J.FieldAccess) mi.getArguments().get(0)).toString();
+                Expression firstArgument = mi.getArguments().get(0);
+                if (firstArgument instanceof J.FieldAccess) {
+                    String argumentClazzName = ((J.FieldAccess) firstArgument).toString();
                     if (enclosingClazzName.equals(argumentClazzName)) {
                         return mi;
                     }
-                }
-
-                if (mi.getArguments().get(0) instanceof J.MethodInvocation &&
-                        ((J.MethodInvocation) mi.getArguments().get(0)).getName().toString().equals("getClass") &&
-                        !firstEnclosingClass.hasModifier(J.Modifier.Type.Final)) {
+                } else if (firstArgument instanceof J.MethodInvocation &&
+                           ((J.MethodInvocation) firstArgument).getName().toString().equals("getClass")) {
+                    if (!firstEnclosingClass.hasModifier(J.Modifier.Type.Final)) {
+                        return mi;
+                    }
+                } else {
                     return mi;
                 }
 

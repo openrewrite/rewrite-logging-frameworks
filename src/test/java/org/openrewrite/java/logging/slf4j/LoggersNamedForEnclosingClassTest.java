@@ -137,7 +137,25 @@ class LoggersNamedForEnclosingClassTest implements RewriteTest {
     }
 
     @Test
-    void shouldNotReplaceLoggerInMethod() {
+    void shouldNotReplaceLoggerInMethodForArgument() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+              class A {
+                  public Logger getLoggerFor(Class<?> clazz) {
+                      return LoggerFactory.getLogger(clazz);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shouldNotReplaceLoggerInMethodIfNotConstant() {
         //language=java
         rewriteRun(
           java(
@@ -146,8 +164,18 @@ class LoggersNamedForEnclosingClassTest implements RewriteTest {
               import org.slf4j.LoggerFactory;
               class WrongClass {}
               class A {
-                  public Logger getLoggerFor(Class<?> clazz) {
-                      return LoggerFactory.getLogger(clazz);
+                  public Logger getLogger() {
+                      return LoggerFactory.getLogger(WrongClass.class);
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+              class WrongClass {}
+              class A {
+                  public Logger getLogger() {
+                      return LoggerFactory.getLogger(A.class);
                   }
               }
               """
