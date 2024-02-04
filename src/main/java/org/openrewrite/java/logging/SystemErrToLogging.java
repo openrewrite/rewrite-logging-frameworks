@@ -47,7 +47,8 @@ public class SystemErrToLogging extends Recipe {
 
     @Option(displayName = "Logger name",
             description = "The name of the logger to use when generating a field.",
-            required = false)
+            required = false,
+            example = "log")
     @Nullable
     String loggerName;
 
