@@ -30,7 +30,6 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
-import java.time.Duration;
 import java.util.*;
 import java.util.regex.Pattern;
 

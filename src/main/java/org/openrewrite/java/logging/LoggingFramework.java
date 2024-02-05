@@ -18,7 +18,6 @@ package org.openrewrite.java.logging;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
-import org.openrewrite.java.JavaVisitor;
 
 public enum LoggingFramework {
     SLF4J("org.slf4j.Logger"),

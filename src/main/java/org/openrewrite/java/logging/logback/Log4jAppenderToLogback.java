@@ -23,8 +23,6 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
-import java.time.Duration;
-
 public class Log4jAppenderToLogback extends Recipe {
     @Override
     public String getDisplayName() {
