@@ -24,12 +24,7 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.JavaType.Method;
-import org.openrewrite.java.tree.JavaType.Primitive;
-import org.openrewrite.java.tree.Space;
+import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
 import java.util.ArrayList;
@@ -72,11 +67,11 @@ public class ConvertJulEntering extends Recipe {
                             List<JavaType> modifiedTypes = new ArrayList<>();
                             if (2 < originalArgCount) {
                                 modifiedArgs.add(buildNullString());
-                                modifiedTypes.add(Primitive.String);
+                                modifiedTypes.add(JavaType.Primitive.String);
                                 modifiedArgs.add(originalArgs.get(2));
                                 modifiedTypes.add(JavaType.buildType("java.lang.Object[]"));
                             }
-                            Method mt = m.getMethodType().withParameterTypes(modifiedTypes);
+                            JavaType.Method mt = m.getMethodType().withParameterTypes(modifiedTypes);
                             JavaType.FullyQualified dt = mt.getDeclaringType().withFullyQualifiedName("org.apache.logging.log4j.Logger");
                             return m.withMethodType(mt)
                                     .withName(m.getName().withSimpleName("traceEntry"))

@@ -24,11 +24,11 @@ import org.openrewrite.test.RewriteTest;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.java.Assertions.mavenProject;
 import static org.openrewrite.java.Assertions.srcMainJava;
 import static org.openrewrite.maven.Assertions.pomXml;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class Log4j1ToLog4j2Test implements RewriteTest {
 

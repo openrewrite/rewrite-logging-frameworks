@@ -25,7 +25,6 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
-import org.openrewrite.java.tree.JavaType.Method;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -71,7 +70,7 @@ public class ConvertJulExiting extends Recipe {
                         modifiedArgs.add(originalArgs.get(2).getElement().withPrefix(Space.EMPTY));
                         modifiedTypes.add(originalTypes.get(2));
                     }
-                    Method mt = m.getMethodType().withParameterTypes(modifiedTypes);
+                    JavaType.Method mt = m.getMethodType().withParameterTypes(modifiedTypes);
                     JavaType.FullyQualified dt = mt.getDeclaringType()
                             .withFullyQualifiedName("org.apache.logging.log4j.Logger");
                     return m.withMethodType(mt)
