@@ -400,6 +400,30 @@ class ParameterizedLoggingTest implements RewriteTest {
         );
     }
 
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/131")
+    void throwableSingleParameter() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.apache.logging.log4j.Logger error(..)", false)),
+          //language=java
+          java(
+            """
+              import org.apache.logging.log4j.Logger;
+
+              class Test {
+                  static void method(Logger logger, String numberString) {
+                      try {
+                          Integer i = Integer.valueOf(numberString);
+                      } catch (Exception e) {
+                          logger.error(e);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/58")
     @Test
     void methodInvocationReturnTypeIsString() {

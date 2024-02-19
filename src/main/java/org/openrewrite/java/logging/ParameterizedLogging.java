@@ -96,6 +96,8 @@ public class ParameterizedLogging extends Recipe {
                                 .contextSensitive()
                                 .build()
                                 .apply(new Cursor(getCursor().getParent(), m), m.getCoordinates().replaceArguments(), newArgList.toArray());
+                    } else if (logMsg instanceof J.Identifier && TypeUtils.isAssignableTo("java.lang.Throwable", logMsg.getType()) ) {
+                        return m;
                     } else if (!TypeUtils.isString(logMsg.getType()) && logMsg.getType() instanceof JavaType.Class) {
                         StringBuilder messageBuilder = new StringBuilder("\"{}\"");
                         m.getArguments().forEach(arg -> messageBuilder.append(", #{any()}"));
