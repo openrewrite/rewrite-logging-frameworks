@@ -31,6 +31,8 @@ import org.openrewrite.java.tree.Statement;
 import java.util.Comparator;
 import java.util.function.Function;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * @author Edward Harman
  */
@@ -49,32 +51,33 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
         this.template = template.apply(this);
     }
 
-    public static TreeVisitor<J, ExecutionContext> addLogger(J.ClassDeclaration scope, LoggingFramework loggingFramework, String loggerName) {
+    public static TreeVisitor<J, ExecutionContext> addLogger(J.ClassDeclaration scope, LoggingFramework loggingFramework, String loggerName, ExecutionContext ctx) {
         switch (loggingFramework) {
             case Log4J1:
-                return addLog4j1Logger(scope, loggerName);
+                return addLog4j1Logger(scope, loggerName, ctx);
             case Log4J2:
-                return addLog4j2Logger(scope, loggerName);
+                return addLog4j2Logger(scope, loggerName, ctx);
             case JUL:
-                return addJulLogger(scope, loggerName);
+                return addJulLogger(scope, loggerName, ctx);
             case SLF4J:
             default:
-                return addSlf4jLogger(scope, loggerName);
+                return addSlf4jLogger(scope, loggerName, ctx);
         }
     }
 
-    public static AddLogger addSlf4jLogger(J.ClassDeclaration scope, String loggerName) {
+    public static AddLogger addSlf4jLogger(J.ClassDeclaration scope, String loggerName, ExecutionContext ctx) {
         return new AddLogger(scope, "org.slf4j.Logger", "org.slf4j.LoggerFactory", loggerName, visitor ->
                 JavaTemplate
                         .builder("private static final Logger #{} = LoggerFactory.getLogger(#{}.class);")
                         .contextSensitive()
                         .imports("org.slf4j.Logger", "org.slf4j.LoggerFactory")
-                        .javaParser(JavaParser.fromJavaVersion().classpath("slf4j-api"))
+                        .javaParser(JavaParser.fromJavaVersion()
+                                .classpathFromResources(ctx, "slf4j-api-2.1"))
                         .build()
         );
     }
 
-    public static AddLogger addJulLogger(J.ClassDeclaration scope, String loggerName) {
+    public static AddLogger addJulLogger(J.ClassDeclaration scope, String loggerName, @SuppressWarnings("unused") ExecutionContext ctx) {
         return new AddLogger(scope, "java.util.logging.Logger", "java.util.logging.LogManager", loggerName, visitor ->
                 JavaTemplate
                         .builder("private static final Logger #{} = LogManager.getLogger(\"#{}\");")
@@ -84,24 +87,24 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
         );
     }
 
-    public static AddLogger addLog4j1Logger(J.ClassDeclaration scope, String loggerName) {
+    public static AddLogger addLog4j1Logger(J.ClassDeclaration scope, String loggerName, ExecutionContext ctx) {
         return new AddLogger(scope, "org.apache.log4j.Logger", "org.apache.log4j.LogManager", loggerName, visitor ->
                 JavaTemplate
                         .builder("private static final Logger #{} = LogManager.getLogger(#{}.class);")
                         .contextSensitive()
                         .imports("org.apache.log4j.Logger", "org.apache.log4j.LogManager")
-                        .javaParser(JavaParser.fromJavaVersion().classpath("log4j"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "log4j-1.2"))
                         .build()
         );
     }
 
-    public static AddLogger addLog4j2Logger(J.ClassDeclaration scope, String loggerName) {
+    public static AddLogger addLog4j2Logger(J.ClassDeclaration scope, String loggerName, ExecutionContext ctx) {
         return new AddLogger(scope, "org.apache.logging.log4j.Logger", "org.apache.logging.log4j.LogManager", loggerName, visitor ->
                 JavaTemplate
                         .builder("private static final Logger #{} = LogManager.getLogger(#{}.class);")
                         .contextSensitive()
                         .imports("org.apache.logging.log4j.Logger", "org.apache.logging.log4j.LogManager")
-                        .javaParser(JavaParser.fromJavaVersion().classpath("log4j-api"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "log4j-api-2.23"))
                         .build()
         );
     }
@@ -115,11 +118,12 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
                 return cd;
             }
 
+            //noinspection ComparatorMethodParameterNotUsed
             Comparator<Statement> firstAfterEnumValueSet = (unused, o2) -> o2 instanceof J.EnumValueSet ? 1 : -1;
             cd = template.apply(updateCursor(cd), cd.getBody().getCoordinates().addStatement(firstAfterEnumValueSet), loggerName, cd.getSimpleName());
 
             // ensure the appropriate number of blank lines on next statement after new field
-            J.ClassDeclaration formatted = (J.ClassDeclaration) new AutoFormatVisitor<ExecutionContext>().visitNonNull(cd, ctx, getCursor().getParent());
+            J.ClassDeclaration formatted = (J.ClassDeclaration) new AutoFormatVisitor<ExecutionContext>().visitNonNull(cd, ctx, requireNonNull(getCursor().getParent()));
             cd = cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), (i, stat) -> {
                 if (i == 1) {
                     return stat.withPrefix(formatted.getBody().getStatements().get(i).getPrefix());

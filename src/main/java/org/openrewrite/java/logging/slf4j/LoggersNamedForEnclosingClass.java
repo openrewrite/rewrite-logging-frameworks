@@ -96,7 +96,8 @@ public class LoggersNamedForEnclosingClass extends Recipe {
                 return JavaTemplate.builder("LoggerFactory.getLogger(#{})")
                         .contextSensitive()
                         .imports("org.slf4j.LoggerFactory")
-                        .javaParser(JavaParser.fromJavaVersion().classpath("slf4j-api"))
+                        .javaParser(JavaParser.fromJavaVersion()
+                                .classpathFromResources(ctx, "slf4j-api-2.1"))
                         .build()
                         .apply(new Cursor(getCursor().getParent(), mi), mi.getCoordinates().replace(), enclosingClazzName);
             }

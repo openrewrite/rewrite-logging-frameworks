@@ -17,6 +17,7 @@ package org.openrewrite.java.logging.slf4j;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -30,7 +31,8 @@ class Slf4jLogShouldBeConstantTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipe(new Slf4jLogShouldBeConstant())
-          .parser(JavaParser.fromJavaVersion().classpath("slf4j-api"));
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1"));
     }
 
     @Test
@@ -263,6 +265,7 @@ class Slf4jLogShouldBeConstantTest implements RewriteTest {
         );
     }
 
+    @SuppressWarnings("RedundantStringFormatCall")
     @Test
     void doNotUseStringFormatWithoutArgs() {
         //language=java
@@ -290,6 +293,7 @@ class Slf4jLogShouldBeConstantTest implements RewriteTest {
         );
     }
 
+    @SuppressWarnings("RedundantStringFormatCall")
     @Test
     void doNotUseStringFormatForBlankLog() {
         //language=java

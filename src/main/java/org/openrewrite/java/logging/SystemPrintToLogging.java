@@ -22,7 +22,6 @@ import org.openrewrite.Option;
 import org.openrewrite.Recipe;
 import org.openrewrite.internal.lang.Nullable;
 
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 

@@ -17,6 +17,7 @@ package org.openrewrite.java.logging.slf4j;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -34,7 +35,8 @@ class CommonsLoggingToSlf4j1Test implements RewriteTest {
             .scanRuntimeClasspath("org.openrewrite.java.logging")
             .build()
             .activateRecipes("org.openrewrite.java.logging.slf4j.CommonsLogging1ToSlf4j1"))
-          .parser(JavaParser.fromJavaVersion().classpath("commons-logging", "slf4j-api", "lombok"));
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "commons-logging-1.3", "slf4j-api-2.1", "lombok-1.18"));
     }
 
     @DocumentExample

@@ -17,6 +17,7 @@ package org.openrewrite.java.logging;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RewriteTest;
@@ -24,7 +25,7 @@ import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
-@SuppressWarnings("EmptyTryBlock")
+@SuppressWarnings({"EmptyTryBlock", "CallToPrintStackTrace"})
 class PrintStackTraceToLogErrorTest implements RewriteTest {
 
     @DocumentExample
@@ -32,7 +33,8 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
     void useSlf4j() {
         rewriteRun(
           spec -> spec.recipe(new PrintStackTraceToLogError(null, "LOGGER", null))
-            .parser(JavaParser.fromJavaVersion().classpath("slf4j-api")),
+            .parser(JavaParser.fromJavaVersion()
+              .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1", "lombok-1.18")),
           //language=java
           java(
             """
@@ -73,7 +75,7 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
     void useLog4j2() {
         rewriteRun(
           spec -> spec.recipe(new PrintStackTraceToLogError(null, "LOGGER", "Log4j2"))
-            .parser(JavaParser.fromJavaVersion().classpath("log4j-api")),
+            .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "log4j-api-2.23")),
           //language=java
           java(
             """
@@ -144,12 +146,10 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
         );
     }
 
-    @SuppressWarnings("RedundantSlf4jDefinition")
     @Test
     void addLogger() {
         rewriteRun(
-          spec -> spec.recipe(new PrintStackTraceToLogError(true, "LOGGER", null))
-            .parser(JavaParser.fromJavaVersion().classpath("slf4j-api")),
+          spec -> spec.recipe(new PrintStackTraceToLogError(true, "LOGGER", null)),
           //language=java
           java(
             """
@@ -181,13 +181,11 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
         );
     }
 
-    @SuppressWarnings("RedundantSlf4jDefinition")
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/64")
     @Test
     void addLoggerTwoStaticClass() {
         rewriteRun(
-          spec -> spec.recipe(new PrintStackTraceToLogError(true, "LOGGER", null))
-            .parser(JavaParser.fromJavaVersion().classpath("slf4j-api")),
+          spec -> spec.recipe(new PrintStackTraceToLogError(true, "LOGGER", null)),
           //language=java
           java(
             """
@@ -197,7 +195,7 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
                           e.printStackTrace();
                       }
                   }
-
+              
                   public static class Another {
                       public void close() {
                           try {
@@ -215,15 +213,15 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
               public class Test {
                   public static class MyErrorReceiver {
                       private static final Logger LOGGER = LoggerFactory.getLogger(MyErrorReceiver.class);
-
+              
                       public void error(Exception e) {
                           LOGGER.error("Exception", e);
                       }
                   }
-
+              
                   public static class Another {
                       private static final Logger LOGGER = LoggerFactory.getLogger(Another.class);
-
+              
                       public void close() {
                           try {
                           } catch ( java.io.IOException e ) {
@@ -242,7 +240,7 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
     void supportLombokLogAnnotations() {
         rewriteRun(
           spec -> spec.recipe(new PrintStackTraceToLogError(null, null, null))
-            .parser(JavaParser.fromJavaVersion().classpath("slf4j-api", "lombok"))
+            .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1", "lombok-1.18"))
             .typeValidationOptions(TypeValidation.builder().identifiers(false).build()),
           //language=java
           java(

@@ -17,6 +17,7 @@ package org.openrewrite.java.logging;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -33,7 +34,8 @@ class ParameterizedLoggingTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.parser(JavaParser.fromJavaVersion().classpath("slf4j", "log4j-api", "log4j-core"));
+        spec.parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1", "log4j-api-2.23", "log4j-core-2.23"));;
     }
 
     @DocumentExample

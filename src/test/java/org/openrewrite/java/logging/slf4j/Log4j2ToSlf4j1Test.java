@@ -17,6 +17,7 @@ package org.openrewrite.java.logging.slf4j;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -32,7 +33,8 @@ class Log4j2ToSlf4j1Test implements RewriteTest {
             .scanRuntimeClasspath("org.openrewrite.java.logging")
             .build()
             .activateRecipes("org.openrewrite.java.logging.slf4j.Log4j2ToSlf4j1"))
-          .parser(JavaParser.fromJavaVersion().classpath("log4j-api", "log4j-core", "lombok"));
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "log4j-api-2.23", "log4j-core-2.23", "lombok-1.18"));
     }
 
     @DocumentExample

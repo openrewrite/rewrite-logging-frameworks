@@ -17,6 +17,7 @@ package org.openrewrite.java.logging.logback;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -28,7 +29,8 @@ class Log4jLayoutToLogbackTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipe(new Log4jLayoutToLogback())
-          .parser(JavaParser.fromJavaVersion().classpath("log4j"));
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "log4j-1.2"));
     }
 
     @DocumentExample

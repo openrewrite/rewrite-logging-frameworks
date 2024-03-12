@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.logging;
 
+import org.openrewrite.ExecutionContext;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
@@ -47,32 +48,36 @@ public enum LoggingFramework {
         return SLF4J;
     }
 
-    public JavaTemplate getErrorTemplate(String message) {
+    public JavaTemplate getErrorTemplate(String message, ExecutionContext ctx) {
         switch (this) {
             case SLF4J:
                 return JavaTemplate
                         .builder("#{any(org.slf4j.Logger)}.error(" + message + ", #{any(java.lang.Throwable)})")
                         .contextSensitive()
-                        .javaParser(JavaParser.fromJavaVersion().classpath("slf4j-api"))
+                        .javaParser(JavaParser.fromJavaVersion()
+                                .classpathFromResources(ctx, "slf4j-api-2.1"))
                         .build();
             case Log4J1:
                 return JavaTemplate
                         .builder("#{any(org.apache.log4j.Category)}.error(" + message + ", #{any(java.lang.Throwable)})")
                         .contextSensitive()
-                        .javaParser(JavaParser.fromJavaVersion().classpath("log4j"))
+                        .javaParser(JavaParser.fromJavaVersion()
+                                .classpathFromResources(ctx, "log4j-1.2"))
                         .build();
 
             case Log4J2:
                 return JavaTemplate
                         .builder("#{any(org.apache.logging.log4j.Logger)}.error(" + message + ", #{any(java.lang.Throwable)})")
                         .contextSensitive()
-                        .javaParser(JavaParser.fromJavaVersion().classpath("log4j-api"))
+                        .javaParser(JavaParser.fromJavaVersion()
+                                .classpathFromResources(ctx, "log4j-api-2.23"))
                         .build();
             case COMMONS:
                 return JavaTemplate
                         .builder("#{any(org.apache.commons.logging.Log)}.error(" + message + ", #{any(java.lang.Throwable)})")
                         .contextSensitive()
-                        .javaParser(JavaParser.fromJavaVersion().classpath("commons-logging"))
+                        .javaParser(JavaParser.fromJavaVersion()
+                                .classpathFromResources(ctx, "commons-logging-1.3"))
                         .build();
             case JUL:
             default:

@@ -32,7 +32,8 @@ class AddLoggerTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.parser(JavaParser.fromJavaVersion().classpath("slf4j-api"));
+        spec.parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1"));
     }
 
     @DocumentExample
@@ -130,7 +131,6 @@ class AddLoggerTest implements RewriteTest {
         );
     }
 
-    @SuppressWarnings("RedundantSlf4jDefinition")
     @Test
     void dontAddToInnerClass() {
         rewriteRun(
@@ -216,7 +216,7 @@ class AddLoggerTest implements RewriteTest {
                 public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                     if (classDecl.getSimpleName().equals(simpleName)) {
                         for (int i = 0; i < times; i++) {
-                            doAfterVisit(AddLogger.addSlf4jLogger(classDecl, "LOGGER"));
+                            doAfterVisit(AddLogger.addSlf4jLogger(classDecl, "LOGGER", ctx));
                         }
                     }
                     return super.visitClassDeclaration(classDecl, ctx);

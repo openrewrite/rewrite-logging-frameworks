@@ -17,6 +17,7 @@ package org.openrewrite.java.logging;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.logging.logback.Log4jAppenderToLogback;
@@ -26,21 +27,21 @@ import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
-@SuppressWarnings("EmptyTryBlock")
+@SuppressWarnings({"EmptyTryBlock", "CallToPrintStackTrace"})
 class SystemErrToLoggingTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipe(new Log4jAppenderToLogback())
-          .parser(JavaParser.fromJavaVersion().classpath("log4j"));
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "log4j-1.2", "slf4j-api-2.1", "lombok-1.18"));
     }
 
     @DocumentExample
     @Test
     void useSlf4j() {
         rewriteRun(
-          spec -> spec.recipe(new SystemErrToLogging(null, "LOGGER", null))
-            .parser(JavaParser.fromJavaVersion().classpath("slf4j-api")),
+          spec -> spec.recipe(new SystemErrToLogging(null, "LOGGER", null)),
           //language=java
           java(
             """
@@ -76,12 +77,10 @@ class SystemErrToLoggingTest implements RewriteTest {
         );
     }
 
-    @SuppressWarnings("RedundantSlf4jDefinition")
     @Test
     void addLogger() {
         rewriteRun(
-          spec -> spec.recipe(new SystemErrToLogging(true, "LOGGER", null))
-            .parser(JavaParser.fromJavaVersion().classpath("slf4j-api")),
+          spec -> spec.recipe(new SystemErrToLogging(true, "LOGGER", null)),
           //language=java
           java(
             """
@@ -137,8 +136,7 @@ class SystemErrToLoggingTest implements RewriteTest {
     @Test
     void inRunnable() {
         rewriteRun(
-          spec -> spec.recipe(new SystemErrToLogging(null, "LOGGER", null))
-            .parser(JavaParser.fromJavaVersion().classpath("slf4j-api")),
+          spec -> spec.recipe(new SystemErrToLogging(null, "LOGGER", null)),
           //language=java
           java(
             """
@@ -170,7 +168,6 @@ class SystemErrToLoggingTest implements RewriteTest {
     void supportLombokLogAnnotations() {
         rewriteRun(
           spec -> spec.recipe(new SystemErrToLogging(null, null, null))
-            .parser(JavaParser.fromJavaVersion().classpath("slf4j-api", "lombok"))
             .typeValidationOptions(TypeValidation.builder().identifiers(false).build()),
           //language=java
           java(

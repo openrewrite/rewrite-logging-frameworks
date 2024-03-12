@@ -17,6 +17,7 @@ package org.openrewrite.java.logging.slf4j;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -24,13 +25,13 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-@SuppressWarnings("RedundantSlf4jDefinition")
 class LoggersNamedForEnclosingClassTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipe(new LoggersNamedForEnclosingClass())
-          .parser(JavaParser.fromJavaVersion().classpath("slf4j-api"));
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1"));
     }
 
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/65")
@@ -99,6 +100,7 @@ class LoggersNamedForEnclosingClassTest implements RewriteTest {
         );
     }
 
+    @SuppressWarnings("JavadocReference")
     @Test
     void doNotChangeJavaDoc() {
         //language=java

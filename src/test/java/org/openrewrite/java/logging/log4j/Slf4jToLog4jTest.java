@@ -17,6 +17,7 @@ package org.openrewrite.java.logging.log4j;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -37,10 +38,9 @@ class Slf4jToLog4jTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        // The Gradle test runner has SLF4J 1.7.x on the classpath,
-        // we need to explicitly specify we want SLF4J 2.x.
         spec.recipeFromResource("/META-INF/rewrite/log4j.yml", "org.openrewrite.java.logging.log4j.Slf4jToLog4j")
-          .parser(JavaParser.fromJavaVersion().classpath("log4j-api", "slf4j-api-2[\\d.]+", "lombok"));
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "log4j-1.2", "slf4j-api-2.1", "lombok-1.18"));
     }
 
     @DocumentExample
@@ -54,11 +54,11 @@ class Slf4jToLog4jTest implements RewriteTest {
               import org.slf4j.LoggerFactory;
               import org.slf4j.Marker;
               import org.slf4j.MarkerFactory;
-
+              
               class Test {
                   private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
                   private static final Marker MARKER = MarkerFactory.getMarker("MARKER");
-
+              
                   public static void main(String[] args) {
                       if (LOGGER.isDebugEnabled()) {
                           LOGGER.debug("logger message");
@@ -72,11 +72,11 @@ class Slf4jToLog4jTest implements RewriteTest {
               import org.apache.logging.log4j.Logger;
               import org.apache.logging.log4j.Marker;
               import org.apache.logging.log4j.MarkerManager;
-
+              
               class Test {
                   private static final Logger LOGGER = LogManager.getLogger(Test.class);
                   private static final Marker MARKER = MarkerManager.getMarker("MARKER");
-
+              
                   public static void main(String[] args) {
                       if (LOGGER.isDebugEnabled()) {
                           LOGGER.debug("logger message");
@@ -96,7 +96,7 @@ class Slf4jToLog4jTest implements RewriteTest {
           java(
             """
               import org.slf4j.MDC;
-
+              
               class Test {
                   void method() {
                      MDC.put("key", "value");
@@ -111,7 +111,7 @@ class Slf4jToLog4jTest implements RewriteTest {
             """
               import org.apache.logging.log4j.CloseableThreadContext;
               import org.apache.logging.log4j.ThreadContext;
-
+              
               class Test {
                   void method() {
                      ThreadContext.put("key", "value");
@@ -136,7 +136,7 @@ class Slf4jToLog4jTest implements RewriteTest {
               import org.slf4j.Logger;
               import org.slf4j.Marker;
               import org.slf4j.event.Level;
-
+              
               class Test {
                   void method(Logger logger, Marker marker, Throwable t) {
                      logger.atLevel(Level.INFO)
@@ -150,7 +150,7 @@ class Slf4jToLog4jTest implements RewriteTest {
               import org.apache.logging.log4j.Level;
               import org.apache.logging.log4j.Logger;
               import org.apache.logging.log4j.Marker;
-
+              
               class Test {
                   void method(Logger logger, Marker marker, Throwable t) {
                      logger.atLevel(Level.INFO)
@@ -222,7 +222,7 @@ class Slf4jToLog4jTest implements RewriteTest {
           java(
             """
               import lombok.extern.slf4j.Slf4j;
-
+              
               @Slf4j
               class Test {
                   void method() {
@@ -232,7 +232,7 @@ class Slf4jToLog4jTest implements RewriteTest {
               """,
             """
               import lombok.extern.log4j.Log4j2;
-
+              
               @Log4j2
               class Test {
                   void method() {

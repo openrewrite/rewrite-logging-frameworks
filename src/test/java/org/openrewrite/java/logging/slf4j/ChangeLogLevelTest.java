@@ -17,6 +17,7 @@ package org.openrewrite.java.logging.slf4j;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -28,7 +29,8 @@ class ChangeLogLevelTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipe(new ChangeLogLevel(ChangeLogLevel.Level.INFO, ChangeLogLevel.Level.DEBUG, "LaunchDarkly"))
-          .parser(JavaParser.fromJavaVersion().classpath("slf4j-api"));
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1"));
     }
 
     @DocumentExample

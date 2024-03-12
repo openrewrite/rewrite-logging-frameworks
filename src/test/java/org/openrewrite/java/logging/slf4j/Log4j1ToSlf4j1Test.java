@@ -17,6 +17,7 @@ package org.openrewrite.java.logging.slf4j;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
@@ -25,7 +26,6 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-@SuppressWarnings("RedundantSlf4jDefinition")
 class Log4j1ToSlf4j1Test implements RewriteTest {
 
     @Override
@@ -34,7 +34,8 @@ class Log4j1ToSlf4j1Test implements RewriteTest {
             .scanRuntimeClasspath("org.openrewrite.java.logging")
             .build()
             .activateRecipes("org.openrewrite.java.logging.slf4j.Log4j1ToSlf4j1"))
-          .parser(JavaParser.fromJavaVersion().classpath("log4j"));
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "log4j-1.2"));
     }
 
     @DocumentExample

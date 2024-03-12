@@ -105,13 +105,13 @@ public class SystemOutToLogging extends Recipe {
                     J.Identifier logField = new J.Identifier(Tree.randomId(), Space.SINGLE_SPACE, Markers.EMPTY, Collections.emptyList(), fieldName, null, null);
                     print = replaceMethodInvocation(printCursor, ctx, print, logField);
                 } else if (addLogger != null && addLogger) {
-                    doAfterVisit(AddLogger.addLogger(classCursor.getValue(), framework, loggerName == null ? "logger" : loggerName));
+                    doAfterVisit(AddLogger.addLogger(classCursor.getValue(), framework, loggerName == null ? "logger" : loggerName, ctx));
                 }
                 return print;
             }
 
             private J.MethodInvocation replaceMethodInvocation(Cursor printCursor, ExecutionContext ctx, J.MethodInvocation print, J.Identifier computedLoggerName) {
-                print = getInfoTemplate().apply(
+                print = getInfoTemplate(ctx).apply(
                         printCursor,
                         print.getCoordinates().replace(),
                         computedLoggerName,
@@ -127,24 +127,27 @@ public class SystemOutToLogging extends Recipe {
                 return print;
             }
 
-            private JavaTemplate getInfoTemplate() {
+            private JavaTemplate getInfoTemplate(ExecutionContext ctx) {
                 String levelOrDefault = getLevel();
                 switch (framework) {
                     case SLF4J:
                         return JavaTemplate
                                 .builder("#{any(org.slf4j.Logger)}." + levelOrDefault + "(#{any(String)})")
-                                .javaParser(JavaParser.fromJavaVersion().classpath("slf4j-api"))
+                                .javaParser(JavaParser.fromJavaVersion()
+                                        .classpathFromResources(ctx, "slf4j-api-2.1"))
                                 .build();
                     case Log4J1:
                         return JavaTemplate
                                 .builder("#{any(org.apache.log4j.Category)}." + levelOrDefault + "(#{any(String)})")
-                                .javaParser(JavaParser.fromJavaVersion().classpath("log4j"))
+                                .javaParser(JavaParser.fromJavaVersion()
+                                        .classpathFromResources(ctx, "log4j-1.2"))
                                 .build();
 
                     case Log4J2:
                         return JavaTemplate
                                 .builder("#{any(org.apache.logging.log4j.Logger)}." + levelOrDefault + "(#{any(String)})")
-                                .javaParser(JavaParser.fromJavaVersion().classpath("log4j-api"))
+                                .javaParser(JavaParser.fromJavaVersion()
+                                        .classpathFromResources(ctx, "log4j-api-2.23"))
                                 .build();
                     case JUL:
                     default:

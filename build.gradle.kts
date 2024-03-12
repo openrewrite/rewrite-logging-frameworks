@@ -6,6 +6,18 @@ group = "org.openrewrite.recipe"
 description = "Enforce logging best practices and migrate between logging frameworks. Automatically."
 
 val rewriteVersion = rewriteRecipe.rewriteVersion.get()
+
+recipeDependencies {
+
+    parserClasspath("org.slf4j:slf4j-api:2.+")
+    parserClasspath("log4j:log4j:1.+")
+    parserClasspath("org.apache.logging.log4j:log4j-core:2.+")
+    parserClasspath("org.apache.logging.log4j:log4j-api:2.+")
+    parserClasspath("commons-logging:commons-logging:1.+")
+    parserClasspath("ch.qos.logback:logback-classic:1.3.+")
+    parserClasspath("org.projectlombok:lombok:1.18.+")
+}
+
 dependencies {
     compileOnly("org.projectlombok:lombok:latest.release")
     annotationProcessor("org.projectlombok:lombok:latest.release")
@@ -25,18 +37,5 @@ dependencies {
     testImplementation("org.openrewrite:rewrite-test")
     testImplementation("org.openrewrite:rewrite-java-tck")
 
-    testImplementation("org.projectlombok:lombok:latest.release")
     testImplementation("org.assertj:assertj-core:latest.release")
-
-    testRuntimeOnly("org.openrewrite:rewrite-java-17")
-    testRuntimeOnly("commons-logging:commons-logging:1.2")
-    testRuntimeOnly("ch.qos.logback:logback-classic:1.3.11")
-
-    testRuntimeOnly("org.apache.logging.log4j:log4j-core:2.+")
-    testRuntimeOnly("org.apache.logging.log4j:log4j-api:2.+")
-
-    testRuntimeOnly("org.slf4j:slf4j-api:2.+")
-    testRuntimeOnly("log4j:log4j:1.+")
-
-    testRuntimeOnly("commons-logging:commons-logging:1.+")
 }

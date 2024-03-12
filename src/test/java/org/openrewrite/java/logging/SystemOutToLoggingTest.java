@@ -17,8 +17,10 @@ package org.openrewrite.java.logging;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
 
@@ -26,12 +28,17 @@ import static org.openrewrite.java.Assertions.java;
 
 class SystemOutToLoggingTest implements RewriteTest {
 
+    @Override
+    public void defaults(RecipeSpec spec) {
+        spec.parser(JavaParser.fromJavaVersion()
+          .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1", "lombok-1.18"));
+    }
+
     @DocumentExample
     @Test
     void useSlf4j() {
         rewriteRun(
-          spec -> spec.recipe(new SystemOutToLogging(null, "LOGGER", null, "debug"))
-            .parser(JavaParser.fromJavaVersion().classpath("slf4j-api")),
+          spec -> spec.recipe(new SystemOutToLogging(null, "LOGGER", null, "debug")),
           //language=java
           java(
             """
@@ -63,8 +70,7 @@ class SystemOutToLoggingTest implements RewriteTest {
     @Test
     void inRunnable() {
         rewriteRun(
-          spec -> spec.recipe(new SystemOutToLogging(null, "LOGGER", null, "debug"))
-            .parser(JavaParser.fromJavaVersion().classpath("slf4j-api")),
+          spec -> spec.recipe(new SystemOutToLogging(null, "LOGGER", null, "debug")),
           //language=java
           java(
             """
@@ -96,7 +102,6 @@ class SystemOutToLoggingTest implements RewriteTest {
     void supportLombokLogAnnotations() {
         rewriteRun(
           spec -> spec.recipe(new SystemOutToLogging(null, null, null, "info"))
-            .parser(JavaParser.fromJavaVersion().classpath("slf4j-api", "lombok"))
             .typeValidationOptions(TypeValidation.builder().identifiers(false).build()),
           //language=java
           java(

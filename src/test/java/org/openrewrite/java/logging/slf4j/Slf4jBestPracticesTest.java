@@ -17,6 +17,7 @@ package org.openrewrite.java.logging.slf4j;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -32,11 +33,11 @@ class Slf4jBestPracticesTest implements RewriteTest {
             .scanRuntimeClasspath("org.openrewrite.java.logging.slf4j")
             .build()
             .activateRecipes("org.openrewrite.java.logging.slf4j.Slf4jBestPractices"))
-          .parser(JavaParser.fromJavaVersion().classpath("slf4j-api"));
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1"));
     }
 
     @DocumentExample
-    @SuppressWarnings("RedundantSlf4jDefinition")
     @Test
     void applyBestPractices() {
         //language=java
@@ -78,7 +79,7 @@ class Slf4jBestPracticesTest implements RewriteTest {
         );
     }
 
-    @SuppressWarnings("RedundantSlf4jDefinition")
+    @SuppressWarnings({"UnnecessaryCallToStringValueOf", "UnnecessaryToStringCall"})
     @Test
     void exceptionIsAppendedAtEndOfLogMessage() {
         //language=java

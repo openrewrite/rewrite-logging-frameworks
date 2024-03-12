@@ -81,23 +81,23 @@ public class PrintStackTraceToLogError extends Recipe {
                     Set<J.VariableDeclarations> loggers = FindFieldsOfType.find(classCursor.getValue(), framework.getLoggerType());
                     if (!loggers.isEmpty()) {
                         J.Identifier logField = loggers.iterator().next().getVariables().get(0).getName();
-                        m = replaceMethodInvocation(m, logField);
+                        m = replaceMethodInvocation(m, logField, ctx);
                     } else if (annotationService.matches(classCursor, lombokLogAnnotationMatcher)) {
                         String fieldName = loggerName == null ? "log" : loggerName;
                         J.Identifier logField = new J.Identifier(Tree.randomId(), Space.SINGLE_SPACE, Markers.EMPTY, Collections.emptyList(), fieldName, null, null);
-                        m = replaceMethodInvocation(m, logField);
+                        m = replaceMethodInvocation(m, logField, ctx);
                     } else if (addLogger != null && addLogger) {
-                        doAfterVisit(AddLogger.addLogger(classCursor.getValue(), framework, loggerName == null ? "logger" : loggerName));
+                        doAfterVisit(AddLogger.addLogger(classCursor.getValue(), framework, loggerName == null ? "logger" : loggerName, ctx));
                     }
                 }
                 return m;
             }
 
-            private J.MethodInvocation replaceMethodInvocation(J.MethodInvocation m, J.Identifier logField) {
+            private J.MethodInvocation replaceMethodInvocation(J.MethodInvocation m, J.Identifier logField, ExecutionContext ctx) {
                 if (framework == LoggingFramework.JUL) {
                     maybeAddImport("java.util.logging.Level");
                 }
-                return framework.getErrorTemplate("\"Exception\"").apply(
+                return framework.getErrorTemplate("\"Exception\"", ctx).apply(
                         new Cursor(getCursor().getParent(), m),
                         m.getCoordinates().replace(),
                         logField,
