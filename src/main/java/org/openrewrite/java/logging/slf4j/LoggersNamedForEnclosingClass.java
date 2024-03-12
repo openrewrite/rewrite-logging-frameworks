@@ -85,7 +85,7 @@ public class LoggersNamedForEnclosingClass extends Recipe {
                         return mi;
                     }
                 } else if (firstArgument instanceof J.MethodInvocation &&
-                           ((J.MethodInvocation) firstArgument).getName().toString().equals("getClass")) {
+                           "getClass".equals(((J.MethodInvocation) firstArgument).getName().toString())) {
                     if (!firstEnclosingClass.hasModifier(J.Modifier.Type.Final)) {
                         return mi;
                     }
