@@ -204,7 +204,7 @@ class Slf4jToLog4jTest implements RewriteTest {
                               </dependency>
                           </dependencies>
                       </project>
-                      """, versions.size() > 0 ? versions.get(0) : "", versions.size() > 1 ? versions.get(1) : "");
+                      """, versions.isEmpty() ? "" : versions.get(0), versions.size() > 1 ? versions.get(1) : "");
                 }
               )
             )
