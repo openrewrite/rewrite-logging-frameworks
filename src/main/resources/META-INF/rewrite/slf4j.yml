@@ -47,7 +47,7 @@ recipeList:
       onlyIfUsing: org.apache.logging.log4j.*
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.apache.logging.log4j
-      artifactId: log4j-slf4j-impl
+      artifactId: log4j-slf4j2-impl
       version: latest.release
       onlyIfUsing: org.apache.logging.log4j.*
   ### Additional AddDependency's since "onlyIfUsing" may think it isn't using log4j 2.x if doing an upgrade chaining from log4j1 recipes todo
@@ -58,7 +58,7 @@ recipeList:
       onlyIfUsing: org.apache.log4j.*
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.apache.logging.log4j
-      artifactId: log4j-slf4j-impl
+      artifactId: log4j-slf4j2-impl
       version: latest.release
       onlyIfUsing: org.apache.log4j.*
   # Adapt to breaking change in compatibility in the SLF4J binding API with SLF4J 2.x
