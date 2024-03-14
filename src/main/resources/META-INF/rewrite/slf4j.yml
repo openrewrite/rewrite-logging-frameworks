@@ -61,6 +61,12 @@ recipeList:
       artifactId: log4j-slf4j-impl
       version: latest.release
       onlyIfUsing: org.apache.log4j.*
+  # Adapt to breaking change in compatibility in the SLF4J binding API with SLF4J 2.x
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.apache.logging.log4j
+      oldArtifactId: log4j-slf4j-impl
+      newArtifactId: log4j-slf4j2-impl
+      newVersion: latest.release
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.slf4j.ParameterizedLogging
