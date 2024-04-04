@@ -29,6 +29,13 @@ dependencies {
     implementation("org.openrewrite.recipe:rewrite-java-dependencies:${rewriteVersion}")
     runtimeOnly("org.openrewrite:rewrite-java-17")
 
+    implementation("org.apache.logging.log4j:log4j-core:latest.release")
+    annotationProcessor("org.openrewrite:rewrite-templating:$rewriteVersion")
+    implementation("org.openrewrite:rewrite-templating:$rewriteVersion")
+    compileOnly("com.google.errorprone:error_prone_core:2.19.1") {
+        exclude("com.google.auto.service", "auto-service-annotations")
+    }
+
     testImplementation("org.junit.jupiter:junit-jupiter-api:latest.release")
     testImplementation("org.junit.jupiter:junit-jupiter-params:latest.release")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:latest.release")
