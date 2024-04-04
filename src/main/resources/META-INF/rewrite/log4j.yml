@@ -57,10 +57,15 @@ recipeList:
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.log4j.Log4j1ToLog4j2
 displayName: Migrate Log4j 1.x to Log4j 2.x
-description: Migrates Log4j 1.x to Log4j 2.x.
+description: > 
+  Migrates Log4j 1.x to Log4j 2.x. 
+  This remediates the [Log4Shell](https://www.cisa.gov/news-events/cybersecurity-advisories/aa21-356a) vulnerability 
+  by upgrading to latest version of Log4j 2.
 tags:
   - logging
   - log4j
+  - CVE-2021-44228
+  - Log4Shell
 recipeList:
   - org.openrewrite.java.logging.ChangeLombokLogAnnotation:
       loggingFramework: Log4J2
@@ -80,12 +85,12 @@ recipeList:
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.apache.logging.log4j
       artifactId: log4j-api
-      version: latest.release
+      version: 2.x
       onlyIfUsing: org.apache.log4j.*
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.apache.logging.log4j
       artifactId: log4j-core
-      version: latest.release
+      version: 2.x
       onlyIfUsing: org.apache.log4j.*
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: log4j
@@ -93,29 +98,34 @@ recipeList:
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: ch.qos.reload4j
       artifactId: reload4j
-  ### Additional AddDependency's since "onlyIfUsing" may think it isn't using log4j 2.x if doing an upgrade chaining from log4j1 recipes todo
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.apache.logging.log4j
       artifactId: log4j-api
-      version: latest.release
+      version: 2.x
       onlyIfUsing: org.apache.logging.log4j.*
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.apache.logging.log4j
       artifactId: log4j-core
-      version: latest.release
+      version: 2.x
       onlyIfUsing: org.apache.logging.log4j.*
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.slf4j
       oldArtifactId: slf4j-log4j12
       newGroupId: org.apache.logging.log4j
       newArtifactId: log4j-slf4j-impl
-      newVersion: latest.release
+      newVersion: 2.x
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.slf4j
       oldArtifactId: slf4j-reload4j
       newGroupId: org.apache.logging.log4j
       newArtifactId: log4j-slf4j-impl
-      newVersion: latest.release
+      newVersion: 2.x
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.apache.logging.log4j
+      artifactId: *
+      newVersion: 2.x
+      overrideManagedVersion: true
+
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.log4j.CommonsLoggingToLog4j
