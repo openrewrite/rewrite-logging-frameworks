@@ -122,7 +122,7 @@ recipeList:
       newVersion: 2.x
   - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
       groupId: org.apache.logging.log4j
-      artifactId: *
+      artifactId: '*'
       newVersion: 2.x
       overrideManagedVersion: true
 
