@@ -80,7 +80,7 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
     public static AddLogger addJulLogger(J.ClassDeclaration scope, String loggerName, @SuppressWarnings("unused") ExecutionContext ctx) {
         return new AddLogger(scope, "java.util.logging.Logger", "java.util.logging.LogManager", loggerName, visitor ->
                 JavaTemplate
-                        .builder("private static final Logger #{} = LogManager.getLogger(\"#{}\");")
+                        .builder("private static final Logger #{} = LogManager.getLogManager().getLogger(\"#{}\");")
                         .contextSensitive()
                         .imports("java.util.logging.Logger", "java.util.logging.LogManager")
                         .build()
