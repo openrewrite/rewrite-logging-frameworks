@@ -152,7 +152,7 @@ class SystemOutToLoggingTest implements RewriteTest {
               import java.util.logging.Logger;
                             
               class Foo {
-                  private static final Logger log = LogManager.getLogger("Foo");
+                  private static final Logger log = LogManager.getLogManager().getLogger("Foo");
                             
                   void bar() {
                       log.log(Level.INFO, "Test");
