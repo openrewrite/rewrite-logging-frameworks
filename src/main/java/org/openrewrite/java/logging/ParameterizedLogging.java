@@ -63,7 +63,7 @@ public class ParameterizedLogging extends Recipe {
 
     @Override
     public Set<String> getTags() {
-        return new HashSet<>(Arrays.asList("RSPEC-2629", "RSPEC-3457"));
+        return new HashSet<>(Arrays.asList("RSPEC-S2629", "RSPEC-S3457"));
     }
 
     @Override

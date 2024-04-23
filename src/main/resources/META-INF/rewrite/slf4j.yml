@@ -77,7 +77,7 @@ description: Use SLF4J's parameterized logging, which can significantly boost pe
 tags:
   - logging
   - slf4j
-  - RSPEC-2629
+  - RSPEC-S2629
 recipeList:
   - org.openrewrite.java.logging.ParameterizedLogging:
       methodPattern: org.slf4j.Logger trace(..)

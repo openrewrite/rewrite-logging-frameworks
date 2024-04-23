@@ -49,7 +49,7 @@ public class LoggersNamedForEnclosingClass extends Recipe {
 
     @Override
     public Set<String> getTags() {
-        return new HashSet<>(Arrays.asList("RSPEC-3416", "logging", "slf4j"));
+        return new HashSet<>(Arrays.asList("RSPEC-S3416", "logging", "slf4j"));
     }
 
     @Override
