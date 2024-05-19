@@ -69,15 +69,15 @@ tags:
 recipeList:
   - org.openrewrite.java.logging.ChangeLombokLogAnnotation:
       loggingFramework: Log4J2
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.apache.log4j.Logger getLogger(..)
+      fullyQualifiedTargetTypeName: org.apache.logging.log4j.LogManager
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.apache.log4j.Logger getRootLogger()
+      fullyQualifiedTargetTypeName: org.apache.logging.log4j.LogManager
   - org.openrewrite.java.ChangePackage:
       oldPackageName: org.apache.log4j
       newPackageName: org.apache.logging.log4j
-  - org.openrewrite.java.ChangeMethodTargetToStatic:
-      methodPattern: org.apache.logging.log4j.Logger getLogger(..)
-      fullyQualifiedTargetTypeName: org.apache.logging.log4j.LogManager
-  - org.openrewrite.java.ChangeMethodTargetToStatic:
-      methodPattern: org.apache.logging.log4j.Logger getRootLogger()
-      fullyQualifiedTargetTypeName: org.apache.logging.log4j.LogManager
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: org.apache.logging.log4j.Category getEffectiveLevel()
       newMethodName: getLevel

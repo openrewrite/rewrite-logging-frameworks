@@ -18,6 +18,7 @@ package org.openrewrite.java.logging.log4j;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -26,16 +27,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.openrewrite.java.Assertions.java;
-import static org.openrewrite.java.Assertions.mavenProject;
-import static org.openrewrite.java.Assertions.srcMainJava;
+import static org.openrewrite.java.Assertions.*;
 import static org.openrewrite.maven.Assertions.pomXml;
 
 class Log4j1ToLog4j2Test implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.recipeFromResource("/META-INF/rewrite/log4j.yml","org.openrewrite.java.logging.log4j.Log4j1ToLog4j2")
+        spec.recipeFromResource("/META-INF/rewrite/log4j.yml", "org.openrewrite.java.logging.log4j.Log4j1ToLog4j2")
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "log4j-1.2"));
     }
@@ -54,8 +53,8 @@ class Log4j1ToLog4j2Test implements RewriteTest {
               }
               """,
             """
-              import org.apache.logging.log4j.LogManager;
               import org.apache.logging.log4j.Logger;
+              import org.apache.logging.log4j.LogManager;
               
               class Test {
                   Logger logger = LogManager.getLogger(Test.class);
@@ -72,18 +71,16 @@ class Log4j1ToLog4j2Test implements RewriteTest {
           java(
             """
               import org.apache.log4j.Logger;
-              import org.apache.log4j.LogManager;
               class Test {
                   Logger logger0 = Logger.getRootLogger();
-                  Logger logger1 = LogManager.getRootLogger();
               }
               """,
             """
               import org.apache.logging.log4j.Logger;
               import org.apache.logging.log4j.LogManager;
+              
               class Test {
                   Logger logger0 = LogManager.getRootLogger();
-                  Logger logger1 = LogManager.getRootLogger();
               }
               """
           )
@@ -115,6 +112,39 @@ class Log4j1ToLog4j2Test implements RewriteTest {
         );
     }
 
+@Test
+@Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/147")
+void matchUnknownTypes() {
+    //language=java
+    rewriteRun(
+      java(
+        """
+          import org.apache.log4j.Logger;
+
+          class Main {
+              private static final Logger LOGGER = Logger.getLogger(Main.class);
+
+              public static void main(String[] args) {
+                  LOGGER.info("Hello world");
+              }
+          }
+          """,
+        """
+          import org.apache.logging.log4j.Logger;
+          import org.apache.logging.log4j.LogManager;
+
+          class Main {
+              private static final Logger LOGGER = LogManager.getLogger(Main.class);
+
+              public static void main(String[] args) {
+                  LOGGER.info("Hello world");
+              }
+          }
+          """
+      )
+    );
+}
+
     @Test
     void mavenProjectDependenciesUpdated() {
         rewriteRun(
@@ -130,8 +160,8 @@ class Log4j1ToLog4j2Test implements RewriteTest {
                   }
                   """,
                 """
-                  import org.apache.logging.log4j.LogManager;
                   import org.apache.logging.log4j.Logger;
+                  import org.apache.logging.log4j.LogManager;
 
                   class Test {
                       Logger logger = LogManager.getLogger(Test.class);
@@ -169,34 +199,34 @@ class Log4j1ToLog4j2Test implements RewriteTest {
                     assertTrue(matcher.find());
                     String version = matcher.group(1);
                     return """
-                      <project>
-                          <groupId>com.mycompany.app</groupId>
-                          <artifactId>my-app</artifactId>
-                          <version>1</version>
-                          <dependencies>
-                              <dependency>
-                                  <groupId>org.apache.httpcomponents</groupId>
-                                  <artifactId>httpclient</artifactId>
-                                  <version>4.5.13</version>
-                              </dependency>
-                              <dependency>
-                                  <groupId>org.apache.logging.log4j</groupId>
-                                  <artifactId>log4j-api</artifactId>
-                                  <version>%1$s</version>
-                              </dependency>
-                              <dependency>
-                                  <groupId>org.apache.logging.log4j</groupId>
-                                  <artifactId>log4j-core</artifactId>
-                                  <version>%1$s</version>
-                              </dependency>
-                              <dependency>
-                                  <groupId>org.apache.logging.log4j</groupId>
-                                  <artifactId>log4j-slf4j-impl</artifactId>
-                                  <version>%1$s</version>
-                              </dependency>
-                          </dependencies>
-                      </project>
-                  """.formatted(version);
+                          <project>
+                              <groupId>com.mycompany.app</groupId>
+                              <artifactId>my-app</artifactId>
+                              <version>1</version>
+                              <dependencies>
+                                  <dependency>
+                                      <groupId>org.apache.httpcomponents</groupId>
+                                      <artifactId>httpclient</artifactId>
+                                      <version>4.5.13</version>
+                                  </dependency>
+                                  <dependency>
+                                      <groupId>org.apache.logging.log4j</groupId>
+                                      <artifactId>log4j-api</artifactId>
+                                      <version>%1$s</version>
+                                  </dependency>
+                                  <dependency>
+                                      <groupId>org.apache.logging.log4j</groupId>
+                                      <artifactId>log4j-core</artifactId>
+                                      <version>%1$s</version>
+                                  </dependency>
+                                  <dependency>
+                                      <groupId>org.apache.logging.log4j</groupId>
+                                      <artifactId>log4j-slf4j-impl</artifactId>
+                                      <version>%1$s</version>
+                                  </dependency>
+                              </dependencies>
+                          </project>
+                      """.formatted(version);
                 })
               )
             )
