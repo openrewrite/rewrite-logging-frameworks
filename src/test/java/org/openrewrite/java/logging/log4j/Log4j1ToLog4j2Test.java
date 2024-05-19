@@ -112,38 +112,38 @@ class Log4j1ToLog4j2Test implements RewriteTest {
         );
     }
 
-@Test
-@Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/147")
-void matchUnknownTypes() {
-    //language=java
-    rewriteRun(
-      java(
-        """
-          import org.apache.log4j.Logger;
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/147")
+    void matchUnknownTypes() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.apache.log4j.Logger;
 
-          class Main {
-              private static final Logger LOGGER = Logger.getLogger(Main.class);
+              class Main {
+                  private static final Logger LOGGER = Logger.getLogger(Main.class);
 
-              public static void main(String[] args) {
-                  LOGGER.info("Hello world");
+                  public static void main(String[] args) {
+                      LOGGER.info("Hello world");
+                  }
               }
-          }
-          """,
-        """
-          import org.apache.logging.log4j.Logger;
-          import org.apache.logging.log4j.LogManager;
+              """,
+            """
+              import org.apache.logging.log4j.Logger;
+              import org.apache.logging.log4j.LogManager;
 
-          class Main {
-              private static final Logger LOGGER = LogManager.getLogger(Main.class);
+              class Main {
+                  private static final Logger LOGGER = LogManager.getLogger(Main.class);
 
-              public static void main(String[] args) {
-                  LOGGER.info("Hello world");
+                  public static void main(String[] args) {
+                      LOGGER.info("Hello world");
+                  }
               }
-          }
-          """
-      )
-    );
-}
+              """
+          )
+        );
+    }
 
     @Test
     void mavenProjectDependenciesUpdated() {
@@ -171,6 +171,34 @@ void matchUnknownTypes() {
               //language=xml
               pomXml(
                 """
+                  <project>
+                      <groupId>com.mycompany.app</groupId>
+                      <artifactId>my-app</artifactId>
+                      <version>1</version>
+                      <dependencies>
+                          <dependency>
+                              <groupId>org.apache.httpcomponents</groupId>
+                              <artifactId>httpclient</artifactId>
+                              <version>4.5.13</version>
+                          </dependency>
+                          <dependency>
+                              <groupId>log4j</groupId>
+                              <artifactId>log4j</artifactId>
+                              <version>1.2.17</version>
+                          </dependency>
+                          <dependency>
+                              <groupId>org.slf4j</groupId>
+                              <artifactId>slf4j-log4j12</artifactId>
+                              <version>1.7.36</version>
+                          </dependency>
+                      </dependencies>
+                  </project>
+                  """,
+                sourceSpecs -> sourceSpecs.after(after -> {
+                    Matcher matcher = Pattern.compile("<version>(2\\.2\\d\\.\\d)</version>").matcher(after);
+                    assertTrue(matcher.find());
+                    String version = matcher.group(1);
+                    return """
                       <project>
                           <groupId>com.mycompany.app</groupId>
                           <artifactId>my-app</artifactId>
@@ -182,50 +210,22 @@ void matchUnknownTypes() {
                                   <version>4.5.13</version>
                               </dependency>
                               <dependency>
-                                  <groupId>log4j</groupId>
-                                  <artifactId>log4j</artifactId>
-                                  <version>1.2.17</version>
+                                  <groupId>org.apache.logging.log4j</groupId>
+                                  <artifactId>log4j-api</artifactId>
+                                  <version>%1$s</version>
                               </dependency>
                               <dependency>
-                                  <groupId>org.slf4j</groupId>
-                                  <artifactId>slf4j-log4j12</artifactId>
-                                  <version>1.7.36</version>
+                                  <groupId>org.apache.logging.log4j</groupId>
+                                  <artifactId>log4j-core</artifactId>
+                                  <version>%1$s</version>
+                              </dependency>
+                              <dependency>
+                                  <groupId>org.apache.logging.log4j</groupId>
+                                  <artifactId>log4j-slf4j-impl</artifactId>
+                                  <version>%1$s</version>
                               </dependency>
                           </dependencies>
                       </project>
-                  """,
-                sourceSpecs -> sourceSpecs.after(after -> {
-                    Matcher matcher = Pattern.compile("<version>(2\\.2\\d\\.\\d)</version>").matcher(after);
-                    assertTrue(matcher.find());
-                    String version = matcher.group(1);
-                    return """
-                          <project>
-                              <groupId>com.mycompany.app</groupId>
-                              <artifactId>my-app</artifactId>
-                              <version>1</version>
-                              <dependencies>
-                                  <dependency>
-                                      <groupId>org.apache.httpcomponents</groupId>
-                                      <artifactId>httpclient</artifactId>
-                                      <version>4.5.13</version>
-                                  </dependency>
-                                  <dependency>
-                                      <groupId>org.apache.logging.log4j</groupId>
-                                      <artifactId>log4j-api</artifactId>
-                                      <version>%1$s</version>
-                                  </dependency>
-                                  <dependency>
-                                      <groupId>org.apache.logging.log4j</groupId>
-                                      <artifactId>log4j-core</artifactId>
-                                      <version>%1$s</version>
-                                  </dependency>
-                                  <dependency>
-                                      <groupId>org.apache.logging.log4j</groupId>
-                                      <artifactId>log4j-slf4j-impl</artifactId>
-                                      <version>%1$s</version>
-                                  </dependency>
-                              </dependencies>
-                          </project>
                       """.formatted(version);
                 })
               )
