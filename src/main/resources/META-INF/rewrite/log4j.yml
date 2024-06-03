@@ -59,13 +59,9 @@ name: org.openrewrite.java.logging.log4j.Log4j1ToLog4j2
 displayName: Migrate Log4j 1.x to Log4j 2.x
 description: > 
   Migrates Log4j 1.x to Log4j 2.x. 
-  This remediates the [Log4Shell](https://www.cisa.gov/news-events/cybersecurity-advisories/aa21-356a) vulnerability 
-  by upgrading to latest version of Log4j 2.
 tags:
   - logging
   - log4j
-  - CVE-2021-44228
-  - Log4Shell
 recipeList:
   - org.openrewrite.java.logging.ChangeLombokLogAnnotation:
       loggingFramework: Log4J2
