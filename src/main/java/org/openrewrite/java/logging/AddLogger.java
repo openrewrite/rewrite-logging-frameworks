@@ -43,12 +43,12 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
     private final String loggerName;
     private final JavaTemplate template;
 
-    public AddLogger(J.ClassDeclaration scope, String loggerType, String factoryType, String loggerName, Function<JavaVisitor<?>, JavaTemplate> template) {
+    public AddLogger(J.ClassDeclaration scope, String loggerType, String factoryType, String loggerName, Function<JavaVisitor<?>, JavaTemplate> function) {
         this.scope = scope;
         this.loggerType = loggerType;
         this.factoryType = factoryType;
         this.loggerName = loggerName;
-        this.template = template.apply(this);
+        this.template = function.apply(this);
     }
 
     public static TreeVisitor<J, ExecutionContext> addLogger(J.ClassDeclaration scope, LoggingFramework loggingFramework, String loggerName, ExecutionContext ctx) {
@@ -68,7 +68,7 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
     public static AddLogger addSlf4jLogger(J.ClassDeclaration scope, String loggerName, ExecutionContext ctx) {
         return new AddLogger(scope, "org.slf4j.Logger", "org.slf4j.LoggerFactory", loggerName, visitor ->
                 JavaTemplate
-                        .builder("private static final Logger #{} = LoggerFactory.getLogger(#{}.class);")
+                        .builder(getModifiers(scope) + " Logger #{} = LoggerFactory.getLogger(#{}.class);")
                         .contextSensitive()
                         .imports("org.slf4j.Logger", "org.slf4j.LoggerFactory")
                         .javaParser(JavaParser.fromJavaVersion()
@@ -80,7 +80,7 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
     public static AddLogger addJulLogger(J.ClassDeclaration scope, String loggerName, @SuppressWarnings("unused") ExecutionContext ctx) {
         return new AddLogger(scope, "java.util.logging.Logger", "java.util.logging.LogManager", loggerName, visitor ->
                 JavaTemplate
-                        .builder("private static final Logger #{} = LogManager.getLogManager().getLogger(\"#{}\");")
+                        .builder(getModifiers(scope) + " Logger #{} = LogManager.getLogManager().getLogger(\"#{}\");")
                         .contextSensitive()
                         .imports("java.util.logging.Logger", "java.util.logging.LogManager")
                         .build()
@@ -90,7 +90,7 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
     public static AddLogger addLog4j1Logger(J.ClassDeclaration scope, String loggerName, ExecutionContext ctx) {
         return new AddLogger(scope, "org.apache.log4j.Logger", "org.apache.log4j.LogManager", loggerName, visitor ->
                 JavaTemplate
-                        .builder("private static final Logger #{} = LogManager.getLogger(#{}.class);")
+                        .builder(getModifiers(scope) + " Logger #{} = LogManager.getLogger(#{}.class);")
                         .contextSensitive()
                         .imports("org.apache.log4j.Logger", "org.apache.log4j.LogManager")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "log4j-1.2"))
@@ -101,12 +101,17 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
     public static AddLogger addLog4j2Logger(J.ClassDeclaration scope, String loggerName, ExecutionContext ctx) {
         return new AddLogger(scope, "org.apache.logging.log4j.Logger", "org.apache.logging.log4j.LogManager", loggerName, visitor ->
                 JavaTemplate
-                        .builder("private static final Logger #{} = LogManager.getLogger(#{}.class);")
+                        .builder(getModifiers(scope) + " Logger #{} = LogManager.getLogger(#{}.class);")
                         .contextSensitive()
                         .imports("org.apache.logging.log4j.Logger", "org.apache.logging.log4j.LogManager")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "log4j-api-2.23"))
                         .build()
         );
+    }
+
+    private static String getModifiers(J.ClassDeclaration scope) {
+        boolean innerClass = scope.getType() != null && scope.getType().getOwningClass() != null;
+        return innerClass ? "private final" : "private static final";
     }
 
     @Override
