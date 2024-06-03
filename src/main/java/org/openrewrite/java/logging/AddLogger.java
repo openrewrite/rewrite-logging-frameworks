@@ -111,7 +111,7 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
 
     private static String getModifiers(J.ClassDeclaration scope) {
         boolean innerClass = scope.getType() != null && scope.getType().getOwningClass() != null;
-        return innerClass ? "private final" : "private static final";
+        return innerClass && !scope.hasModifier(J.Modifier.Type.Static) ? "private final" : "private static final";
     }
 
     @Override
