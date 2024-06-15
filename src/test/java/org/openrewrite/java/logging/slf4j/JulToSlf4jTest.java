@@ -16,6 +16,7 @@
 package org.openrewrite.java.logging.slf4j;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -41,6 +42,67 @@ class JulToSlf4jTest implements RewriteTest {
           .recipeFromResources("org.openrewrite.java.logging.slf4j.JulToSlf4j")
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1"));
+    }
+
+    @DocumentExample
+    @Test
+    void simpleLoggerCalls() {
+        rewriteRun(
+          // language=java
+          java(
+            """
+            import java.util.logging.Level;
+            import java.util.logging.Logger;
+
+            class Test {
+                void method(Logger logger) {
+                    logger.finest("finest");
+                    logger.finest(() -> "finest");
+                    logger.finer("finer");
+                    logger.finer(() -> "finer");
+                    logger.fine("fine");
+                    logger.fine(() -> "fine");
+                    logger.config("config");
+                    logger.config(() -> "config");
+                    logger.info("info");
+                    logger.info(() -> "info");
+                    logger.warning("warning");
+                    logger.warning(() -> "warning");
+                    logger.severe("severe");
+                    logger.severe(() -> "severe");
+
+                    logger.log(Level.INFO, "info");
+                    logger.log(Level.INFO, () -> "info");
+                }
+            }
+            """,
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  void method(Logger logger) {
+                      logger.trace("finest");
+                      logger.trace(() -> "finest");
+                      logger.trace("finer");
+                      logger.trace(() -> "finer");
+                      logger.debug("fine");
+                      logger.debug(() -> "fine");
+                      logger.info("config");
+                      logger.info(() -> "config");
+                      logger.info("info");
+                      logger.info(() -> "info");
+                      logger.warn("warning");
+                      logger.warn(() -> "warning");
+                      logger.error("severe");
+                      logger.error(() -> "severe");
+
+                      logger.info("info");
+                      logger.info(() -> "info");
+                  }
+              }
+              """
+          )
+        );
     }
 
     @Test
@@ -348,59 +410,6 @@ class JulToSlf4jTest implements RewriteTest {
                       logger.error("SEVERE Log entry, param1: {}", param1);
                       logger.error("SEVERE Log entry, param1: {}, param2: {}, etc", param1, param2);
                       logger.error("SEVERE Log entry, param1: {}, param2: {}, etc", param1, param2);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void simpleLoggerCalls() {
-        rewriteRun(
-          // language=java
-          java("""
-              import java.util.logging.Level;
-              import java.util.logging.Logger;
-
-              class Test {
-                  void method(Logger logger) {
-                      logger.finest("finest");
-                      logger.finest(() -> "finest");
-                      logger.finer("finer");
-                      logger.finer(() -> "finer");
-                      logger.fine("fine");
-                      logger.fine(() -> "fine");
-                      logger.config("config");
-                      logger.config(() -> "config");
-                      logger.info("info");
-                      logger.info(() -> "info");
-                      logger.warning("warning");
-                      logger.warning(() -> "warning");
-                      logger.severe("severe");
-                      logger.severe(() -> "severe");
-                  }
-              }
-              """,
-            """
-              import org.slf4j.Logger;
-
-              class Test {
-                  void method(Logger logger) {
-                      logger.trace("finest");
-                      logger.trace(() -> "finest");
-                      logger.trace("finer");
-                      logger.trace(() -> "finer");
-                      logger.debug("fine");
-                      logger.debug(() -> "fine");
-                      logger.info("config");
-                      logger.info(() -> "config");
-                      logger.info("info");
-                      logger.info(() -> "info");
-                      logger.warn("warning");
-                      logger.warn(() -> "warning");
-                      logger.error("severe");
-                      logger.error(() -> "severe");
                   }
               }
               """
