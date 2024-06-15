@@ -175,3 +175,16 @@ recipeList:
       oldFullyQualifiedTypeName: org.apache.commons.logging.Log
       newFullyQualifiedTypeName: org.slf4j.Logger
   - org.openrewrite.java.logging.ChangeLombokLogAnnotation
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.logging.slf4j.JulToSlf4j
+displayName: Migrate JUL to SLF4J
+description: Migrates usage of Java Util Logging (JUL) to using SLF4J directly.
+tags:
+  - logging
+  - java-util-logging
+  - slf4j
+recipeList:
+  - org.openrewrite.java.logging.log4j.JulToLog4j
+  - org.openrewrite.java.logging.slf4j.Log4j2ToSlf4j1
