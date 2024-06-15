@@ -39,9 +39,7 @@ class JulToSlf4jTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.typeValidationOptions(TypeValidation.builder().build())
-          .recipeFromResources("org.openrewrite.java.logging.slf4j.JulToSlf4j")
-          .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1"));
+          .recipeFromResources("org.openrewrite.java.logging.slf4j.JulToSlf4j");
     }
 
     @DocumentExample
