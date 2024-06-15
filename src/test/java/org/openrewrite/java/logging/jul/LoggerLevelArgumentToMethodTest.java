@@ -16,6 +16,7 @@
 package org.openrewrite.java.logging.jul;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -28,6 +29,7 @@ class LoggerLevelArgumentToMethodTest implements RewriteTest {
         spec.recipe(new LoggerLevelArgumentToMethodRecipes());
     }
 
+    @DocumentExample
     @Test
     void replaceLevelArguments() {
         rewriteRun(
@@ -53,6 +55,46 @@ class LoggerLevelArgumentToMethodTest implements RewriteTest {
 
               class Test {
                   void test(Logger logger, String message) {
+                      logger.finest(message);
+                      logger.finer(message);
+                      logger.fine(message);
+                      logger.info(message);
+                      logger.warning(message);
+                      logger.severe(message);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void replaceLevelArgumentsWithSupplier() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.util.function.Supplier;
+              import java.util.logging.Level;
+              import java.util.logging.Logger;
+
+              class Test {
+                  void test(Logger logger, Supplier<String> message) {
+                      logger.log(Level.FINEST, message);
+                      logger.log(Level.FINER, message);
+                      logger.log(Level.FINE, message);
+                      logger.log(Level.INFO, message);
+                      logger.log(Level.WARNING, message);
+                      logger.log(Level.SEVERE, message);
+                  }
+              }
+              """,
+            """
+              import java.util.function.Supplier;
+              import java.util.logging.Logger;
+
+              class Test {
+                  void test(Logger logger, Supplier<String> message) {
                       logger.finest(message);
                       logger.finer(message);
                       logger.fine(message);

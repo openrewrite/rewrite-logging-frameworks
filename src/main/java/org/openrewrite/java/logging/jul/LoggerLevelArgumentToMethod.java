@@ -19,6 +19,7 @@ import com.google.errorprone.refaster.annotation.AfterTemplate;
 import com.google.errorprone.refaster.annotation.BeforeTemplate;
 import org.openrewrite.java.template.RecipeDescriptor;
 
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -44,6 +45,22 @@ public class LoggerLevelArgumentToMethod {
     }
 
     @RecipeDescriptor(
+            name = "Replace JUL `Logger.log(Level.FINEST, Supplier<String>)` with `Logger.finest(Supplier<String>)`",
+            description = "Replace calls to `java.util.logging.Logger.log(Level.FINEST, Supplier<String>)` with `Logger.finest(Supplier<String>)`."
+    )
+    public static class LogLevelFinestSupplierToMethod {
+        @BeforeTemplate
+        void before(Logger logger, Supplier<String> message) {
+            logger.log(Level.FINEST, message);
+        }
+
+        @AfterTemplate
+        void after(Logger logger, Supplier<String> message) {
+            logger.finest(message);
+        }
+    }
+
+    @RecipeDescriptor(
             name = "Replace JUL `Logger.log(Level.FINER, String)` with `Logger.finer(String)`",
             description = "Replace calls to `java.util.logging.Logger.log(Level.FINER, String)` with `Logger.finer(String)`."
     )
@@ -55,6 +72,23 @@ public class LoggerLevelArgumentToMethod {
 
         @AfterTemplate
         void after(Logger logger, String message) {
+            logger.finer(message);
+        }
+    }
+
+
+    @RecipeDescriptor(
+            name = "Replace JUL `Logger.log(Level.FINER, Supplier<String>)` with `Logger.finer(Supplier<String>)`",
+            description = "Replace calls to `java.util.logging.Logger.log(Level.FINER, Supplier<String>)` with `Logger.finer(Supplier<String>)`."
+    )
+    public static class LogLevelFinerSupplierToMethod {
+        @BeforeTemplate
+        void before(Logger logger, Supplier<String> message) {
+            logger.log(Level.FINER, message);
+        }
+
+        @AfterTemplate
+        void after(Logger logger, Supplier<String> message) {
             logger.finer(message);
         }
     }
@@ -76,6 +110,22 @@ public class LoggerLevelArgumentToMethod {
     }
 
     @RecipeDescriptor(
+            name = "Replace JUL `Logger.log(Level.FINE, Supplier<String>)` with `Logger.fine(Supplier<String>)`",
+            description = "Replace calls to `java.util.logging.Logger.log(Level.FINE, Supplier<String>)` with `Logger.fine(Supplier<String>)`."
+    )
+    public static class LogLevelFineSupplierToMethod {
+        @BeforeTemplate
+        void before(Logger logger, Supplier<String> message) {
+            logger.log(Level.FINE, message);
+        }
+
+        @AfterTemplate
+        void after(Logger logger, Supplier<String> message) {
+            logger.fine(message);
+        }
+    }
+
+    @RecipeDescriptor(
             name = "Replace JUL `Logger.log(Level.INFO, String)` with `Logger.info(String)`",
             description = "Replace calls to `java.util.logging.Logger.log(Level.INFO, String)` with `Logger.info(String)`."
     )
@@ -87,6 +137,22 @@ public class LoggerLevelArgumentToMethod {
 
         @AfterTemplate
         void after(Logger logger, String message) {
+            logger.info(message);
+        }
+    }
+
+    @RecipeDescriptor(
+            name = "Replace JUL `Logger.log(Level.INFO, Supplier<String>)` with `Logger.info(Supplier<String>)`",
+            description = "Replace calls to `java.util.logging.Logger.log(Level.INFO, Supplier<String>)` with `Logger.info(Supplier<String>)`."
+    )
+    public static class LogLevelInfoSupplierToMethod {
+        @BeforeTemplate
+        void before(Logger logger, Supplier<String> message) {
+            logger.log(Level.INFO, message);
+        }
+
+        @AfterTemplate
+        void after(Logger logger, Supplier<String> message) {
             logger.info(message);
         }
     }
@@ -108,6 +174,22 @@ public class LoggerLevelArgumentToMethod {
     }
 
     @RecipeDescriptor(
+            name = "Replace JUL `Logger.log(Level.WARNING, Supplier<String>)` with `Logger.warning(Supplier<String>)`",
+            description = "Replace calls to `java.util.logging.Logger.log(Level.WARNING, Supplier<String>)` with `Logger.warning(Supplier<String>)`."
+    )
+    public static class LogLevelWarningSupplierToMethod {
+        @BeforeTemplate
+        void before(Logger logger, Supplier<String> message) {
+            logger.log(Level.WARNING, message);
+        }
+
+        @AfterTemplate
+        void after(Logger logger, Supplier<String> message) {
+            logger.warning(message);
+        }
+    }
+
+    @RecipeDescriptor(
             name = "Replace JUL `Logger.log(Level.SEVERE, String)` with `Logger.severe(String)`",
             description = "Replace calls to `java.util.logging.Logger.log(Level.SEVERE, String)` with `Logger.severe(String)`."
     )
@@ -122,4 +204,21 @@ public class LoggerLevelArgumentToMethod {
             logger.severe(message);
         }
     }
+
+    @RecipeDescriptor(
+            name = "Replace JUL `Logger.log(Level.SEVERE, Supplier<String>)` with `Logger.severe(Supplier<String>)`",
+            description = "Replace calls to `java.util.logging.Logger.log(Level.SEVERE, Supplier<String>)` with `Logger.severe(Supplier<String>)`."
+    )
+    public static class LogLevelSevereSupplierToMethod {
+        @BeforeTemplate
+        void before(Logger logger, Supplier<String> message) {
+            logger.log(Level.SEVERE, message);
+        }
+
+        @AfterTemplate
+        void after(Logger logger, Supplier<String> message) {
+            logger.severe(message);
+        }
+    }
 }
+

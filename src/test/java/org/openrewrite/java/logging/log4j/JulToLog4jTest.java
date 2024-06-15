@@ -84,6 +84,7 @@ class JulToLog4jTest implements RewriteTest {
                       logger.warning(() -> "Hello");
 
                       logger.log(Level.INFO, "Hello");
+                      logger.log(Level.INFO, () -> "Hello");
                   }
               }
               """,
@@ -108,6 +109,7 @@ class JulToLog4jTest implements RewriteTest {
                       logger.warn(() -> "Hello");
 
                       logger.info("Hello");
+                      logger.info(() -> "Hello");
                   }
               }
               """
