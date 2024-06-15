@@ -47,6 +47,7 @@ class LoggerLevelArgumentToMethodTest implements RewriteTest {
                       logger.log(Level.INFO, message);
                       logger.log(Level.WARNING, message);
                       logger.log(Level.SEVERE, message);
+                      logger.log(Level.CONFIG, message);
                   }
               }
               """,
@@ -61,6 +62,7 @@ class LoggerLevelArgumentToMethodTest implements RewriteTest {
                       logger.info(message);
                       logger.warning(message);
                       logger.severe(message);
+                      logger.config(message);
                   }
               }
               """
@@ -86,6 +88,7 @@ class LoggerLevelArgumentToMethodTest implements RewriteTest {
                       logger.log(Level.INFO, message);
                       logger.log(Level.WARNING, message);
                       logger.log(Level.SEVERE, message);
+                      logger.log(Level.CONFIG, message);
                   }
               }
               """,
@@ -101,6 +104,7 @@ class LoggerLevelArgumentToMethodTest implements RewriteTest {
                       logger.info(message);
                       logger.warning(message);
                       logger.severe(message);
+                      logger.config(message);
                   }
               }
               """
@@ -120,7 +124,6 @@ class LoggerLevelArgumentToMethodTest implements RewriteTest {
               class Test {
                   void test(Logger logger, String message) {
                       logger.log(Level.ALL, message);
-                      logger.log(Level.CONFIG, message);
                       logger.log(Level.OFF, message);
                   }
               }

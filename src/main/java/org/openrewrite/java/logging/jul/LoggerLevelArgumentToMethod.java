@@ -220,4 +220,36 @@ public class LoggerLevelArgumentToMethod {
             logger.severe(message);
         }
     }
+
+    @RecipeDescriptor(
+            name = "Replace JUL `Logger.log(Level.CONFIG, String)` with `Logger.config(String)`",
+            description = "Replace calls to `java.util.logging.Logger.log(Level.CONFIG, String)` with `Logger.config(String)`."
+    )
+    public static class LogLevelConfigToMethod {
+        @BeforeTemplate
+        void before(Logger logger, String message) {
+            logger.log(Level.CONFIG, message);
+        }
+
+        @AfterTemplate
+        void after(Logger logger, String message) {
+            logger.config(message);
+        }
+    }
+
+    @RecipeDescriptor(
+            name = "Replace JUL `Logger.log(Level.CONFIG, Supplier<String>)` with `Logger.config(Supplier<String>)`",
+            description = "Replace calls to `java.util.logging.Logger.log(Level.CONFIG, Supplier<String>)` with `Logger.config(Supplier<String>)`."
+    )
+    public static class LogLevelConfigSupplierToMethod {
+        @BeforeTemplate
+        void before(Logger logger, Supplier<String> message) {
+            logger.log(Level.CONFIG, message);
+        }
+
+        @AfterTemplate
+        void after(Logger logger, Supplier<String> message) {
+            logger.config(message);
+        }
+    }
 }
