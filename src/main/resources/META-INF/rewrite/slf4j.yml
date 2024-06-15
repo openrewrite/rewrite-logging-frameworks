@@ -186,5 +186,8 @@ tags:
   - java-util-logging
   - slf4j
 recipeList:
+  - org.openrewrite.java.logging.jul.GetLoggerToLoggerFactoryRecipes
+  - org.openrewrite.java.logging.jul.LoggerIsLoggableRecipes
+  - org.openrewrite.staticanalysis.SimplifyConstantIfBranchExecution
   - org.openrewrite.java.logging.log4j.JulToLog4j
   - org.openrewrite.java.logging.slf4j.Log4j2ToSlf4j1
