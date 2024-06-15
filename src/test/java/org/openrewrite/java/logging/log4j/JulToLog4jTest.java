@@ -64,24 +64,27 @@ class JulToLog4jTest implements RewriteTest {
           // language=java
           java(
             """
-              import java.util.logging.Logger;
+              import java.util.logging.Level;import java.util.logging.Logger;
 
               class Test {
                   void method(Logger logger) {
-                    logger.config("Hello");
-                    logger.config(() -> "Hello");
-                    logger.fine("Hello");
-                    logger.fine(() -> "Hello");
-                    logger.finer("Hello");
-                    logger.finer(() -> "Hello");
-                    logger.finest("Hello");
-                    logger.finest(() -> "Hello");
-                    logger.info("Hello");
-                    logger.info(() -> "Hello");
-                    logger.severe("Hello");
-                    logger.severe(() -> "Hello");
-                    logger.warning("Hello");
-                    logger.warning(() -> "Hello");
+                      logger.config("Hello");
+                      logger.config(() -> "Hello");
+                      logger.fine("Hello");
+                      logger.fine(() -> "Hello");
+                      logger.finer("Hello");
+                      logger.finer(() -> "Hello");
+                      logger.finest("Hello");
+                      logger.finest(() -> "Hello");
+                      logger.info("Hello");
+                      logger.info(() -> "Hello");
+                      logger.severe("Hello");
+                      logger.severe(() -> "Hello");
+                      logger.warning("Hello");
+                      logger.warning(() -> "Hello");
+
+                      logger.log(Level.INFO, "Hello");
+                      logger.log(Level.INFO, () -> "Hello");
                   }
               }
               """,
@@ -90,20 +93,23 @@ class JulToLog4jTest implements RewriteTest {
 
               class Test {
                   void method(Logger logger) {
-                    logger.info("Hello");
-                    logger.info(() -> "Hello");
-                    logger.debug("Hello");
-                    logger.debug(() -> "Hello");
-                    logger.trace("Hello");
-                    logger.trace(() -> "Hello");
-                    logger.trace("Hello");
-                    logger.trace(() -> "Hello");
-                    logger.info("Hello");
-                    logger.info(() -> "Hello");
-                    logger.error("Hello");
-                    logger.error(() -> "Hello");
-                    logger.warn("Hello");
-                    logger.warn(() -> "Hello");
+                      logger.info("Hello");
+                      logger.info(() -> "Hello");
+                      logger.debug("Hello");
+                      logger.debug(() -> "Hello");
+                      logger.trace("Hello");
+                      logger.trace(() -> "Hello");
+                      logger.trace("Hello");
+                      logger.trace(() -> "Hello");
+                      logger.info("Hello");
+                      logger.info(() -> "Hello");
+                      logger.error("Hello");
+                      logger.error(() -> "Hello");
+                      logger.warn("Hello");
+                      logger.warn(() -> "Hello");
+
+                      logger.info("Hello");
+                      logger.info(() -> "Hello");
                   }
               }
               """
