@@ -189,6 +189,5 @@ recipeList:
   - org.openrewrite.java.logging.slf4j.JulGetLoggerToLoggerFactoryRecipes
   - org.openrewrite.java.logging.slf4j.JulIsLoggableToIsEnabledRecipes
   - org.openrewrite.java.logging.slf4j.JulLevelAllToTraceRecipe
-  - org.openrewrite.staticanalysis.SimplifyConstantIfBranchExecution
   - org.openrewrite.java.logging.log4j.JulToLog4j
   - org.openrewrite.java.logging.slf4j.Log4j2ToSlf4j1
