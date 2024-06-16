@@ -23,12 +23,12 @@ import org.slf4j.LoggerFactory;
 import java.util.logging.Logger;
 
 @RecipeDescriptor(
-        name = "Replace JUL Logger creation with slf4j LoggerFactory",
+        name = "Replace JUL Logger creation with SLF4J LoggerFactory",
         description = "Replace calls to `Logger.getLogger` with `LoggerFactory.getLogger`."
 )
 public class JulGetLoggerToLoggerFactory {
     @RecipeDescriptor(
-            name = "Replace JUL `Logger.getLogger(Some.class.getName())` with slf4j's `LoggerFactory.getLogger(Some.class)`",
+            name = "Replace JUL `Logger.getLogger(Some.class.getName())` with SLF4J's `LoggerFactory.getLogger(Some.class)`",
             description = "Replace calls to `java.util.logging.Logger.getLogger(Some.class.getName())` with `org.slf4j.LoggerFactory.getLogger(Some.class)`."
     )
     public static class GetLoggerClassNameToLoggerFactory {
@@ -44,7 +44,7 @@ public class JulGetLoggerToLoggerFactory {
     }
 
     @RecipeDescriptor(
-            name = "Replace JUL `Logger.getLogger(Some.class.getCanonicalName())` with slf4j's `LoggerFactory.getLogger(Some.class)`",
+            name = "Replace JUL `Logger.getLogger(Some.class.getCanonicalName())` with SLF4J's `LoggerFactory.getLogger(Some.class)`",
             description = "Replace calls to `java.util.logging.Logger.getLogger(Some.class.getCanonicalName())` with `org.slf4j.LoggerFactory.getLogger(Some.class)`."
     )
     public static class GetLoggerClassCanonicalNameToLoggerFactory {

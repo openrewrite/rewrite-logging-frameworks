@@ -23,12 +23,12 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @RecipeDescriptor(
-        name = "Replace JUL active Level check with corresponding slf4j method calls",
-        description = "Replace calls to `Logger.isLoggable(Level)` with the corresponding slf4j method calls."
+        name = "Replace JUL active Level check with corresponding SLF4J method calls",
+        description = "Replace calls to `Logger.isLoggable(Level)` with the corresponding SLF4J method calls."
 )
 public class JulIsLoggableToIsEnabled {
     @RecipeDescriptor(
-            name = "Replace JUL `Logger.isLoggable(Level.ALL)` with slf4j's `Logger.isTraceEnabled`",
+            name = "Replace JUL `Logger.isLoggable(Level.ALL)` with SLF4J's `Logger.isTraceEnabled`",
             description = "Replace calls to `java.util.logging.Logger.isLoggable(Level.ALL)` with `org.slf4j.Logger.isTraceEnabled()`."
     )
     public static class LoggerIsLoggableLevelAll {
@@ -44,7 +44,7 @@ public class JulIsLoggableToIsEnabled {
     }
 
     @RecipeDescriptor(
-            name = "Replace JUL `Logger.isLoggable(Level.FINEST)` with slf4j's `Logger.isTraceEnabled`",
+            name = "Replace JUL `Logger.isLoggable(Level.FINEST)` with SLF4J's `Logger.isTraceEnabled`",
             description = "Replace calls to `java.util.logging.Logger.isLoggable(Level.FINEST)` with `org.slf4j.Logger.isTraceEnabled()`."
     )
     public static class LoggerIsLoggableLevelFinest {
@@ -60,7 +60,7 @@ public class JulIsLoggableToIsEnabled {
     }
 
     @RecipeDescriptor(
-            name = "Replace JUL `Logger.isLoggable(Level.FINER)` with slf4j's `Logger.isTraceEnabled()`",
+            name = "Replace JUL `Logger.isLoggable(Level.FINER)` with SLF4J's `Logger.isTraceEnabled()`",
             description = "Replace calls to `java.util.logging.Logger.isLoggable(Level.FINER)` with `org.slf4j.Logger.isTraceEnabled()`."
     )
     public static class LoggerIsLoggableLevelFiner {
@@ -76,7 +76,7 @@ public class JulIsLoggableToIsEnabled {
     }
 
     @RecipeDescriptor(
-            name = "Replace JUL `Logger.isLoggable(Level.FINE)` with slf4j's `Logger.isDebugEnabled()`",
+            name = "Replace JUL `Logger.isLoggable(Level.FINE)` with SLF4J's `Logger.isDebugEnabled()`",
             description = "Replace calls to `java.util.logging.Logger.isLoggable(Level.FINE)` with `org.slf4j.Logger.isDebugEnabled()`."
     )
     public static class LoggerIsLoggableLevelFine {
@@ -92,7 +92,7 @@ public class JulIsLoggableToIsEnabled {
     }
 
     @RecipeDescriptor(
-            name = "Replace JUL `Logger.isLoggable(Level.CONFIG)` with slf4j's `Logger.isInfoEnabled()`",
+            name = "Replace JUL `Logger.isLoggable(Level.CONFIG)` with SLF4J's `Logger.isInfoEnabled()`",
             description = "Replace calls to `java.util.logging.Logger.isLoggable(Level.CONFIG)` with `org.slf4j.Logger.isInfoEnabled()`."
     )
     public static class LoggerIsLoggableLevelConfig {
@@ -108,7 +108,7 @@ public class JulIsLoggableToIsEnabled {
     }
 
     @RecipeDescriptor(
-            name = "Replace JUL `Logger.isLoggable(Level.INFO)` with slf4j's `Logger.isInfoEnabled()`",
+            name = "Replace JUL `Logger.isLoggable(Level.INFO)` with SLF4J's `Logger.isInfoEnabled()`",
             description = "Replace calls to `java.util.logging.Logger.isLoggable(Level.INFO)` with `org.slf4j.Logger.isInfoEnabled()`."
     )
     public static class LoggerIsLoggableLevelInfo {
@@ -124,7 +124,7 @@ public class JulIsLoggableToIsEnabled {
     }
 
     @RecipeDescriptor(
-            name = "Replace JUL `Logger.isLoggable(Level.WARNING)` with slf4j's `Logger.isWarnEnabled()`",
+            name = "Replace JUL `Logger.isLoggable(Level.WARNING)` with SLF4J's `Logger.isWarnEnabled()`",
             description = "Replace calls to `java.util.logging.Logger.isLoggable(Level.WARNING)` with `org.slf4j.Logger.isWarnEnabled()`."
     )
     public static class LoggerIsLoggableLevelWarning {
@@ -140,7 +140,7 @@ public class JulIsLoggableToIsEnabled {
     }
 
     @RecipeDescriptor(
-            name = "Replace JUL `Logger.isLoggable(Level.SEVERE)` with slf4j's `Logger.isErrorEnabled()`",
+            name = "Replace JUL `Logger.isLoggable(Level.SEVERE)` with SLF4J's `Logger.isErrorEnabled()`",
             description = "Replace calls to `java.util.logging.Logger.isLoggable(Level.SEVERE)` with `org.slf4j.Logger.isErrorEnabled()`."
     )
     public static class LoggerIsLoggableLevelSevere {
