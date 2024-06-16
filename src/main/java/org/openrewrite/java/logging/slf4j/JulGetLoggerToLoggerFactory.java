@@ -13,17 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.openrewrite.java.logging.jul;
+package org.openrewrite.java.logging.slf4j;
 
 import com.google.errorprone.refaster.annotation.AfterTemplate;
 import com.google.errorprone.refaster.annotation.BeforeTemplate;
+import org.openrewrite.java.template.RecipeDescriptor;
 import org.slf4j.LoggerFactory;
 
 import java.util.logging.Logger;
 
-//TODO Provide RecipeDescriptor
-public class GetLoggerToLoggerFactory {
-    //TODO Provide RecipeDescriptor
+@RecipeDescriptor(
+        name = "Replace JUL Logger creation with slf4j LoggerFactory",
+        description = "Replace calls to `Logger.getLogger` with `LoggerFactory.getLogger`."
+)
+public class JulGetLoggerToLoggerFactory {
+    @RecipeDescriptor(
+            name = "Replace JUL `Logger.getLogger(Some.class.getName())` with slf4j's `LoggerFactory.getLogger(Some.class)`",
+            description = "Replace calls to `java.util.logging.Logger.getLogger(Some.class.getName())` with `org.slf4j.LoggerFactory.getLogger(Some.class)`."
+    )
     public static class GetLoggerClassNameToLoggerFactory {
         @BeforeTemplate
         Logger before(Class<?> clazz) {
@@ -36,7 +43,10 @@ public class GetLoggerToLoggerFactory {
         }
     }
 
-    //TODO Provide RecipeDescriptor
+    @RecipeDescriptor(
+            name = "Replace JUL `Logger.getLogger(Some.class.getCanonicalName())` with slf4j's `LoggerFactory.getLogger(Some.class)`",
+            description = "Replace calls to `java.util.logging.Logger.getLogger(Some.class.getCanonicalName())` with `org.slf4j.LoggerFactory.getLogger(Some.class)`."
+    )
     public static class GetLoggerClassCanonicalNameToLoggerFactory {
         @BeforeTemplate
         Logger before(Class<?> clazz) {

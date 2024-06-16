@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.openrewrite.java.logging.jul;
+package org.openrewrite.java.logging.slf4j;
 
 import com.google.errorprone.refaster.annotation.AfterTemplate;
 import com.google.errorprone.refaster.annotation.BeforeTemplate;
@@ -26,7 +26,7 @@ import java.util.logging.Logger;
         name = "Replace JUL active Level check with corresponding slf4j method calls",
         description = "Replace calls to `Logger.isLoggable(Level)` with the corresponding slf4j method calls."
 )
-public class LoggerIsLoggable {
+public class JulIsLoggableToIsEnabled {
     @RecipeDescriptor(
             name = "Replace JUL `Logger.isLoggable(Level.ALL)` with slf4j's `Logger.isTraceEnabled`",
             description = "Replace calls to `java.util.logging.Logger.isLoggable(Level.ALL)` with `org.slf4j.Logger.isTraceEnabled()`."
