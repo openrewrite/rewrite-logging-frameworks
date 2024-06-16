@@ -70,6 +70,7 @@ class JulToSlf4jTest implements RewriteTest {
 
                     logger.log(Level.INFO, "info");
                     logger.log(Level.INFO, () -> "info");
+                    logger.log(Level.ALL, "all");
                 }
             }
             """,
@@ -95,6 +96,7 @@ class JulToSlf4jTest implements RewriteTest {
 
                       logger.info("info");
                       logger.info(() -> "info");
+                      logger.trace("all");
                   }
               }
               """
