@@ -34,12 +34,12 @@ import java.util.List;
 public class ChangeLogLevel extends Recipe {
     @Override
     public String getDisplayName() {
-        return "Change slf4j log level";
+        return "Change SLF4J log level";
     }
 
     @Override
     public String getDescription() {
-        return "Change the log level of slf4j log statements.";
+        return "Change the log level of SLF4J log statements.";
     }
 
     @Option(displayName = "From",
