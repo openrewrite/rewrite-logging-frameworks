@@ -18,7 +18,6 @@ package org.openrewrite.java.logging.slf4j;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
-import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
@@ -38,9 +37,7 @@ import static org.openrewrite.java.Assertions.java;
 class JulToSlf4jTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
-        spec
-          .recipeFromResources("org.openrewrite.java.logging.slf4j.JulToSlf4j")
-          .parser(JavaParser.fromJavaVersion().classpath(JavaParser.runtimeClasspath()));
+        spec.recipeFromResources("org.openrewrite.java.logging.slf4j.JulToSlf4j");
     }
 
     @DocumentExample
