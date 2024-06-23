@@ -18,6 +18,7 @@ package org.openrewrite.java.logging.slf4j;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
@@ -37,8 +38,9 @@ import static org.openrewrite.java.Assertions.java;
 class JulToSlf4jTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.typeValidationOptions(TypeValidation.builder().build())
-          .recipeFromResources("org.openrewrite.java.logging.slf4j.JulToSlf4j");
+        spec
+          .recipeFromResources("org.openrewrite.java.logging.slf4j.JulToSlf4j")
+          .parser(JavaParser.fromJavaVersion().classpath(JavaParser.runtimeClasspath()));
     }
 
     @DocumentExample
@@ -105,6 +107,7 @@ class JulToSlf4jTest implements RewriteTest {
     @Test
     void supplierLoggerCalls() {
         rewriteRun(
+          spec -> spec.typeValidationOptions(TypeValidation.builder().methodInvocations(false).build()),
           // language=java
           java(
             """
@@ -165,6 +168,7 @@ class JulToSlf4jTest implements RewriteTest {
     @Test
     void concatenatedSupplierLoggerCalls() {
         rewriteRun(
+          spec -> spec.typeValidationOptions(TypeValidation.builder().methodInvocations(false).build()),
           // language=java
           java(
             """
