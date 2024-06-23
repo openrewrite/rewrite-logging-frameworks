@@ -48,31 +48,31 @@ class JulToSlf4jTest implements RewriteTest {
           // language=java
           java(
             """
-            import java.util.logging.Level;
-            import java.util.logging.Logger;
+              import java.util.logging.Level;
+              import java.util.logging.Logger;
 
-            class Test {
-                void method(Logger logger) {
-                    logger.finest("finest");
-                    logger.finer("finer");
-                    logger.fine("fine");
-                    logger.config("config");
-                    logger.info("info");
-                    logger.warning("warning");
-                    logger.severe("severe");
+              class Test {
+                  void method(Logger logger) {
+                      logger.finest("finest");
+                      logger.finer("finer");
+                      logger.fine("fine");
+                      logger.config("config");
+                      logger.info("info");
+                      logger.warning("warning");
+                      logger.severe("severe");
 
-                    logger.log(Level.FINEST, "finest");
-                    logger.log(Level.FINER, "finer");
-                    logger.log(Level.FINE, "fine");
-                    logger.log(Level.CONFIG, "config");
-                    logger.log(Level.INFO, "info");
-                    logger.log(Level.WARNING, "warning");
-                    logger.log(Level.SEVERE, "severe");
-        
-                    logger.log(Level.ALL, "all");
-                }
-            }
-            """,
+                      logger.log(Level.FINEST, "finest");
+                      logger.log(Level.FINER, "finer");
+                      logger.log(Level.FINE, "fine");
+                      logger.log(Level.CONFIG, "config");
+                      logger.log(Level.INFO, "info");
+                      logger.log(Level.WARNING, "warning");
+                      logger.log(Level.SEVERE, "severe");
+
+                      logger.log(Level.ALL, "all");
+                  }
+              }
+              """,
             """
               import org.slf4j.Logger;
 
@@ -93,7 +93,7 @@ class JulToSlf4jTest implements RewriteTest {
                       logger.info("info");
                       logger.warn("warning");
                       logger.error("severe");
-        
+
                       logger.trace("all");
                   }
               }
@@ -102,92 +102,90 @@ class JulToSlf4jTest implements RewriteTest {
         );
     }
 
-    @DocumentExample
     @Test
     void supplierLoggerCalls() {
         rewriteRun(
           // language=java
           java(
             """
-            import java.util.logging.Level;
-            import java.util.logging.Logger;
+              import java.util.logging.Level;
+              import java.util.logging.Logger;
 
-            class Test {
-                void method(Logger logger) {
-                    logger.finest(() -> "finest");
-                    logger.finer(() -> "finer");
-                    logger.fine(() -> "fine");
-                    logger.config(() -> "config");
-                    logger.info(() -> "info");
-                    logger.warning(() -> "warning");
-                    logger.severe(() -> "severe");
+              class Test {
+                  void method(Logger logger) {
+                      logger.finest(() -> "finest");
+                      logger.finer(() -> "finer");
+                      logger.fine(() -> "fine");
+                      logger.config(() -> "config");
+                      logger.info(() -> "info");
+                      logger.warning(() -> "warning");
+                      logger.severe(() -> "severe");
 
-                    logger.log(Level.FINEST, () -> "finest");
-                    logger.log(Level.FINER, () -> "finer");
-                    logger.log(Level.FINE, () -> "fine");
-                    logger.log(Level.CONFIG, () -> "config");
-                    logger.log(Level.INFO, () -> "info");
-                    logger.log(Level.WARNING, () -> "warning");
-                    logger.log(Level.SEVERE, () -> "severe");
-        
-                    logger.log(Level.ALL, () -> "all");
-                }
-            }
-            """,
+                      logger.log(Level.FINEST, () -> "finest");
+                      logger.log(Level.FINER, () -> "finer");
+                      logger.log(Level.FINE, () -> "fine");
+                      logger.log(Level.CONFIG, () -> "config");
+                      logger.log(Level.INFO, () -> "info");
+                      logger.log(Level.WARNING, () -> "warning");
+                      logger.log(Level.SEVERE, () -> "severe");
+
+                      logger.log(Level.ALL, () -> "all");
+                  }
+              }
+              """,
             """
-                    import org.slf4j.Logger;
+              import org.slf4j.Logger;
 
-                    class Test {
-                        void method(Logger logger) {
-                            logger.atTrace().log(() -> "finest");
-                            logger.atTrace().log(() -> "finer");
-                            logger.atDebug().log(() -> "fine");
-                            logger.atInfo().log(() -> "config");
-                            logger.atInfo().log(() -> "info");
-                            logger.atWarn().log(() -> "warning");
-                            logger.atError().log(() -> "severe");
+              class Test {
+                  void method(Logger logger) {
+                      logger.atTrace().log(() -> "finest");
+                      logger.atTrace().log(() -> "finer");
+                      logger.atDebug().log(() -> "fine");
+                      logger.atInfo().log(() -> "config");
+                      logger.atInfo().log(() -> "info");
+                      logger.atWarn().log(() -> "warning");
+                      logger.atError().log(() -> "severe");
 
-                            logger.atTrace().log(() -> "finest");
-                            logger.atTrace().log(() -> "finer");
-                            logger.atDebug().log(() -> "fine");
-                            logger.atInfo().log(() -> "config");
-                            logger.atInfo().log(() -> "info");
-                            logger.atWarn().log(() -> "warning");
-                            logger.atError().log(() -> "severe");
+                      logger.atTrace().log(() -> "finest");
+                      logger.atTrace().log(() -> "finer");
+                      logger.atDebug().log(() -> "fine");
+                      logger.atInfo().log(() -> "config");
+                      logger.atInfo().log(() -> "info");
+                      logger.atWarn().log(() -> "warning");
+                      logger.atError().log(() -> "severe");
 
-                            logger.atTrace().log(() -> "all");
-                        }
-                    }
-                    """
+                      logger.atTrace().log(() -> "all");
+                  }
+              }
+              """
           )
         );
     }
 
-    @DocumentExample
     @Test
     void concatenatedSupplierLoggerCalls() {
         rewriteRun(
           // language=java
           java(
             """
-            import java.util.logging.Level;
-            import java.util.logging.Logger;
+              import java.util.logging.Level;
+              import java.util.logging.Logger;
 
-            class Test {
-                void method(Logger logger) {
-                    String variable = "variable";
-                    logger.finest(() -> "finest" + variable + "rest");
-                    logger.finer(() -> "finer" + variable + "rest");
-                    logger.fine(() -> "fine" + variable + "rest");
-                    logger.config(() -> "config" + variable + "rest");
-                    logger.info(() -> "info" + variable + "rest");
-                    logger.warning(() -> "warning" + variable + "rest");
-                    logger.severe(() -> "severe" + variable + "rest");
+              class Test {
+                  void method(Logger logger) {
+                      String variable = "variable";
+                      logger.finest(() -> "finest" + variable + "rest");
+                      logger.finer(() -> "finer" + variable + "rest");
+                      logger.fine(() -> "fine" + variable + "rest");
+                      logger.config(() -> "config" + variable + "rest");
+                      logger.info(() -> "info" + variable + "rest");
+                      logger.warning(() -> "warning" + variable + "rest");
+                      logger.severe(() -> "severe" + variable + "rest");
 
-                    logger.log(Level.INFO, () -> "info" + variable + "rest");
-                }
-            }
-            """,
+                      logger.log(Level.INFO, () -> "info" + variable + "rest");
+                  }
+              }
+              """,
             """
               import org.slf4j.Logger;
 
@@ -210,32 +208,31 @@ class JulToSlf4jTest implements RewriteTest {
         );
     }
 
-    @DocumentExample
     @Test
     void concatenatedLoggerCalls() {
         rewriteRun(
           // language=java
           java(
             """
-            import java.util.logging.Level;
-            import java.util.logging.Logger;
+              import java.util.logging.Level;
+              import java.util.logging.Logger;
 
-            class Test {
-                void method(Logger logger) {
-                    String variable = "variable";
-                    logger.finest("finest " + variable + " rest");
-                    logger.finer("finer " + variable + " rest");
-                    logger.fine("fine " + variable + " rest");
-                    logger.config("config " + variable + " rest");
-                    logger.info("info " + variable + " rest");
-                    logger.warning("warning " + variable + " rest");
-                    logger.severe("severe " + variable + " rest");
+              class Test {
+                  void method(Logger logger) {
+                      String variable = "variable";
+                      logger.finest("finest " + variable + " rest");
+                      logger.finer("finer " + variable + " rest");
+                      logger.fine("fine " + variable + " rest");
+                      logger.config("config " + variable + " rest");
+                      logger.info("info " + variable + " rest");
+                      logger.warning("warning " + variable + " rest");
+                      logger.severe("severe " + variable + " rest");
 
-                    logger.log(Level.INFO, "info " + variable + " rest");
-                    logger.log(Level.ALL, "all " + variable + " rest");
-                }
-            }
-            """,
+                      logger.log(Level.INFO, "info " + variable + " rest");
+                      logger.log(Level.ALL, "all " + variable + " rest");
+                  }
+              }
+              """,
             """
               import org.slf4j.Logger;
 
