@@ -55,7 +55,7 @@ class PrependRandomNameTest implements RewriteTest {
               class Test {
                   Logger logger;
                   void test() {
-                      logger.info("<chronic_contribution> test");
+                      logger.info("<rural_crew> test");
                   }
               }
               """
