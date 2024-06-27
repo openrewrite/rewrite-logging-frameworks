@@ -121,9 +121,7 @@ public class LoggerParametrizedArguments extends Recipe {
                         targetArguments.add(logParameters);
                     }
 
-                    J.MethodInvocation methodInvocation = method
-                            .withName(newMethodName)
-                            .withArguments(targetArguments);
+                    return method
 
                     return methodInvocation;
                 }
