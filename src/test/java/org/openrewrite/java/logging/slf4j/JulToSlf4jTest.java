@@ -353,7 +353,6 @@ class JulToSlf4jTest implements RewriteTest {
     }
 
     @Test
-    @Disabled
     void parametrizedLoggerCallsIsLoggable() {
         rewriteRun(
           // language=java
