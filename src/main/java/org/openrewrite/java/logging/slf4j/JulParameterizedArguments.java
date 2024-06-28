@@ -32,7 +32,7 @@ import java.util.Optional;
 
 import static org.openrewrite.Tree.randomId;
 
-public class LoggerParameterizedArguments extends Recipe {
+public class JulParameterizedArguments extends Recipe {
     private static final MethodMatcher METHOD_MATCHER_PARAM = new MethodMatcher("java.util.logging.Logger log(java.util.logging.Level, java.lang.String, java.lang.Object)");
     private static final MethodMatcher METHOD_MATCHER_ARRAY = new MethodMatcher("java.util.logging.Logger log(java.util.logging.Level, java.lang.String, java.lang.Object[])");
 
@@ -47,6 +47,9 @@ public class LoggerParameterizedArguments extends Recipe {
             case "FINEST":
             case "FINER":
                 newMethodName = "trace";
+                break;
+            case "FINE":
+                newMethodName = "debug";
                 break;
             case "CONFIG":
             case "INFO":
@@ -64,7 +67,7 @@ public class LoggerParameterizedArguments extends Recipe {
     }
 
     private static J.Literal buildString(String string) {
-        return new J.Literal(randomId(), Space.EMPTY, Markers.EMPTY, string, string, null, JavaType.Primitive.String);
+        return new J.Literal(randomId(), Space.EMPTY, Markers.EMPTY, string, String.format("\"%s\"", string), null, JavaType.Primitive.String);
     }
 
     @Override
@@ -79,7 +82,7 @@ public class LoggerParameterizedArguments extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesMethod<>(METHOD_MATCHER_ARRAY), new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(Preconditions.or(new UsesMethod<>(METHOD_MATCHER_PARAM), new UsesMethod<>(METHOD_MATCHER_ARRAY)), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 if (METHOD_MATCHER_ARRAY.matches(method) || METHOD_MATCHER_PARAM.matches(method)) {
