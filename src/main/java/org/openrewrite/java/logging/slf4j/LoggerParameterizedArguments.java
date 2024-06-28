@@ -22,7 +22,6 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.template.RecipeDescriptor;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
@@ -33,14 +32,9 @@ import java.util.Optional;
 
 import static org.openrewrite.Tree.randomId;
 
-
-@RecipeDescriptor(
-        name = "Replace parametrized JUL leval call with corresponding slf4j method calls",
-        description = "Replace calls to parametrized `Logger.log(Level,String,…)` call with the corresponding slf4j method calls transforming the formatter and parameter lists."
-)
-public class LoggerParametrizedArguments extends Recipe {
-    private static final MethodMatcher METHOD_MATCHER_PARAM = new MethodMatcher("java.util.logging.Logger log(java.util.logging.Level,java.lang.String,java.lang.Object)");
-    private static final MethodMatcher METHOD_MATCHER_ARRAY = new MethodMatcher("java.util.logging.Logger log(java.util.logging.Level,java.lang.String,java.lang.Object[])");
+public class LoggerParameterizedArguments extends Recipe {
+    private static final MethodMatcher METHOD_MATCHER_PARAM = new MethodMatcher("java.util.logging.Logger log(java.util.logging.Level, java.lang.String, java.lang.Object)");
+    private static final MethodMatcher METHOD_MATCHER_ARRAY = new MethodMatcher("java.util.logging.Logger log(java.util.logging.Level, java.lang.String, java.lang.Object[])");
 
     public static boolean isStringLiteral(Expression expression) {
         return expression instanceof J.Literal && TypeUtils.isString(((J.Literal) expression).getType());
@@ -75,12 +69,12 @@ public class LoggerParametrizedArguments extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Replace parametrized JUL leval call with corresponding slf4j method calls";
+        return "Replace parameterized JUL leval call with corresponding slf4j method calls";
     }
 
     @Override
     public String getDescription() {
-        return "Replace calls to parametrized `Logger.log(Level,String,…)` call with the corresponding slf4j method calls transforming the formatter and parameter lists.";
+        return "Replace calls to parameterized `Logger.log(Level,String,…)` call with the corresponding slf4j method calls transforming the formatter and parameter lists.";
     }
 
     @Override
@@ -122,12 +116,11 @@ public class LoggerParametrizedArguments extends Recipe {
                     }
 
                     return method
-
-                    return methodInvocation;
+                            .withName(newMethodName)
+                            .withArguments(targetArguments);
                 }
                 return super.visitMethodInvocation(method, ctx);
             }
         });
     }
-
 }

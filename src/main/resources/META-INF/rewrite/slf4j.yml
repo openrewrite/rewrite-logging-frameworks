@@ -188,7 +188,7 @@ tags:
 recipeList:
   - org.openrewrite.java.logging.slf4j.JulGetLoggerToLoggerFactoryRecipes
   - org.openrewrite.java.logging.slf4j.JulIsLoggableToIsEnabledRecipes
-  - org.openrewrite.java.logging.slf4j.LoggerParametrizedArguments
+  - org.openrewrite.java.logging.slf4j.LoggerParameterizedArguments
   - org.openrewrite.java.logging.slf4j.JulToSlf4jLambdaSupplierRecipes
   - org.openrewrite.java.logging.slf4j.JulLevelAllToTraceRecipe
   - org.openrewrite.java.logging.log4j.JulToLog4j
