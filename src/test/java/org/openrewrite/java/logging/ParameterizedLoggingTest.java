@@ -594,4 +594,35 @@ class ParameterizedLoggingTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/159")
+    void paramterizedWithMarker() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.Marker;
+
+              class Test {
+                  static void method(Logger logger, Marker marker, String name) {
+                      logger.info(marker, "Hello " + name + ", nice to meet you " + name);
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.Marker;
+
+              class Test {
+                  static void method(Logger logger, Marker marker, String name) {
+                      logger.info(marker, "Hello {}, nice to meet you {}", name, name);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
