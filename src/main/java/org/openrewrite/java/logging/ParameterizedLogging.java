@@ -75,11 +75,15 @@ public class ParameterizedLogging extends Recipe {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
-                if (matcher.matches(m) && !m.getArguments().isEmpty() && !(m.getArguments().get(0) instanceof J.Empty) && m.getArguments().size() <= 2) {
+                if (matcher.matches(m) && !m.getArguments().isEmpty() && !(m.getArguments().get(0) instanceof J.Empty)) {
                     Expression logMsg = m.getArguments().get(0);
+                    List<Expression> newArgList = new ArrayList<>();
+                    boolean hasMarker = m.getArguments().size() > 1 
+                            && m.getArguments().get(1) instanceof J.Identifier 
+                            && TypeUtils.isOfType(m.getArguments().get(1).getType(), Marker.class);
+                    
                     if (logMsg instanceof J.Binary) {
                         StringBuilder messageBuilder = new StringBuilder("\"");
-                        List<Expression> newArgList = new ArrayList<>();
                         ListUtils.map(m.getArguments(), (index, message) -> {
                             if (index == 0 && message instanceof J.Binary) {
                                 MessageAndArguments literalAndArgs = concatenationToLiteral(message, new MessageAndArguments("", new ArrayList<>()));
@@ -108,6 +112,12 @@ public class ParameterizedLogging extends Recipe {
                     }
                     if (Boolean.TRUE.equals(removeToString)) {
                         m = m.withArguments(ListUtils.map(m.getArguments(), arg -> (Expression) removeToStringVisitor.visitNonNull(arg, ctx, getCursor())));
+                    }
+
+                    // Reordering arguments if Marker is present
+                    if (hasMarker) {
+                        Expression marker = m.getArguments().get(1);
+                        newArgList.add(0, marker);
                     }
                 }
 
