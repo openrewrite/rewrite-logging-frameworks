@@ -80,7 +80,7 @@ public class ParameterizedLogging extends Recipe {
                     List<Expression> newArgList = new ArrayList<>();
                     boolean hasMarker = m.getArguments().size() > 1 
                             && m.getArguments().get(1) instanceof J.Identifier 
-                            && TypeUtils.isOfType(m.getArguments().get(1).getType(), Marker.class);
+                            && TypeUtils.isAssignableTo("org.slf4j.Marker", m.getArguments().get(1).getType());
                     
                     if (logMsg instanceof J.Binary) {
                         StringBuilder messageBuilder = new StringBuilder("\"");

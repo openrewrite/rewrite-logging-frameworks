@@ -35,7 +35,7 @@ class ParameterizedLoggingTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1", "log4j-api-2.23", "log4j-core-2.23"));;
+          .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1", "log4j-api-2.23", "log4j-core-2.23"));
     }
 
     @DocumentExample
@@ -569,7 +569,7 @@ class ParameterizedLoggingTest implements RewriteTest {
           java(
             """
               import org.slf4j.Logger;
-              
+
               class Test {
                   static void method(Logger logger) {
                       String one = "one";
@@ -581,7 +581,7 @@ class ParameterizedLoggingTest implements RewriteTest {
               """,
             """
               import org.slf4j.Logger;
-              
+
               class Test {
                   static void method(Logger logger) {
                       String one = "one";
@@ -594,32 +594,35 @@ class ParameterizedLoggingTest implements RewriteTest {
           )
         );
     }
-}
+
     @Test
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/159")
     void parameterizedWithMarker() {
-    rewriteRun(
-        spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
-        // language=java
-        java(
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
+          // language=java
+          java(
             """
-            import org.slf4j.Logger;
-            import org.slf4j.Marker;
-            class Test {
-                static void method(Logger logger, Marker marker, String name) {
-                    logger.info(marker, "Hello " + name + ", nice to meet you " + name);
-                }
-            }
-            """,
+              import org.slf4j.Logger;
+              import org.slf4j.Marker;
+
+              class Test {
+                  static void method(Logger logger, Marker marker, String name) {
+                      logger.info(marker, "Hello " + name + ", nice to meet you " + name);
+                  }
+              }
+              """,
             """
-            import org.slf4j.Logger;
-            import org.slf4j.Marker;
-            class Test {
-                static void method(Logger logger, Marker marker, String name) {
-                    logger.info(marker, "Hello {}, nice to meet you {}", name, name);
-                }
-            }
-            """
-        )
-    );
+               import org.slf4j.Logger;
+               import org.slf4j.Marker;
+
+               class Test {
+                   static void method(Logger logger, Marker marker, String name) {
+                       logger.info(marker, "Hello {}, nice to meet you {}", name, name);
+                   }
+               }
+               """
+          )
+        );
+    }
 }
