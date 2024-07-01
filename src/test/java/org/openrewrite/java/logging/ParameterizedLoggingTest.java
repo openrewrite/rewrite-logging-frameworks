@@ -597,7 +597,7 @@ class ParameterizedLoggingTest implements RewriteTest {
 
     @Test
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/159")
-    void parameterizedWithMarker() {
+    void concatenationWithMarker() {
         rewriteRun(
           spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
           // language=java

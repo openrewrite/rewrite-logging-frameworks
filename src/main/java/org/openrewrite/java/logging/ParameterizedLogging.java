@@ -75,32 +75,34 @@ public class ParameterizedLogging extends Recipe {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
-                if (matcher.matches(m) && !m.getArguments().isEmpty() && !(m.getArguments().get(0) instanceof J.Empty)) {
-                    Expression logMsg = m.getArguments().get(0);
-                    List<Expression> newArgList = new ArrayList<>();
-                    boolean hasMarker = m.getArguments().size() > 1 
-                            && m.getArguments().get(1) instanceof J.Identifier 
-                            && TypeUtils.isAssignableTo("org.slf4j.Marker", m.getArguments().get(1).getType());
-                    
+                if (matcher.matches(m) && !m.getArguments().isEmpty() && !(m.getArguments().get(0) instanceof J.Empty) && m.getArguments().size() <= 2) {
+                    final int logMsgIndex = TypeUtils.isAssignableTo("org.slf4j.Marker", m.getArguments().get(0).getType()) ? 1 : 0;
+                    Expression logMsg = m.getArguments().get(logMsgIndex);
                     if (logMsg instanceof J.Binary) {
-                        StringBuilder messageBuilder = new StringBuilder("\"");
+                        StringBuilder messageBuilder = new StringBuilder();
+                        List<Expression> newArgList = new ArrayList<>();
                         ListUtils.map(m.getArguments(), (index, message) -> {
-                            if (index == 0 && message instanceof J.Binary) {
+                            if (index > 0) {
+                                messageBuilder.append(", ");
+                            }
+                            if (index == logMsgIndex && message instanceof J.Binary) {
+                                messageBuilder.append("\"");
                                 MessageAndArguments literalAndArgs = concatenationToLiteral(message, new MessageAndArguments("", new ArrayList<>()));
                                 messageBuilder.append(literalAndArgs.message);
+                                messageBuilder.append("\"");
                                 newArgList.addAll(literalAndArgs.arguments);
+                                literalAndArgs.arguments.forEach(arg -> messageBuilder.append(", #{any()}"));
                             } else {
+                                messageBuilder.append("#{any()}");
                                 newArgList.add(message);
                             }
                             return message;
                         });
-                        messageBuilder.append("\"");
-                        newArgList.forEach(arg -> messageBuilder.append(", #{any()}"));
                         m = JavaTemplate.builder(escapeDollarSign(messageBuilder.toString()))
                                 .contextSensitive()
                                 .build()
                                 .apply(new Cursor(getCursor().getParent(), m), m.getCoordinates().replaceArguments(), newArgList.toArray());
-                    } else if (logMsg instanceof J.Identifier && TypeUtils.isAssignableTo("java.lang.Throwable", logMsg.getType()) ) {
+                    } else if (logMsg instanceof J.Identifier && TypeUtils.isAssignableTo("java.lang.Throwable", logMsg.getType())) {
                         return m;
                     } else if (!TypeUtils.isString(logMsg.getType()) && logMsg.getType() instanceof JavaType.Class) {
                         StringBuilder messageBuilder = new StringBuilder("\"{}\"");
@@ -113,16 +115,10 @@ public class ParameterizedLogging extends Recipe {
                     if (Boolean.TRUE.equals(removeToString)) {
                         m = m.withArguments(ListUtils.map(m.getArguments(), arg -> (Expression) removeToStringVisitor.visitNonNull(arg, ctx, getCursor())));
                     }
-
-                    // Reordering arguments if Marker is present
-                    if (hasMarker) {
-                        Expression marker = m.getArguments().get(1);
-                        newArgList.add(0, marker);
-                    }
                 }
 
                 // Avoid changing reference if the templating didn't actually change the contents of the method
-                if(m != method && m.print(getCursor()).equals(method.print(getCursor()))) {
+                if (m != method && m.print(getCursor()).equals(method.print(getCursor()))) {
                     return method;
                 }
                 return m;
@@ -131,6 +127,7 @@ public class ParameterizedLogging extends Recipe {
             class RemoveToStringVisitor extends JavaVisitor<ExecutionContext> {
                 private final JavaTemplate t = JavaTemplate.builder("#{any(java.lang.String)}").build();
                 private final MethodMatcher TO_STRING = new MethodMatcher("java.lang.Object toString()");
+
                 @Override
                 public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                     if (getCursor().getNearestMessage("DO_NOT_REMOVE", Boolean.FALSE)) {
@@ -183,7 +180,7 @@ public class ParameterizedLogging extends Recipe {
         } else if (concat.getRight() instanceof J.Literal) {
             J.Literal right = (J.Literal) concat.getRight();
             boolean rightIsStringLiteral = right.getType() == JavaType.Primitive.String;
-            if(result.previousMessageWasStringLiteral && rightIsStringLiteral) {
+            if (result.previousMessageWasStringLiteral && rightIsStringLiteral) {
                 result.message += "\" +" + right.getPrefix().getWhitespace() + "\"" + getLiteralValue(right);
             } else {
                 result.message += getLiteralValue(right);
