@@ -31,46 +31,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.openrewrite.Tree.randomId;
 
 public class JulParameterizedArguments extends Recipe {
     private static final MethodMatcher METHOD_MATCHER_PARAM = new MethodMatcher("java.util.logging.Logger log(java.util.logging.Level, java.lang.String, java.lang.Object)");
     private static final MethodMatcher METHOD_MATCHER_ARRAY = new MethodMatcher("java.util.logging.Logger log(java.util.logging.Level, java.lang.String, java.lang.Object[])");
-
-    public static boolean isStringLiteral(Expression expression) {
-        return expression instanceof J.Literal && TypeUtils.isString(((J.Literal) expression).getType());
-    }
-
-    private static Optional<String> getMethodIdentifier(String name) {
-        String newMethodName = null;
-        switch (name) {
-            case "ALL":
-            case "FINEST":
-            case "FINER":
-                newMethodName = "trace";
-                break;
-            case "FINE":
-                newMethodName = "debug";
-                break;
-            case "CONFIG":
-            case "INFO":
-                newMethodName = "info";
-                break;
-            case "WARNING":
-                newMethodName = "warn";
-                break;
-            case "SEVERE":
-                newMethodName = "error";
-                break;
-        }
-
-        return Optional.ofNullable(newMethodName);
-    }
-
-    private static J.Literal buildString(String string) {
-        return new J.Literal(randomId(), Space.EMPTY, Markers.EMPTY, string, String.format("\"%s\"", string), null, JavaType.Primitive.String);
-    }
 
     @Override
     public String getDisplayName() {
@@ -84,55 +52,106 @@ public class JulParameterizedArguments extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(Preconditions.or(new UsesMethod<>(METHOD_MATCHER_PARAM), new UsesMethod<>(METHOD_MATCHER_ARRAY)), new JavaIsoVisitor<ExecutionContext>() {
-            @Override
-            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                if (METHOD_MATCHER_ARRAY.matches(method) || METHOD_MATCHER_PARAM.matches(method)) {
-                    List<Expression> originalArguments = method.getArguments();
+        return Preconditions.check(Preconditions.or(new UsesMethod<>(METHOD_MATCHER_PARAM), new UsesMethod<>(METHOD_MATCHER_ARRAY)), new JulParameterizedToSlf4jVisitor());
+    }
 
-                    Expression levelName = originalArguments.get(0);
-                    String simpleName = ((J.FieldAccess) levelName).getName().getSimpleName();
-                    Optional<String> newName = getMethodIdentifier(simpleName);
-                    if (!newName.isPresent()) {
-                        return method;
-                    }
-                    J.Identifier newMethodName = method.getName().withSimpleName(newName.get());
+    private static class JulParameterizedToSlf4jVisitor extends JavaIsoVisitor<ExecutionContext> {
 
-                    List<Expression> targetArguments = new ArrayList<>(2);
+        public static boolean isStringLiteral(Expression expression) {
+            return expression instanceof J.Literal && TypeUtils.isString(((J.Literal) expression).getType());
+        }
 
-                    J.Literal stringFormat = (J.Literal) originalArguments.get(1);
-                    if (!isStringLiteral(stringFormat)) {
-                        return method;
-                    }
-                    String strFormat = Objects.requireNonNull((stringFormat).getValue()).toString();
-                    strFormat = strFormat.replaceAll("\\{\\d*}", "{}");
-                    J.Literal element = buildString(strFormat);
-                    targetArguments.add(element);
-
-                    Expression logParameters = originalArguments.get(2);
-                    if (logParameters instanceof J.NewArray) {
-                        final List<Expression> initializer = ((J.NewArray) logParameters).getInitializer();
-                        if (initializer != null && !initializer.isEmpty()) {
-                            targetArguments.addAll(initializer);
-                        }
-                    } else {
-                        targetArguments.add(logParameters);
-                    }
-
-                    maybeRemoveImport("java.util.logging.Level");
-
-                    List<String> targetArgumentsStrings = new ArrayList<>();
-                    targetArguments.forEach(targetArgument -> targetArgumentsStrings.add("#{any()}"));
-                    String templateStr = newMethodName + "(" + String.join(",", targetArgumentsStrings) + ")";
-                    return JavaTemplate.builder(templateStr)
-                            .contextSensitive()
-                            .javaParser(JavaParser.fromJavaVersion()
-                                    .classpathFromResources(ctx, "slf4j-api-2.1"))
-                            .build()
-                            .apply(getCursor(), method.getCoordinates().replaceMethod(), targetArguments.toArray());
-                }
-                return super.visitMethodInvocation(method, ctx);
+        private static Optional<String> getMethodIdentifier(String name) {
+            String newMethodName = null;
+            switch (name) {
+                case "ALL":
+                case "FINEST":
+                case "FINER":
+                    newMethodName = "trace";
+                    break;
+                case "FINE":
+                    newMethodName = "debug";
+                    break;
+                case "CONFIG":
+                case "INFO":
+                    newMethodName = "info";
+                    break;
+                case "WARNING":
+                    newMethodName = "warn";
+                    break;
+                case "SEVERE":
+                    newMethodName = "error";
+                    break;
             }
-        });
+
+            return Optional.ofNullable(newMethodName);
+        }
+
+        private static J.Literal buildString(String string) {
+            return new J.Literal(randomId(), Space.EMPTY, Markers.EMPTY, string, String.format("\"%s\"", string), null, JavaType.Primitive.String);
+        }
+
+        @Override
+        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+            if (METHOD_MATCHER_ARRAY.matches(method) || METHOD_MATCHER_PARAM.matches(method)) {
+                List<Expression> originalArguments = method.getArguments();
+
+                Expression levelName = originalArguments.get(0);
+                String simpleName = ((J.FieldAccess) levelName).getName().getSimpleName();
+                Optional<String> newName = getMethodIdentifier(simpleName);
+                if (!newName.isPresent()) {
+                    return method;
+                }
+
+                J.Literal stringFormat = (J.Literal) originalArguments.get(1);
+                if (!isStringLiteral(stringFormat)) {
+                    return method;
+                }
+
+                maybeRemoveImport("java.util.logging.Level");
+
+                List<Expression> targetArguments = new ArrayList<>(2);
+                String originalFormatString = Objects.requireNonNull((stringFormat).getValue()).toString();
+                List<Integer> originalIndices = originalLoggedArgumentIndices(originalFormatString);
+                List<Expression> originalParameters = originalParameters(originalArguments);
+
+                targetArguments.add(buildString(originalFormatString.replaceAll("\\{\\d*}", "{}")));
+                originalIndices.forEach(i -> targetArguments.add(originalParameters.get(i)));
+                List<String> targetArgumentsStrings = new ArrayList<>();
+                targetArguments.forEach(targetArgument -> targetArgumentsStrings.add("#{any()}"));
+                String templateStr = newName.get() + "(" + String.join(",", targetArgumentsStrings) + ")";
+                return JavaTemplate.builder(templateStr)
+                        .contextSensitive()
+                        .javaParser(JavaParser.fromJavaVersion()
+                                .classpathFromResources(ctx, "slf4j-api-2.1"))
+                        .build()
+                        .apply(getCursor(), method.getCoordinates().replaceMethod(), targetArguments.toArray());
+            }
+            return super.visitMethodInvocation(method, ctx);
+        }
+
+        private List<Expression> originalParameters(List<Expression> originalArguments) {
+            Expression logParameters = originalArguments.get(2);
+            List<Expression> originalParameters = new ArrayList<>(2);
+            if (logParameters instanceof J.NewArray) {
+                final List<Expression> initializer = ((J.NewArray) logParameters).getInitializer();
+                if (initializer != null && !initializer.isEmpty()) {
+                    originalParameters.addAll(initializer);
+                }
+            } else {
+                originalParameters.add(logParameters);
+            }
+            return originalParameters;
+        }
+
+        private List<Integer> originalLoggedArgumentIndices(String strFormat) {
+            // A string format like "Hello {0} {1} {1}" should be transformed to 0, 1, 1
+            Matcher matcher = Pattern.compile("\\{(\\d+)}").matcher(strFormat);
+            List<Integer> loggedArgumentIndices = new ArrayList<>(2);
+            while (matcher.find()) {
+                loggedArgumentIndices.add(Integer.valueOf(matcher.group(1)));
+            }
+            return loggedArgumentIndices;
+        }
     }
 }

@@ -20,6 +20,9 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import static org.openrewrite.java.Assertions.java;
 
 class JulParameterizedArgumentsTest implements RewriteTest {
@@ -31,7 +34,7 @@ class JulParameterizedArgumentsTest implements RewriteTest {
 
     @DocumentExample
     @Test
-    void parameterizedSingleArugment() {
+    void parameterizedSingleArgument() {
         rewriteRun(
           // language=java
           java(
@@ -109,6 +112,34 @@ class JulParameterizedArgumentsTest implements RewriteTest {
               class Test {
                   void method(Logger logger, String param1, String param2) {
                       logger.info("INFO Log entry, param2: {}, param1: {}, etc", param2, param1);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void repeatLoggedArgumentAsNeeded() {
+        rewriteRun(
+          // language=java
+          java(
+            """
+              import java.util.logging.Level;
+              import java.util.logging.Logger;
+
+              class Test {
+                  void method(Logger logger, String param1, String param2) {
+                      logger.log(Level.INFO, "INFO Log entry, param1: {0}, param1: {0}, etc", param1);
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  void method(Logger logger, String param1, String param2) {
+                      logger.info("INFO Log entry, param1: {}, param1: {}, etc", param1, param1);
                   }
               }
               """
