@@ -27,10 +27,7 @@ import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -102,7 +99,6 @@ public class JulParameterizedArguments extends Recipe {
                 if (!newName.isPresent()) {
                     return method;
                 }
-
                 J.Literal stringFormat = (J.Literal) originalArguments.get(1);
                 if (!isStringLiteral(stringFormat)) {
                     return method;
@@ -110,17 +106,14 @@ public class JulParameterizedArguments extends Recipe {
 
                 maybeRemoveImport("java.util.logging.Level");
 
-                List<Expression> targetArguments = new ArrayList<>(2);
                 String originalFormatString = Objects.requireNonNull((stringFormat).getValue()).toString();
                 List<Integer> originalIndices = originalLoggedArgumentIndices(originalFormatString);
-                List<Expression> originalParameters = originalParameters(originalArguments);
+                List<Expression> originalParameters = originalParameters(originalArguments.get(2));
 
+                List<Expression> targetArguments = new ArrayList<>(2);
                 targetArguments.add(buildString(originalFormatString.replaceAll("\\{\\d*}", "{}")));
                 originalIndices.forEach(i -> targetArguments.add(originalParameters.get(i)));
-                List<String> targetArgumentsStrings = new ArrayList<>();
-                targetArguments.forEach(targetArgument -> targetArgumentsStrings.add("#{any()}"));
-                String templateStr = newName.get() + "(" + String.join(",", targetArgumentsStrings) + ")";
-                return JavaTemplate.builder(templateStr)
+                return JavaTemplate.builder(createTemplateString(newName.get(), targetArguments))
                         .contextSensitive()
                         .javaParser(JavaParser.fromJavaVersion()
                                 .classpathFromResources(ctx, "slf4j-api-2.1"))
@@ -128,20 +121,6 @@ public class JulParameterizedArguments extends Recipe {
                         .apply(getCursor(), method.getCoordinates().replaceMethod(), targetArguments.toArray());
             }
             return super.visitMethodInvocation(method, ctx);
-        }
-
-        private List<Expression> originalParameters(List<Expression> originalArguments) {
-            Expression logParameters = originalArguments.get(2);
-            List<Expression> originalParameters = new ArrayList<>(2);
-            if (logParameters instanceof J.NewArray) {
-                final List<Expression> initializer = ((J.NewArray) logParameters).getInitializer();
-                if (initializer != null && !initializer.isEmpty()) {
-                    originalParameters.addAll(initializer);
-                }
-            } else {
-                originalParameters.add(logParameters);
-            }
-            return originalParameters;
         }
 
         private List<Integer> originalLoggedArgumentIndices(String strFormat) {
@@ -152,6 +131,23 @@ public class JulParameterizedArguments extends Recipe {
                 loggedArgumentIndices.add(Integer.valueOf(matcher.group(1)));
             }
             return loggedArgumentIndices;
+        }
+
+        private static List<Expression> originalParameters(Expression logParameters) {
+            if (logParameters instanceof J.NewArray) {
+                final List<Expression> initializer = ((J.NewArray) logParameters).getInitializer();
+                if (initializer == null || initializer.isEmpty()) {
+                    return Collections.emptyList();
+                }
+                return initializer;
+            }
+            return Collections.singletonList(logParameters);
+        }
+
+        private static String createTemplateString(String newName, List<Expression> targetArguments) {
+            List<String> targetArgumentsStrings = new ArrayList<>();
+            targetArguments.forEach(targetArgument -> targetArgumentsStrings.add("#{any()}"));
+            return newName + '(' + String.join(",", targetArgumentsStrings) + ')';
         }
     }
 }
