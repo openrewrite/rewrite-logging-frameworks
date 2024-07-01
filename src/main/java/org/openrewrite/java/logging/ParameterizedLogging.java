@@ -76,7 +76,7 @@ public class ParameterizedLogging extends Recipe {
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
                 if (matcher.matches(m) && !m.getArguments().isEmpty() && !(m.getArguments().get(0) instanceof J.Empty) && m.getArguments().size() <= 2) {
-                    final int logMsgIndex = TypeUtils.isAssignableTo("org.slf4j.Marker", m.getArguments().get(0).getType()) ? 1 : 0;
+                    final int logMsgIndex = isMarker(m.getArguments().get(0)) ? 1 : 0;
                     Expression logMsg = m.getArguments().get(logMsgIndex);
                     if (logMsg instanceof J.Binary) {
                         StringBuilder messageBuilder = new StringBuilder();
@@ -90,8 +90,8 @@ public class ParameterizedLogging extends Recipe {
                                 MessageAndArguments literalAndArgs = concatenationToLiteral(message, new MessageAndArguments("", new ArrayList<>()));
                                 messageBuilder.append(literalAndArgs.message);
                                 messageBuilder.append("\"");
-                                newArgList.addAll(literalAndArgs.arguments);
                                 literalAndArgs.arguments.forEach(arg -> messageBuilder.append(", #{any()}"));
+                                newArgList.addAll(literalAndArgs.arguments);
                             } else {
                                 messageBuilder.append("#{any()}");
                                 newArgList.add(message);
@@ -122,6 +122,12 @@ public class ParameterizedLogging extends Recipe {
                     return method;
                 }
                 return m;
+            }
+
+            private boolean isMarker(Expression expression) {
+                JavaType expressionType = expression.getType();
+                return TypeUtils.isAssignableTo("org.slf4j.Marker", expressionType) ||
+                       TypeUtils.isAssignableTo("org.apache.logging.log4j.Marker", expressionType);
             }
 
             class RemoveToStringVisitor extends JavaVisitor<ExecutionContext> {
