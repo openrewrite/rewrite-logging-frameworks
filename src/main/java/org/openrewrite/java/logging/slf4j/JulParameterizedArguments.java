@@ -20,6 +20,8 @@ import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
@@ -86,7 +88,6 @@ public class JulParameterizedArguments extends Recipe {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 if (METHOD_MATCHER_ARRAY.matches(method) || METHOD_MATCHER_PARAM.matches(method)) {
-
                     List<Expression> originalArguments = method.getArguments();
 
                     Expression levelName = originalArguments.get(0);
@@ -118,9 +119,17 @@ public class JulParameterizedArguments extends Recipe {
                         targetArguments.add(logParameters);
                     }
 
-                    return method
-                            .withName(newMethodName)
-                            .withArguments(targetArguments);
+                    maybeRemoveImport("java.util.logging.Level");
+
+                    List<String> targetArgumentsStrings = new ArrayList<>();
+                    targetArguments.forEach(targetArgument -> targetArgumentsStrings.add("#{any()}"));
+                    String templateStr = newMethodName + "(" + String.join(",", targetArgumentsStrings) + ")";
+                    return JavaTemplate.builder(templateStr)
+                            .contextSensitive()
+                            .javaParser(JavaParser.fromJavaVersion()
+                                    .classpathFromResources(ctx, "slf4j-api-2.1"))
+                            .build()
+                            .apply(getCursor(), method.getCoordinates().replaceMethod(), targetArguments.toArray());
                 }
                 return super.visitMethodInvocation(method, ctx);
             }
