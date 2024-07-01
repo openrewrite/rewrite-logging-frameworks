@@ -19,6 +19,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
@@ -27,7 +28,10 @@ import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -58,33 +62,30 @@ public class JulParameterizedArguments extends Recipe {
             return expression instanceof J.Literal && TypeUtils.isString(((J.Literal) expression).getType());
         }
 
-        private static Optional<String> getMethodIdentifier(String name) {
-            String newMethodName = null;
-            switch (name) {
+        @Nullable
+        private static String getMethodIdentifier(Expression levelArgument) {
+            String levelSimpleName = levelArgument instanceof J.FieldAccess ?
+                    (((J.FieldAccess) levelArgument).getName().getSimpleName()) :
+                    (((J.Identifier) levelArgument).getSimpleName());
+            switch (levelSimpleName) {
                 case "ALL":
                 case "FINEST":
                 case "FINER":
-                    newMethodName = "trace";
-                    break;
+                    return "trace";
                 case "FINE":
-                    newMethodName = "debug";
-                    break;
+                    return "debug";
                 case "CONFIG":
                 case "INFO":
-                    newMethodName = "info";
-                    break;
+                    return "info";
                 case "WARNING":
-                    newMethodName = "warn";
-                    break;
+                    return "warn";
                 case "SEVERE":
-                    newMethodName = "error";
-                    break;
+                    return "error";
             }
-
-            return Optional.ofNullable(newMethodName);
+            return null;
         }
 
-        private static J.Literal buildString(String string) {
+        private static J.Literal buildStringLiteral(String string) {
             return new J.Literal(randomId(), Space.EMPTY, Markers.EMPTY, string, String.format("\"%s\"", string), null, JavaType.Primitive.String);
         }
 
@@ -93,27 +94,27 @@ public class JulParameterizedArguments extends Recipe {
             if (METHOD_MATCHER_ARRAY.matches(method) || METHOD_MATCHER_PARAM.matches(method)) {
                 List<Expression> originalArguments = method.getArguments();
 
-                Expression levelName = originalArguments.get(0);
-                String simpleName = ((J.FieldAccess) levelName).getName().getSimpleName();
-                Optional<String> newName = getMethodIdentifier(simpleName);
-                if (!newName.isPresent()) {
-                    return method;
-                }
-                J.Literal stringFormat = (J.Literal) originalArguments.get(1);
-                if (!isStringLiteral(stringFormat)) {
-                    return method;
-                }
+                Expression levelArgument = originalArguments.get(0);
+                Expression messageArgument = originalArguments.get(1);
 
+                if (!(levelArgument instanceof J.FieldAccess || levelArgument instanceof J.Identifier) ||
+                    !isStringLiteral(messageArgument)) {
+                    return method;
+                }
+                String newName = getMethodIdentifier(levelArgument);
+                if(newName == null) {
+                    return method;
+                }
                 maybeRemoveImport("java.util.logging.Level");
 
-                String originalFormatString = Objects.requireNonNull((stringFormat).getValue()).toString();
+                String originalFormatString = Objects.requireNonNull((String) ((J.Literal) messageArgument).getValue());
                 List<Integer> originalIndices = originalLoggedArgumentIndices(originalFormatString);
                 List<Expression> originalParameters = originalParameters(originalArguments.get(2));
 
                 List<Expression> targetArguments = new ArrayList<>(2);
-                targetArguments.add(buildString(originalFormatString.replaceAll("\\{\\d*}", "{}")));
+                targetArguments.add(buildStringLiteral(originalFormatString.replaceAll("\\{\\d*}", "{}")));
                 originalIndices.forEach(i -> targetArguments.add(originalParameters.get(i)));
-                return JavaTemplate.builder(createTemplateString(newName.get(), targetArguments))
+                return JavaTemplate.builder(createTemplateString(newName, targetArguments))
                         .contextSensitive()
                         .javaParser(JavaParser.fromJavaVersion()
                                 .classpathFromResources(ctx, "slf4j-api-2.1"))

@@ -20,9 +20,6 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import static org.openrewrite.java.Assertions.java;
 
 class JulParameterizedArgumentsTest implements RewriteTest {
@@ -180,6 +177,66 @@ class JulParameterizedArgumentsTest implements RewriteTest {
                       logger.info("INFO Log entry, param1: {}", param1);
                       logger.warn("WARNING Log entry, param1: {}", param1);
                       logger.error("SEVERE Log entry, param1: {}", param1);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void staticImportLevel() {
+        rewriteRun(
+          // language=java
+          java(
+            """
+              import java.util.logging.Logger;
+              import static java.util.logging.Level.INFO;
+
+              class Test {
+                  void method(Logger logger, String param1) {
+                      logger.log(INFO, "INFO Log entry, param1: {0}", param1);
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  void method(Logger logger, String param1) {
+                      logger.info("INFO Log entry, param1: {}", param1);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void levelVariableLeadsToPartialConversion() {
+        rewriteRun(
+          // language=java
+          java(
+            """
+              import java.util.logging.Logger;
+              import java.util.logging.Level;
+
+              class Test {
+                  void method(Logger logger, Level level, String param1) {
+                      // No way to determine the replacement logging method
+                      logger.log(level, "INFO Log entry, param1: {0}", param1);
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              import java.util.logging.Level;
+
+              class Test {
+                  void method(Logger logger, Level level, String param1) {
+                      // No way to determine the replacement logging method
+                      logger.log(level, "INFO Log entry, param1: {0}", param1);
                   }
               }
               """
