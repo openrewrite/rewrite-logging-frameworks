@@ -101,6 +101,51 @@ class JulToSlf4jTest implements RewriteTest {
         );
     }
 
+    @DocumentExample
+    @Test
+    void simpleLoggerCallsWithThrowable() {
+        rewriteRun(
+          // language=java
+          java(
+            """
+              import java.util.logging.Level;
+              import java.util.logging.Logger;
+
+              class Test {
+                  void method(Logger logger, Throwable e) {
+                      logger.log(Level.FINEST, "finest", e);
+                      logger.log(Level.FINER, "finer", e);
+                      logger.log(Level.FINE, "fine", e);
+                      logger.log(Level.CONFIG, "config", e);
+                      logger.log(Level.INFO, "info", e);
+                      logger.log(Level.WARNING, "warning", e);
+                      logger.log(Level.SEVERE, "severe", e);
+
+                      logger.log(Level.ALL, "all", e);
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  void method(Logger logger, Throwable e) {
+                      logger.trace("finest", e);
+                      logger.trace("finer", e);
+                      logger.debug("fine", e);
+                      logger.info("config", e);
+                      logger.info("info", e);
+                      logger.warn("warning", e);
+                      logger.error("severe", e);
+
+                      logger.trace("all", e);
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Test
     void supplierLoggerCalls() {
         rewriteRun(
@@ -155,6 +200,51 @@ class JulToSlf4jTest implements RewriteTest {
                       logger.atError().log(() -> "severe");
 
                       logger.atTrace().log(() -> "all");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void supplierLoggerCallsWithThrowable() {
+        rewriteRun(
+          spec -> spec.typeValidationOptions(TypeValidation.builder().methodInvocations(false).build()),
+          // language=java
+          java(
+            """
+              import java.util.logging.Level;
+              import java.util.logging.Logger;
+
+              class Test {
+                  void method(Logger logger, Throwable e) {
+                      logger.log(Level.FINEST, e, () -> "finest");
+                      logger.log(Level.FINER, e, () -> "finer");
+                      logger.log(Level.FINE, e, () -> "fine");
+                      logger.log(Level.CONFIG, e, () -> "config");
+                      logger.log(Level.INFO, e, () -> "info");
+                      logger.log(Level.WARNING, e, () -> "warning");
+                      logger.log(Level.SEVERE, e, () -> "severe");
+
+                      logger.log(Level.ALL, e, () -> "all");
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  void method(Logger logger, Throwable e) {
+                      logger.atTrace().setCause(e).log(() -> "finest");
+                      logger.atTrace().setCause(e).log(() -> "finer");
+                      logger.atDebug().setCause(e).log(() -> "fine");
+                      logger.atInfo().setCause(e).log(() -> "config");
+                      logger.atInfo().setCause(e).log(() -> "info");
+                      logger.atWarn().setCause(e).log(() -> "warning");
+                      logger.atError().setCause(e).log(() -> "severe");
+
+                      logger.atTrace().setCause(e).log(() -> "all");
                   }
               }
               """
