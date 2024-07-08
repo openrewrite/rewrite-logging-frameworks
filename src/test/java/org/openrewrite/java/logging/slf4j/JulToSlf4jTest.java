@@ -101,7 +101,6 @@ class JulToSlf4jTest implements RewriteTest {
         );
     }
 
-    @DocumentExample
     @Test
     void simpleLoggerCallsWithThrowable() {
         rewriteRun(
