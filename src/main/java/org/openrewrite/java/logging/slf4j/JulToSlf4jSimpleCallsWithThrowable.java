@@ -29,7 +29,7 @@ import java.util.logging.Logger;
 public class JulToSlf4jSimpleCallsWithThrowable {
     @RecipeDescriptor(
             name = "Replace JUL `logger.log(Level.FINEST, String message, Throwable e)` with SLF4J's `Logger.trace(message, e)`",
-            description = "Replace calls to `java.util.logging.logger.log(Level.FINEST, String message, Throwable e)` with `org.slf4j.Logger.trace(message, e)`."
+            description = "Replace calls to `java.util.logging.Logger.log(Level.FINEST, String message, Throwable e)` with `org.slf4j.Logger.trace(message, e)`."
     )
     public static class JulToSlf4jSupplierFinest {
         @BeforeTemplate
@@ -45,7 +45,7 @@ public class JulToSlf4jSimpleCallsWithThrowable {
 
     @RecipeDescriptor(
             name = "Replace JUL `logger.log(Level.FINER, String message, Throwable e)` with SLF4J's `Logger.trace(message, e)`",
-            description = "Replace calls to `java.util.logging.logger.log(Level.FINER, String message, Throwable e)` with `org.slf4j.Logger.trace(message, e)`."
+            description = "Replace calls to `java.util.logging.Logger.log(Level.FINER, String message, Throwable e)` with `org.slf4j.Logger.trace(message, e)`."
     )
     public static class JulToSlf4jSupplierFiner {
         @BeforeTemplate
@@ -61,7 +61,7 @@ public class JulToSlf4jSimpleCallsWithThrowable {
 
     @RecipeDescriptor(
             name = "Replace JUL `logger.log(Level.FINE, String message, Throwable e)` with SLF4J's `Logger.debug(message, e)`",
-            description = "Replace calls to `java.util.logging.logger.log(Level.FINE, String message, Throwable e)` with `org.slf4j.Logger.debug(message, e)`."
+            description = "Replace calls to `java.util.logging.Logger.log(Level.FINE, String message, Throwable e)` with `org.slf4j.Logger.debug(message, e)`."
     )
     public static class JulToSlf4jSupplierFine {
         @BeforeTemplate
@@ -77,7 +77,7 @@ public class JulToSlf4jSimpleCallsWithThrowable {
 
     @RecipeDescriptor(
             name = "Replace JUL `logger.log(Level.CONFIG, String message, Throwable e)` with SLF4J's `Logger.info(message, e)`",
-            description = "Replace calls to `java.util.logging.logger.log(Level.CONFIG, String message, Throwable e)` with `org.slf4j.Logger.info(message, e)`."
+            description = "Replace calls to `java.util.logging.Logger.log(Level.CONFIG, String message, Throwable e)` with `org.slf4j.Logger.info(message, e)`."
     )
     public static class JulToSlf4jSupplierConfig {
         @BeforeTemplate
@@ -93,7 +93,7 @@ public class JulToSlf4jSimpleCallsWithThrowable {
 
     @RecipeDescriptor(
             name = "Replace JUL `logger.log(Level.INFO, String message, Throwable e)` with SLF4J's `Logger.info(message, e)`",
-            description = "Replace calls to `java.util.logging.logger.log(Level.INFO, String message, Throwable e)` with `org.slf4j.Logger.info(message, e)`."
+            description = "Replace calls to `java.util.logging.Logger.log(Level.INFO, String message, Throwable e)` with `org.slf4j.Logger.info(message, e)`."
     )
     public static class JulToSlf4jSupplierInfo {
         @BeforeTemplate
@@ -109,7 +109,7 @@ public class JulToSlf4jSimpleCallsWithThrowable {
 
     @RecipeDescriptor(
             name = "Replace JUL `logger.log(Level.WARNING, String message, Throwable e)` with SLF4J's `Logger.warn(message, e)`",
-            description = "Replace calls to `java.util.logging.logger.log(Level.WARNING, String message, Throwable e)` with `org.slf4j.Logger.warn(message, e)`."
+            description = "Replace calls to `java.util.logging.Logger.log(Level.WARNING, String message, Throwable e)` with `org.slf4j.Logger.warn(message, e)`."
     )
     public static class JulToSlf4jSupplierWarning {
         @BeforeTemplate
@@ -125,7 +125,7 @@ public class JulToSlf4jSimpleCallsWithThrowable {
 
     @RecipeDescriptor(
             name = "Replace JUL `logger.log(Level.SEVERE, String message, Throwable e)` with SLF4J's `Logger.error(message, e)`",
-            description = "Replace calls to `java.util.logging.logger.log(Level.SEVERE, String message, Throwable e)` with `org.slf4j.Logger.error(message, e)`."
+            description = "Replace calls to `java.util.logging.Logger.log(Level.SEVERE, String message, Throwable e)` with `org.slf4j.Logger.error(message, e)`."
     )
     public static class JulToSlf4jSupplierSevere {
         @BeforeTemplate
@@ -141,7 +141,7 @@ public class JulToSlf4jSimpleCallsWithThrowable {
 
     @RecipeDescriptor(
             name = "Replace JUL `logger.log(Level.ALL, String message, Throwable e)` with SLF4J's `Logger.trace(message, e)`",
-            description = "Replace calls to `java.util.logging.logger.log(Level.ALL, String message, Throwable e)` with `org.slf4j.Logger.trace(message, e)`."
+            description = "Replace calls to `java.util.logging.Logger.log(Level.ALL, String message, Throwable e)` with `org.slf4j.Logger.trace(message, e)`."
     )
     public static class JulToSlf4jSupplierAll {
         @BeforeTemplate

@@ -30,7 +30,7 @@ import java.util.logging.Logger;
 public class JulToSlf4jLambdaSupplierWithThrowable {
     @RecipeDescriptor(
             name = "Replace JUL `logger.log(Level.FINEST, e, Supplier<String>)` with SLF4J's `Logger.atTrace().log(Supplier<String>)`",
-            description = "Replace calls to `java.util.logging.logger.log(Level.FINEST, e, Supplier<String>)` with `org.slf4j.Logger.atTrace().log(Supplier<String>)`."
+            description = "Replace calls to `java.util.logging.Logger.log(Level.FINEST, e, Supplier<String>)` with `org.slf4j.Logger.atTrace().log(Supplier<String>)`."
     )
     public static class JulToSlf4jSupplierFinest {
         @BeforeTemplate
@@ -46,7 +46,7 @@ public class JulToSlf4jLambdaSupplierWithThrowable {
 
     @RecipeDescriptor(
             name = "Replace JUL `logger.log(Level.FINER, e, Supplier<String>)` with SLF4J's `Logger.atTrace().log(Supplier<String>)`",
-            description = "Replace calls to `java.util.logging.logger.log(Level.FINER, e, Supplier<String>)` with `org.slf4j.Logger.atTrace().log(Supplier<String>)`."
+            description = "Replace calls to `java.util.logging.Logger.log(Level.FINER, e, Supplier<String>)` with `org.slf4j.Logger.atTrace().log(Supplier<String>)`."
     )
     public static class JulToSlf4jSupplierFiner {
         @BeforeTemplate
@@ -62,7 +62,7 @@ public class JulToSlf4jLambdaSupplierWithThrowable {
 
     @RecipeDescriptor(
             name = "Replace JUL `logger.log(Level.FINE, e, Supplier<String>)` with SLF4J's `Logger.atDebug().log(Supplier<String>)`",
-            description = "Replace calls to `java.util.logging.logger.log(Level.FINE, e, Supplier<String>)` with `org.slf4j.Logger.atDebug().log(Supplier<String>)`."
+            description = "Replace calls to `java.util.logging.Logger.log(Level.FINE, e, Supplier<String>)` with `org.slf4j.Logger.atDebug().log(Supplier<String>)`."
     )
     public static class JulToSlf4jSupplierFine {
         @BeforeTemplate
@@ -78,7 +78,7 @@ public class JulToSlf4jLambdaSupplierWithThrowable {
 
     @RecipeDescriptor(
             name = "Replace JUL `logger.log(Level.CONFIG, e, Supplier<String>)` with SLF4J's `Logger.atInfo().log(Supplier<String>)`",
-            description = "Replace calls to `java.util.logging.logger.log(Level.CONFIG, e, Supplier<String>)` with `org.slf4j.Logger.atInfo().log(Supplier<String>)`."
+            description = "Replace calls to `java.util.logging.Logger.log(Level.CONFIG, e, Supplier<String>)` with `org.slf4j.Logger.atInfo().log(Supplier<String>)`."
     )
     public static class JulToSlf4jSupplierConfig {
         @BeforeTemplate
@@ -94,7 +94,7 @@ public class JulToSlf4jLambdaSupplierWithThrowable {
 
     @RecipeDescriptor(
             name = "Replace JUL `logger.log(Level.INFO, e, Supplier<String>)` with SLF4J's `Logger.atInfo().log(Supplier<String>)`",
-            description = "Replace calls to `java.util.logging.logger.log(Level.INFO, e, Supplier<String>)` with `org.slf4j.Logger.atInfo().log(Supplier<String>)`."
+            description = "Replace calls to `java.util.logging.Logger.log(Level.INFO, e, Supplier<String>)` with `org.slf4j.Logger.atInfo().log(Supplier<String>)`."
     )
     public static class JulToSlf4jSupplierInfo {
         @BeforeTemplate
@@ -110,7 +110,7 @@ public class JulToSlf4jLambdaSupplierWithThrowable {
 
     @RecipeDescriptor(
             name = "Replace JUL `logger.log(Level.WARNING, e, Supplier<String>)` with SLF4J's `Logger.atWarn().log(Supplier<String>)`",
-            description = "Replace calls to `java.util.logging.logger.log(Level.WARNING, e, Supplier<String>)` with `org.slf4j.Logger.atWarn().log(Supplier<String>)`."
+            description = "Replace calls to `java.util.logging.Logger.log(Level.WARNING, e, Supplier<String>)` with `org.slf4j.Logger.atWarn().log(Supplier<String>)`."
     )
     public static class JulToSlf4jSupplierWarning {
         @BeforeTemplate
@@ -126,7 +126,7 @@ public class JulToSlf4jLambdaSupplierWithThrowable {
 
     @RecipeDescriptor(
             name = "Replace JUL `logger.log(Level.SEVERE, e, Supplier<String>)` with SLF4J's `Logger.atError().log(Supplier<String>)`",
-            description = "Replace calls to `java.util.logging.logger.log(Level.SEVERE, e, Supplier<String>)` with `org.slf4j.Logger.atError().log(Supplier<String>)`."
+            description = "Replace calls to `java.util.logging.Logger.log(Level.SEVERE, e, Supplier<String>)` with `org.slf4j.Logger.atError().log(Supplier<String>)`."
     )
     public static class JulToSlf4jSupplierSevere {
         @BeforeTemplate
@@ -142,7 +142,7 @@ public class JulToSlf4jLambdaSupplierWithThrowable {
 
     @RecipeDescriptor(
             name = "Replace JUL `logger.log(Level.ALL, e, Supplier<String>)` with SLF4J's `Logger.atTrace().log(Supplier<String>)`",
-            description = "Replace calls to `java.util.logging.logger.log(Level.ALL, e, Supplier<String>)` with `org.slf4j.Logger.atTrace().log(Supplier<String>)`."
+            description = "Replace calls to `java.util.logging.Logger.log(Level.ALL, e, Supplier<String>)` with `org.slf4j.Logger.atTrace().log(Supplier<String>)`."
     )
     public static class JulToSlf4jSupplierAll {
         @BeforeTemplate
