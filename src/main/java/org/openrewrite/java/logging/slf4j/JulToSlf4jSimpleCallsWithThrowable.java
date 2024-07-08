@@ -23,8 +23,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @RecipeDescriptor(
-        name = "Replace JUL active Level check with corresponding SLF4J method calls",
-        description = "Replace calls to `Logger.isLoggable(Level)` with the corresponding SLF4J method calls."
+        name = "Replace JUL `log(Level, String, Throwable)` with corresponding SLF4J method calls",
+        description = "Replace calls to `Logger.log(Level, String, Throwable)` with the corresponding SLF4J method calls."
 )
 public class JulToSlf4jSimpleCallsWithThrowable {
     @RecipeDescriptor(
