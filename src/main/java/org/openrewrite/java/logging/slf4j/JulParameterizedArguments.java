@@ -43,7 +43,7 @@ public class JulParameterizedArguments extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Replace parameterized JUL leval call with corresponding slf4j method calls";
+        return "Replace parameterized JUL level call with corresponding SLF4J method calls";
     }
 
     @Override
