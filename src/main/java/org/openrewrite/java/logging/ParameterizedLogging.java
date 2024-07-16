@@ -205,8 +205,7 @@ public class ParameterizedLogging extends Recipe {
         return result;
     }
 
-    @Nullable
-    private static Object getLiteralValue(J.Literal literal) {
+    private static @Nullable Object getLiteralValue(J.Literal literal) {
         if (literal.getValueSource() == null || literal.getType() != JavaType.Primitive.String) {
             return literal.getValue();
         }

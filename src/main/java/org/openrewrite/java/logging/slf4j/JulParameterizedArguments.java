@@ -62,8 +62,7 @@ public class JulParameterizedArguments extends Recipe {
             return expression instanceof J.Literal && TypeUtils.isString(((J.Literal) expression).getType());
         }
 
-        @Nullable
-        private static String getMethodIdentifier(Expression levelArgument) {
+        private static @Nullable String getMethodIdentifier(Expression levelArgument) {
             String levelSimpleName = levelArgument instanceof J.FieldAccess ?
                     (((J.FieldAccess) levelArgument).getName().getSimpleName()) :
                     (((J.Identifier) levelArgument).getSimpleName());
