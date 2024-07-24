@@ -15,8 +15,12 @@
  */
 package org.openrewrite.java.logging.slf4j;
 
+import org.jetbrains.annotations.NotNull;
 import org.openrewrite.*;
-import org.openrewrite.java.*;
+import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.JavadocVisitor;
+import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
@@ -81,25 +85,22 @@ public class LoggersNamedForEnclosingClass extends Recipe {
                 Expression firstArgument = mi.getArguments().get(0);
                 if (firstArgument instanceof J.FieldAccess) {
                     String argumentClazzName = ((J.FieldAccess) firstArgument).toString();
-                    if (enclosingClazzName.equals(argumentClazzName)) {
-                        return mi;
+                    if (argumentClazzName.endsWith(".class") && !enclosingClazzName.equals(argumentClazzName)) {
+                        return replaceMethodArgument(mi, enclosingClazzName);
                     }
                 } else if (firstArgument instanceof J.MethodInvocation &&
                            "getClass".equals(((J.MethodInvocation) firstArgument).getName().toString())) {
-                    if (!firstEnclosingClass.hasModifier(J.Modifier.Type.Final)) {
-                        return mi;
+                    if (firstEnclosingClass.hasModifier(J.Modifier.Type.Final)) {
+                        return replaceMethodArgument(mi, enclosingClazzName);
                     }
-                } else {
-                    return mi;
                 }
 
-                return JavaTemplate.builder("LoggerFactory.getLogger(#{})")
-                        .contextSensitive()
-                        .imports("org.slf4j.LoggerFactory")
-                        .javaParser(JavaParser.fromJavaVersion()
-                                .classpathFromResources(ctx, "slf4j-api-2.1"))
-                        .build()
-                        .apply(new Cursor(getCursor().getParent(), mi), mi.getCoordinates().replace(), enclosingClazzName);
+                return mi;
+            }
+
+            private J.MethodInvocation replaceMethodArgument(J.MethodInvocation mi, String enclosingClazzName) {
+                return JavaTemplate.builder("#{}").contextSensitive().build()
+                        .apply(getCursor(), mi.getCoordinates().replaceArguments(), enclosingClazzName);
             }
         });
     }
