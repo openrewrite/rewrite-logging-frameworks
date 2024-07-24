@@ -34,6 +34,7 @@ class LoggersNamedForEnclosingClassTest implements RewriteTest {
             .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1"));
     }
 
+    @DocumentExample
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/65")
     @Test
     void shouldRenameLogger() {
@@ -157,29 +158,22 @@ class LoggersNamedForEnclosingClassTest implements RewriteTest {
         );
     }
 
-    @DocumentExample
     @Test
-    void shouldNotReplaceLoggerInMethodIfNotConstant() {
+    void shouldNotReplaceGetBeanType() {
         //language=java
         rewriteRun(
           java(
             """
               import org.slf4j.Logger;
               import org.slf4j.LoggerFactory;
-              class WrongClass {}
-              class A {
-                  public Logger getLogger() {
-                      return LoggerFactory.getLogger(WrongClass.class);
+              class SomeProvider {
+                  Class<?> getBeanType() {
+                      return SomeProvider.class;
                   }
               }
-              """,
-            """
-              import org.slf4j.Logger;
-              import org.slf4j.LoggerFactory;
-              class WrongClass {}
               class A {
-                  public Logger getLogger() {
-                      return LoggerFactory.getLogger(A.class);
+                  public Logger getLogger(SomeProvider provider) {
+                      return LoggerFactory.getLogger(provider.getBeanType());
                   }
               }
               """
