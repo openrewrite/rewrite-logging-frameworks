@@ -57,8 +57,7 @@ recipeList:
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.log4j.Log4j1ToLog4j2
 displayName: Migrate Log4j 1.x to Log4j 2.x
-description: > 
-  Migrates Log4j 1.x to Log4j 2.x.
+description: Migrates Log4j 1.x to Log4j 2.x.
 tags:
   - logging
   - log4j
