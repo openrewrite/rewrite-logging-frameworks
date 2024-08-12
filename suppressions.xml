@@ -15,23 +15,4 @@
         <vulnerabilityName>CVE-2021-4104</vulnerabilityName>
         <cve>CVE-2023-26464</cve>
     </suppress>
-    <suppress until="2024-09-25Z">
-        <notes><![CDATA[
-   file name: org.eclipse.jgit-4.4.1.201607150455-r.jar
-       sev: High
-         reason: dependencies of refaster.
-   ]]></notes>
-        <packageUrl regex="true">^pkg:maven/org\.eclipse\.jgit/org\.eclipse\.jgit@.*$</packageUrl>
-        <vulnerabilityName>CVE-2023-4759</vulnerabilityName>
-    </suppress>
-    <suppress until="2024-09-25Z">
-        <notes><![CDATA[
-   file name: protobuf-java-3.19.2.jar
-   ]]></notes>
-        <packageUrl regex="true">^pkg:maven/com\.google\.protobuf/protobuf-java@.*$</packageUrl>
-        <cve>CVE-2022-3171</cve>
-        <cve>CVE-2022-3509</cve>
-        <cve>CVE-2022-3510</cve>
-    </suppress>
-
 </suppressions>
