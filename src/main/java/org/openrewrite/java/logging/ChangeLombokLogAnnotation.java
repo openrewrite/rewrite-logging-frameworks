@@ -16,9 +16,9 @@
 package org.openrewrite.java.logging;
 
 import lombok.AllArgsConstructor;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.Option;
 import org.openrewrite.Recipe;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.ChangeType;
 
 import java.util.List;

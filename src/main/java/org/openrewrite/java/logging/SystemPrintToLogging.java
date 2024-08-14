@@ -18,9 +18,9 @@ package org.openrewrite.java.logging;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Value;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.Option;
 import org.openrewrite.Recipe;
-import org.openrewrite.internal.lang.Nullable;
 
 import java.util.Arrays;
 import java.util.List;
