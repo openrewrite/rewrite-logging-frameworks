@@ -17,9 +17,9 @@ package org.openrewrite.java.logging.slf4j;
 
 import lombok.EqualsAndHashCode;
 import lombok.Value;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.internal.StringUtils;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.ChangeMethodName;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
@@ -98,8 +98,7 @@ public class ChangeLogLevel extends Recipe {
         });
     }
 
-    @Nullable
-    J.Literal leftMostLiteral(Expression arg) {
+    J.@Nullable Literal leftMostLiteral(Expression arg) {
         if (arg instanceof J.Literal) {
             return (J.Literal) arg;
         }
