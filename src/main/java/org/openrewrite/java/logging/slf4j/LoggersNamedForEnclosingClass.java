@@ -24,9 +24,7 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavadocVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
-import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.Javadoc;
+import org.openrewrite.java.tree.*;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -88,6 +86,9 @@ public class LoggersNamedForEnclosingClass extends Recipe {
                 if (firstArgument instanceof J.FieldAccess) {
                     String argumentClazzName = ((J.FieldAccess) firstArgument).toString();
                     if (argumentClazzName.endsWith(".class") && !enclosingClazzName.equals(argumentClazzName)) {
+                        if (firstArgument.getType() instanceof JavaType.Parameterized) {
+                            maybeRemoveImport(((JavaType.Parameterized) firstArgument.getType()).getTypeParameters().get(0).toString());
+                        }
                         return replaceMethodArgument(mi, enclosingClazzName);
                     }
                 } else if (firstArgument instanceof J.MethodInvocation &&

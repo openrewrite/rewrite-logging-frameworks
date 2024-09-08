@@ -110,7 +110,7 @@ class LoggersNamedForEnclosingClassTest implements RewriteTest {
             """
               import org.slf4j.Logger;
               import org.slf4j.LoggerFactory;
-
+              
               class A {
                   /**
                    * @see org.slf4j.LoggerFactory#getLogger(Class)
@@ -175,6 +175,37 @@ class LoggersNamedForEnclosingClassTest implements RewriteTest {
                   public Logger getLogger(SomeProvider provider) {
                       return LoggerFactory.getLogger(provider.getBeanType());
                   }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/178")
+    @Test
+    void shouldRemoveUnusedImport() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package foo;
+              public class WrongClass {}
+              """
+          ),
+          java(
+            """
+              import foo.WrongClass;
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+              class A {
+                  Logger log = LoggerFactory.getLogger(WrongClass.class);
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+              class A {
+                  Logger log = LoggerFactory.getLogger(A.class);
               }
               """
           )
