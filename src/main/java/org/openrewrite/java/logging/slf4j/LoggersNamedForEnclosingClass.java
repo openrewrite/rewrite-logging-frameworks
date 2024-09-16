@@ -81,6 +81,11 @@ public class LoggersNamedForEnclosingClass extends Recipe {
                     return mi;
                 }
 
+                J.Block block = getCursor().firstEnclosing(J.Block.class);
+                if (block != null && block.isStatic()) {
+                    return mi;
+                }
+
                 String enclosingClazzName = firstEnclosingClass.getSimpleName() + ".class";
                 Expression firstArgument = mi.getArguments().get(0);
                 if (firstArgument instanceof J.FieldAccess) {

@@ -22,6 +22,7 @@ import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.test.SourceSpec;
 
 import static org.openrewrite.java.Assertions.java;
 
@@ -206,6 +207,42 @@ class LoggersNamedForEnclosingClassTest implements RewriteTest {
               import org.slf4j.LoggerFactory;
               class A {
                   Logger log = LoggerFactory.getLogger(A.class);
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shouldNotChangeLoggerInStaticBlock() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package ch.qos.logback.classic;
+              public class Logger implements org.slf4j.Logger {
+                  public void setLevel(Object level) {}
+              }
+              """,
+            SourceSpec::skip
+          ),
+          java(
+            """
+              package foo;
+              public class A {}
+              """,
+            SourceSpec::skip
+          ),
+          java(
+            """
+              package foo;
+              import ch.qos.logback.classic.Logger;
+              import org.slf4j.LoggerFactory;
+              import org.slf4j.event.Level;
+              class ATest {
+                  static { // We've seen this pattern to quickly change a log level of a different class
+                      ((Logger) LoggerFactory.getLogger(A.class)).setLevel(Level.DEBUG);
+                  }
               }
               """
           )
