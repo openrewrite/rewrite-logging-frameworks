@@ -24,7 +24,10 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavadocVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
-import org.openrewrite.java.tree.*;
+import org.openrewrite.java.tree.Expression;
+import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.Javadoc;
 
 import java.time.Duration;
 import java.util.Arrays;
