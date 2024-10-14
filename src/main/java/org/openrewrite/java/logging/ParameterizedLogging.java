@@ -118,7 +118,7 @@ public class ParameterizedLogging extends Recipe {
                 }
 
                 // Avoid changing reference if the templating didn't actually change the contents of the method
-                if (m != method && m.print(getCursor()).equals(method.print(getCursor()))) {
+                if (m != method && m.print(getCursor().getParentTreeCursor()).equals(method.print(getCursor().getParentTreeCursor()))) {
                     return method;
                 }
                 return m;
