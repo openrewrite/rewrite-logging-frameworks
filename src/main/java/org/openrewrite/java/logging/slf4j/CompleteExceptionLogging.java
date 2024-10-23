@@ -134,7 +134,6 @@ public class CompleteExceptionLogging extends Recipe {
                     if (lastParameter instanceof J.MethodInvocation &&
                         (THROWABLE_GET_MESSAGE.matches(lastParameter) ||
                          THROWABLE_GET_LOCALIZED_MESSAGE.matches(lastParameter))) {
-                        J.MethodInvocation getMessageCall = (J.MethodInvocation) lastParameter;
 
                         Expression firstParameter = method.getArguments().get(0);
                         if (isStringLiteral(firstParameter)) {
