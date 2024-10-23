@@ -27,9 +27,6 @@ recipeList:
   # and migrate it to the latest version of slf4j (1.x currently, but will be 2.x in the future)
   - org.openrewrite.java.logging.slf4j.Log4j1ToSlf4j1
   - org.openrewrite.java.logging.slf4j.LoggersNamedForEnclosingClass
-  - org.openrewrite.java.dependencies.RemoveDependency:
-      groupId: org.apache.logging.log4j
-      artifactId: log4j-to-slf4j
   - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
       groupId: org.apache.logging.log4j
       artifactId: log4j-api
