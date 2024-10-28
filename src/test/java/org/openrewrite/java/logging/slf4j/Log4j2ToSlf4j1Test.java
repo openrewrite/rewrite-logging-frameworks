@@ -18,6 +18,7 @@ package org.openrewrite.java.logging.slf4j;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -132,6 +133,53 @@ class Log4j2ToSlf4j1Test implements RewriteTest {
                   }
               }
               """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/185")
+    void singleStatementIf() {
+        rewriteRun(
+          spec -> spec.recipe(Environment.builder()
+            .scanRuntimeClasspath("org.openrewrite.java.logging")
+            .build()
+            .activateRecipes("org.openrewrite.java.logging.slf4j.Log4j2ToSlf4j1")),
+          java(
+            """
+                  import org.apache.logging.log4j.Logger;
+                  import org.apache.logging.log4j.LogManager;
+                  
+                  public class SingleStatementIf {
+                    Logger log = LogManager.getLogger();
+                  
+                    public void foo() {
+                      if (log.isDebugEnabled())
+                        log.debug("first" + "second");
+                    }
+                  
+                    private String bar() {
+                      return null;
+                    }
+                  }
+                """,
+            """
+                  import org.slf4j.Logger;
+                  import org.slf4j.LoggerFactory;
+                  
+                  public class SingleStatementIf {
+                    Logger log = LoggerFactory.getLogger();
+                  
+                    public void foo() {
+                      if (log.isDebugEnabled())
+                        log.debug("first" + "second");
+                    }
+                  
+                    private String bar() {
+                      return null;
+                    }
+                  }
+               """
           )
         );
     }
