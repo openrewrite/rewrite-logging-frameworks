@@ -98,7 +98,9 @@ public class ParameterizedLogging extends Recipe {
                             }
                             return message;
                         });
-                        m = JavaTemplate.builder(escapeDollarSign(messageBuilder.toString()))
+                        String code = escapeDollarSign(messageBuilder.toString());
+                        m = JavaTemplate.builder(code)
+                                .doBeforeParseTemplate(System.out::println) // TODO Remove again
                                 .contextSensitive()
                                 .build()
                                 .apply(new Cursor(getCursor().getParent(), m), m.getCoordinates().replaceArguments(), newArgList.toArray());

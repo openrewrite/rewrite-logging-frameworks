@@ -46,7 +46,7 @@ class Log4j2ToSlf4j1Test implements RewriteTest {
           java(
             """
               import org.apache.logging.log4j.Logger;
-
+              
               class Test {
                   static void method(Logger logger) {
                       logger.fatal("uh oh");
@@ -55,7 +55,7 @@ class Log4j2ToSlf4j1Test implements RewriteTest {
               """,
             """
               import org.slf4j.Logger;
-
+              
               class Test {
                   static void method(Logger logger) {
                       logger.error("uh oh");
@@ -72,37 +72,37 @@ class Log4j2ToSlf4j1Test implements RewriteTest {
         rewriteRun(
           java(
             """
-             import org.apache.logging.log4j.Logger;
-             import org.apache.logging.log4j.LogManager;
-
-             class Test {
-                 private static final Logger LOGGER = LogManager.getLogger(Test.class);
-                 private static final Logger ROOT_LOGGER = LogManager.getRootLogger();
-
-                 public static void main(String[] args) {
-                     if (LOGGER.isDebugEnabled()) {
-                         LOGGER.debug("logger message");
-                     }
-                     ROOT_LOGGER.info("root logger message");
-                 }
-             }
-             """,
+              import org.apache.logging.log4j.Logger;
+              import org.apache.logging.log4j.LogManager;
+              
+              class Test {
+                  private static final Logger LOGGER = LogManager.getLogger(Test.class);
+                  private static final Logger ROOT_LOGGER = LogManager.getRootLogger();
+              
+                  public static void main(String[] args) {
+                      if (LOGGER.isDebugEnabled()) {
+                          LOGGER.debug("logger message");
+                      }
+                      ROOT_LOGGER.info("root logger message");
+                  }
+              }
+              """,
             """
-             import org.slf4j.Logger;
-             import org.slf4j.LoggerFactory;
-
-             class Test {
-                 private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
-                 private static final Logger ROOT_LOGGER = LoggerFactory.getRootLogger();
-
-                 public static void main(String[] args) {
-                     if (LOGGER.isDebugEnabled()) {
-                         LOGGER.debug("logger message");
-                     }
-                     ROOT_LOGGER.info("root logger message");
-                 }
-             }
-             """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+              
+              class Test {
+                  private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
+                  private static final Logger ROOT_LOGGER = LoggerFactory.getRootLogger();
+              
+                  public static void main(String[] args) {
+                      if (LOGGER.isDebugEnabled()) {
+                          LOGGER.debug("logger message");
+                      }
+                      ROOT_LOGGER.info("root logger message");
+                  }
+              }
+              """
           )
         );
     }
@@ -115,7 +115,7 @@ class Log4j2ToSlf4j1Test implements RewriteTest {
           java(
             """
               import lombok.extern.log4j.Log4j;
-
+              
               @Log4j
               class Test {
                   void method() {
@@ -125,7 +125,7 @@ class Log4j2ToSlf4j1Test implements RewriteTest {
               """,
             """
               import lombok.extern.slf4j.Slf4j;
-
+              
               @Slf4j
               class Test {
                   void method() {
@@ -141,45 +141,42 @@ class Log4j2ToSlf4j1Test implements RewriteTest {
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/185")
     void singleStatementIf() {
         rewriteRun(
-          spec -> spec.recipe(Environment.builder()
-            .scanRuntimeClasspath("org.openrewrite.java.logging")
-            .build()
-            .activateRecipes("org.openrewrite.java.logging.slf4j.Log4j2ToSlf4j1")),
+          //language=java
           java(
             """
-                  import org.apache.logging.log4j.Logger;
-                  import org.apache.logging.log4j.LogManager;
-                  
-                  public class SingleStatementIf {
-                    Logger log = LogManager.getLogger();
-                  
-                    public void foo() {
-                      if (log.isDebugEnabled())
-                        log.debug("first" + "second");
-                    }
-                  
-                    private String bar() {
-                      return null;
-                    }
-                  }
-                """,
+              import org.apache.logging.log4j.Logger;
+              import org.apache.logging.log4j.LogManager;
+              
+              public class SingleStatementIf {
+                Logger log = LogManager.getLogger();
+              
+                public void foo() {
+                  if (log.isDebugEnabled())
+                    log.debug("first" + "second");
+                }
+              
+                private String bar() {
+                  return null;
+                }
+              }
+              """,
             """
-                  import org.slf4j.Logger;
-                  import org.slf4j.LoggerFactory;
-                  
-                  public class SingleStatementIf {
-                    Logger log = LoggerFactory.getLogger();
-                  
-                    public void foo() {
-                      if (log.isDebugEnabled())
-                        log.debug("first" + "second");
-                    }
-                  
-                    private String bar() {
-                      return null;
-                    }
-                  }
-               """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+              
+              public class SingleStatementIf {
+                Logger log = LoggerFactory.getLogger();
+              
+                public void foo() {
+                  if (log.isDebugEnabled())
+                    log.debug("first" + "second");
+                }
+              
+                private String bar() {
+                  return null;
+                }
+              }
+              """
           )
         );
     }
