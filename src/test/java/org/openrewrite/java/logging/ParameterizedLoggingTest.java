@@ -20,10 +20,12 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 
 @SuppressWarnings({
   "EmptyTryBlock",
@@ -613,16 +615,36 @@ class ParameterizedLoggingTest implements RewriteTest {
               }
               """,
             """
-               import org.slf4j.Logger;
-               import org.slf4j.Marker;
+              import org.slf4j.Logger;
+              import org.slf4j.Marker;
 
-               class Test {
-                   static void method(Logger logger, Marker marker, String name) {
-                       logger.info(marker, "Hello {}, nice to meet you {}", name, name);
-                   }
-               }
-               """
+              class Test {
+                  static void method(Logger logger, Marker marker, String name) {
+                      logger.info(marker, "Hello {}, nice to meet you {}", name, name);
+                  }
+              }
+              """
           )
         );
     }
+
+    @Test
+    void kotlinStringTemplate() {
+        rewriteRun(
+          spec -> spec
+            .recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false))
+            .parser(KotlinParser.builder().classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1")),
+          //language=kotlin
+          kotlin(
+            """
+              import org.slf4j.Logger
+
+              fun main(logger: Logger, name: String) {
+                  logger.info("Hello $name")
+              }
+              """
+          )
+        );
+    }
+
 }
