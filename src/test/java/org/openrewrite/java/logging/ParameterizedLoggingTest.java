@@ -629,7 +629,7 @@ class ParameterizedLoggingTest implements RewriteTest {
     }
 
     @Test
-    void kotlinStringTemplate() {
+    void kotlinStringTemplateSkipped() {
         rewriteRun(
           spec -> spec
             .recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false))
@@ -641,10 +641,10 @@ class ParameterizedLoggingTest implements RewriteTest {
 
               fun main(logger: Logger, name: String) {
                   logger.info("Hello $name")
+                  logger.info("Hello " + name)
               }
               """
           )
         );
     }
-
 }

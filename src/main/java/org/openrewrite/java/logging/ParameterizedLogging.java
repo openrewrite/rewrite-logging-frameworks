@@ -30,6 +30,7 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.staticanalysis.kotlin.KotlinFileChecker;
 
 import java.util.*;
 
@@ -68,7 +69,10 @@ public class ParameterizedLogging extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesMethod<>(methodPattern, true), new JavaIsoVisitor<ExecutionContext>() {
+        TreeVisitor<?, ExecutionContext> preconditions = Preconditions.and(
+                new UsesMethod<>(methodPattern, true),
+                Preconditions.not(new KotlinFileChecker<>()));
+        return Preconditions.check(preconditions, new JavaIsoVisitor<ExecutionContext>() {
             private final MethodMatcher matcher = new MethodMatcher(methodPattern, true);
             private final RemoveToStringVisitor removeToStringVisitor = new RemoveToStringVisitor();
 
@@ -104,7 +108,9 @@ public class ParameterizedLogging extends Recipe {
                                 .apply(new Cursor(getCursor().getParent(), m), m.getCoordinates().replaceArguments(), newArgList.toArray());
                     } else if (logMsg instanceof J.Identifier && TypeUtils.isAssignableTo("java.lang.Throwable", logMsg.getType())) {
                         return m;
-                    } else if (!TypeUtils.isString(logMsg.getType()) && logMsg.getType() instanceof JavaType.Class) {
+                    } else if (!TypeUtils.isString(logMsg.getType()) &&
+                               logMsg.getType() instanceof JavaType.Class &&
+                               !((JavaType.Class) logMsg.getType()).getFullyQualifiedName().startsWith("kotlin")) {
                         StringBuilder messageBuilder = new StringBuilder("\"{}\"");
                         m.getArguments().forEach(arg -> messageBuilder.append(", #{any()}"));
                         m = JavaTemplate.builder(escapeDollarSign(messageBuilder.toString()))
