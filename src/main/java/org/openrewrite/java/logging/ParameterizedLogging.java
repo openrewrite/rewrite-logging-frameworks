@@ -30,6 +30,7 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.staticanalysis.kotlin.KotlinFileChecker;
 
 import java.util.*;
 
@@ -68,7 +69,10 @@ public class ParameterizedLogging extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesMethod<>(methodPattern, true), new JavaIsoVisitor<ExecutionContext>() {
+        TreeVisitor<?, ExecutionContext> preconditions = Preconditions.and(
+                new UsesMethod<>(methodPattern, true),
+                Preconditions.not(new KotlinFileChecker<>()));
+        return Preconditions.check(preconditions, new JavaIsoVisitor<ExecutionContext>() {
             private final MethodMatcher matcher = new MethodMatcher(methodPattern, true);
             private final RemoveToStringVisitor removeToStringVisitor = new RemoveToStringVisitor();
 
