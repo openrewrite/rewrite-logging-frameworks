@@ -142,7 +142,6 @@ class Log4j1ToLog4j2Test implements RewriteTest {
         );
     }
 
-    @Disabled("Not yet implemented")
     @Test
     void loggerSetLevel() {
         //language=java

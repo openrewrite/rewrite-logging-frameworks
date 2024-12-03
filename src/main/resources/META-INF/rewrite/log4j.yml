@@ -71,10 +71,7 @@ recipeList:
       methodPattern: org.apache.log4j.Logger getRootLogger()
       fullyQualifiedTargetTypeName: org.apache.logging.log4j.LogManager
 
-  - org.openrewrite.java.ChangeMethodTargetToStatic:
-      methodPattern: org.apache.log4j.Category setLevel(org.apache.log4j.Level)
-      fullyQualifiedTargetTypeName: org.apache.logging.log4j.core.config.Configurator
-      matchOverrides: true
+  - org.openrewrite.java.logging.log4j.LoggerSetLevelToConfiguratorRecipe
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: org.apache.log4j.Priority isGreaterOrEqual(org.apache.log4j.Priority)
       newMethodName: isMoreSpecificThan
