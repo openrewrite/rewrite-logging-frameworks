@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.logging.log4j;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -196,7 +195,7 @@ class Log4j1ToLog4j2Test implements RewriteTest {
     }
 
     @Test
-    void categoryGetInstance(){
+    void categoryGetInstance() {
         //language=java
         rewriteRun(
           java(
