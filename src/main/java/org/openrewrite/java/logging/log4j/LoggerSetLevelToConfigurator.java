@@ -21,9 +21,8 @@ import org.apache.logging.log4j.core.config.Configurator;
 import org.openrewrite.java.template.RecipeDescriptor;
 
 @RecipeDescriptor(
-        name = "Log exceptions as parameters rather than as string concatenations",
-        description = "By using the exception as another parameter you get the whole stack trace."
-)
+        name = "Convert Log4j `Logger.setLevel` to Log4j2 `Configurator.setLevel`",
+        description = "Converts `org.apache.log4j.Logger.setLevel` to `org.apache.logging.log4j.core.config.Configurator.setLevel`.")
 public class LoggerSetLevelToConfigurator {
 
     @BeforeTemplate
