@@ -47,7 +47,7 @@ class Log4j1ToLog4j2Test implements RewriteTest {
           java(
             """
               import org.apache.log4j.Logger;
-              
+
               class Test {
                   Logger logger = Logger.getLogger(Test.class);
               }
@@ -55,7 +55,7 @@ class Log4j1ToLog4j2Test implements RewriteTest {
             """
               import org.apache.logging.log4j.Logger;
               import org.apache.logging.log4j.LogManager;
-              
+
               class Test {
                   Logger logger = LogManager.getLogger(Test.class);
               }
@@ -78,7 +78,7 @@ class Log4j1ToLog4j2Test implements RewriteTest {
             """
               import org.apache.logging.log4j.Logger;
               import org.apache.logging.log4j.LogManager;
-              
+
               class Test {
                   Logger logger0 = LogManager.getRootLogger();
               }
@@ -106,6 +106,111 @@ class Log4j1ToLog4j2Test implements RewriteTest {
                   static void method(Logger logger) {
                       logger.getLevel();
                   }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void priorityInfo() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.apache.log4j.Logger;
+              import org.apache.log4j.Priority;
+
+              class Test {
+                  void method(Logger logger) {
+                      logger.log(Priority.INFO, "Hello world");
+                  }
+              }
+              """,
+            """
+              import org.apache.logging.log4j.Logger;
+              import org.apache.logging.log4j.Level;
+
+              class Test {
+                  void method(Logger logger) {
+                      logger.log(Level.INFO, "Hello world");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void loggerSetLevel() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.apache.log4j.Level;
+              import org.apache.log4j.Logger;
+
+              class Test {
+                  void method(Logger logger) {
+                      logger.setLevel(Level.INFO);
+                  }
+              }
+              """,
+            """
+              import org.apache.logging.log4j.Level;
+              import org.apache.logging.log4j.Logger;
+              import org.apache.logging.log4j.core.config.Configurator;
+
+              class Test {
+                  void method(Logger logger) {
+                      Configurator.setLevel(logger, Level.INFO);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void isGreaterOrEqual() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.apache.log4j.Level;
+
+              class Test {
+                  boolean is = Level.ERROR.isGreaterOrEqual(Level.INFO);
+              }
+              """,
+            """
+              import org.apache.logging.log4j.Level;
+
+              class Test {
+                  boolean is = Level.ERROR.isMoreSpecificThan(Level.INFO);
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void categoryGetInstance() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.apache.log4j.Category;
+              class Test {
+                  Category category = Category.getInstance(Test.class);
+              }
+              """,
+            """
+              import org.apache.logging.log4j.LogManager;
+              import org.apache.logging.log4j.Logger;
+
+              class Test {
+                  Logger category = LogManager.getLogger(Test.class);
               }
               """
           )
