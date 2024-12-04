@@ -49,7 +49,7 @@ class SystemErrToLoggingTest implements RewriteTest {
               class Test {
                   int n;
                   Logger logger;
-                  
+
                   void test() {
                       try {
                       } catch(Throwable t) {
@@ -64,7 +64,7 @@ class SystemErrToLoggingTest implements RewriteTest {
               class Test {
                   int n;
                   Logger logger;
-                  
+
                   void test() {
                       try {
                       } catch(Throwable t) {
@@ -97,10 +97,10 @@ class SystemErrToLoggingTest implements RewriteTest {
             """
               import org.slf4j.Logger;
               import org.slf4j.LoggerFactory;
-                            
+
               class Test {
                   private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
-                            
+
                   void test() {
                       try {
                       } catch(Throwable t) {
@@ -143,7 +143,7 @@ class SystemErrToLoggingTest implements RewriteTest {
               import org.slf4j.Logger;
               class Test {
                   Logger logger;
-                  
+
                   void test() {
                       Runnable r = () -> System.err.println("single");
                   }
@@ -153,7 +153,7 @@ class SystemErrToLoggingTest implements RewriteTest {
               import org.slf4j.Logger;
               class Test {
                   Logger logger;
-                  
+
                   void test() {
                       Runnable r = () -> logger.error("single");
                   }
@@ -176,7 +176,7 @@ class SystemErrToLoggingTest implements RewriteTest {
               @Slf4j
               class Test {
                   int n;
-                  
+
                   void test() {
                       try {
                       } catch(Throwable t) {
@@ -191,7 +191,7 @@ class SystemErrToLoggingTest implements RewriteTest {
               @Slf4j
               class Test {
                   int n;
-                  
+
                   void test() {
                       try {
                       } catch(Throwable t) {
@@ -203,4 +203,87 @@ class SystemErrToLoggingTest implements RewriteTest {
           )
         );
     }
+
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/192")
+    @Test
+    void switchCaseStatements() {
+        rewriteRun(
+          spec -> spec.recipe(new SystemErrToLogging(false, "logger", "SLF4J")),
+          //language=java
+          java(
+            """
+              class A {
+                  org.slf4j.Logger logger = null;
+
+                  void m(int cnt) {
+                      switch (cnt) {
+                          case 1:
+                              java.util.List<Integer> numbers = new java.util.ArrayList<>();
+                              numbers.forEach(o -> System.err.println(String.valueOf(o)));
+                              break;
+                          case 2:
+                          default:
+                              break;
+                      }
+                  }
+              }
+              """,
+            """
+              class A {
+                  org.slf4j.Logger logger = null;
+
+                  void m(int cnt) {
+                      switch (cnt) {
+                          case 1:
+                              java.util.List<Integer> numbers = new java.util.ArrayList<>();
+                              numbers.forEach(o -> logger.error(String.valueOf(o)));
+                              break;
+                          case 2:
+                          default:
+                              break;
+                      }
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              class B {
+                  org.slf4j.Logger logger = null;
+
+                  void m(int cnt) {
+                      int val = switch (cnt) {
+                          case 1:
+                              java.util.List<Integer> numbers = new java.util.ArrayList<>();
+                              numbers.forEach(o -> System.err.println(String.valueOf(o)));
+                              yield 1;
+                          case 2:
+                          default:
+                              yield 2;
+                      };
+                  }
+              }
+              """,
+            """
+              class B {
+                  org.slf4j.Logger logger = null;
+
+                  void m(int cnt) {
+                      int val = switch (cnt) {
+                          case 1:
+                              java.util.List<Integer> numbers = new java.util.ArrayList<>();
+                              numbers.forEach(o -> logger.error(String.valueOf(o)));
+                              yield 1;
+                          case 2:
+                          default:
+                              yield 2;
+                      };
+                  }
+              }
+              """
+          )
+        );
+    }
+
 }
