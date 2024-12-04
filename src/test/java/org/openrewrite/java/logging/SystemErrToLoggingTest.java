@@ -211,58 +211,41 @@ class SystemErrToLoggingTest implements RewriteTest {
           //language=java
           java(
             """
-              public class A {
+              class A {
                   org.slf4j.Logger logger = null;
 
-                  public void m() {
-                      int cnt = 1;
-                      String name = "";
+                  void m(int cnt) {
                       switch (cnt) {
                           case 1:
                               java.util.List<Integer> numbers = new java.util.ArrayList<>();
                               numbers.forEach(o -> System.err.println(String.valueOf(o)));
                               break;
                           case 2:
-                              break;
-                          case 3:
-                              break;
                           default:
                               break;
                       }
                   }
-
-                  public String m2(String s1) {
-                      return null;
-                  }
               }
               """,
             """
-              public class A {
+              class A {
                   org.slf4j.Logger logger = null;
 
-                  public void m() {
-                      int cnt = 1;
-                      String name = "";
+                  void m(int cnt) {
                       switch (cnt) {
                           case 1:
                               java.util.List<Integer> numbers = new java.util.ArrayList<>();
                               numbers.forEach(o -> logger.error(String.valueOf(o)));
                               break;
                           case 2:
-                              break;
-                          case 3:
-                              break;
                           default:
                               break;
                       }
                   }
-
-                  public String m2(String s1) {
-                      return null;
-                  }
               }
               """
-          ));
+          )
+        );
     }
 
 }
