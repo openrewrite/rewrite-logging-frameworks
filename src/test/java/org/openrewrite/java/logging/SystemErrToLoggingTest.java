@@ -204,8 +204,9 @@ class SystemErrToLoggingTest implements RewriteTest {
         );
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/192")
     @Test
-    void replaceSystemErr() {
+    void switchCaseStatements() {
         rewriteRun(
           spec -> spec.recipe(new SystemErrToLogging(false, "logger", "SLF4J")),
           //language=java
@@ -241,6 +242,43 @@ class SystemErrToLoggingTest implements RewriteTest {
                           default:
                               break;
                       }
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              class B {
+                  org.slf4j.Logger logger = null;
+
+                  void m(int cnt) {
+                      int val = switch (cnt) {
+                          case 1:
+                              java.util.List<Integer> numbers = new java.util.ArrayList<>();
+                              numbers.forEach(o -> System.err.println(String.valueOf(o)));
+                              yield 1;
+                          case 2:
+                          default:
+                              yield 2;
+                      };
+                  }
+              }
+              """,
+            """
+              class B {
+                  org.slf4j.Logger logger = null;
+
+                  void m(int cnt) {
+                      int val = switch (cnt) {
+                          case 1:
+                              java.util.List<Integer> numbers = new java.util.ArrayList<>();
+                              numbers.forEach(o -> logger.error(String.valueOf(o)));
+                              yield 1;
+                          case 2:
+                          default:
+                              yield 2;
+                      };
                   }
               }
               """
