@@ -146,7 +146,7 @@ public class SystemErrToLogging extends Recipe {
 
             private J.MethodInvocation logInsteadOfPrint(Cursor printCursor, ExecutionContext ctx, @Nullable Expression exceptionPrintStackTrace) {
                 J.MethodInvocation print = printCursor.getValue();
-                Cursor classCursor = printCursor.dropParentUntil(J.ClassDeclaration.class::isInstance);
+                Cursor classCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
                 AnnotationService annotationService = service(AnnotationService.class);
                 Set<J.VariableDeclarations> loggers = FindFieldsOfType.find(classCursor.getValue(), framework.getLoggerType());
                 if (!loggers.isEmpty()) {
