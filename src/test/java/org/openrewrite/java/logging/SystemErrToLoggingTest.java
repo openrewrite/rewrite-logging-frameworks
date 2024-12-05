@@ -282,6 +282,48 @@ class SystemErrToLoggingTest implements RewriteTest {
                   }
               }
               """
+          ),
+          //language=java
+          java(
+            """
+              class Test {
+                  org.slf4j.Logger logger = null;
+
+                  void method(int cnt, String name) {
+                      switch (cnt) {
+                          case 1:
+                              try {
+                                  yield "bla";
+                              } catch (Exception e) {
+                                  System.err.println("This is a message for " + name + " with a $ dollar sign");
+                                  yield "bla";
+                              }
+                              break;
+                          default:
+                              break;
+                      }
+                  }
+              }
+              """,
+            """
+              class Test {
+                  org.slf4j.Logger logger = null;
+
+                  void method(int cnt, String name) {
+                      switch (cnt) {
+                          case 1:
+                              try {
+                                  yield "bla";
+                              } catch (Exception e) {
+                                  logger.error("This is a message for {} with a $ dollar sign", name);
+                                  yield "bla";
+                              }
+                              break;
+                          default:
+                              break;
+                      }
+                  }
+              }"""
           )
         );
     }
