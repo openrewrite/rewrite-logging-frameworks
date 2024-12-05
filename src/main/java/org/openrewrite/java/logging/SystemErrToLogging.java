@@ -28,6 +28,7 @@ import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -80,9 +81,23 @@ public class SystemErrToLogging extends Recipe {
                 Cursor blockCursor = new Cursor(getCursor().getParent(), b);
 
                 AtomicBoolean addedLogger = new AtomicBoolean(false);
-                AtomicInteger skip = new AtomicInteger(-1);
+                b = b.withStatements(collapseNextThrowablePrintStackTrace(b.getStatements(), ctx, blockCursor, addedLogger));
+                return addedLogger.get() ? block : b;
+            }
 
-                b = b.withStatements(ListUtils.map(b.getStatements(), (i, stat) -> {
+            @Override
+            public J.Case visitCase(J.Case _case, ExecutionContext ctx) {
+                J.Case c = super.visitCase(_case, ctx);
+                Cursor caseCursor = new Cursor(getCursor().getParent(), c);
+
+                AtomicBoolean addedLogger = new AtomicBoolean(false);
+                c = c.withStatements(collapseNextThrowablePrintStackTrace(c.getStatements(), ctx, caseCursor, addedLogger));
+                return addedLogger.get() ? _case : c;
+            }
+
+            private List<Statement> collapseNextThrowablePrintStackTrace(List<Statement> statements, ExecutionContext ctx, Cursor cursor, AtomicBoolean addedLogger) {
+                AtomicInteger skip = new AtomicInteger(-1);
+                return ListUtils.map(statements, (i, stat) -> {
                     if (skip.get() == i) {
                         return null;
                     } else if (stat instanceof J.MethodInvocation) {
@@ -92,15 +107,15 @@ public class SystemErrToLogging extends Recipe {
                                 JavaType.Variable field = ((J.FieldAccess) m.getSelect()).getName().getFieldType();
                                 if (field != null && "err".equals(field.getName()) && TypeUtils.isOfClassType(field.getOwner(), "java.lang.System")) {
                                     Expression exceptionPrintStackTrace = null;
-                                    if (block.getStatements().size() > i + 1) {
-                                        J next = block.getStatements().get(i + 1);
+                                    if (statements.size() > i + 1) {
+                                        J next = statements.get(i + 1);
                                         if (next instanceof J.MethodInvocation && printStackTrace.matches((Expression) next)) {
                                             exceptionPrintStackTrace = ((J.MethodInvocation) next).getSelect();
                                             skip.set(i + 1);
                                         }
                                     }
 
-                                    Cursor printCursor = new Cursor(blockCursor, m);
+                                    Cursor printCursor = new Cursor(cursor, m);
                                     J.MethodInvocation unchangedIfAddedLogger = logInsteadOfPrint(printCursor, ctx, exceptionPrintStackTrace);
                                     addedLogger.set(unchangedIfAddedLogger == m);
                                     return unchangedIfAddedLogger;
@@ -109,9 +124,7 @@ public class SystemErrToLogging extends Recipe {
                         }
                     }
                     return stat;
-                }));
-
-                return addedLogger.get() ? block : b;
+                });
             }
 
             @Override

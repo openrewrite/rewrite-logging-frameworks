@@ -647,4 +647,54 @@ class ParameterizedLoggingTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void logMethodInSwitchInTry() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
+          //language=java
+          java(
+            """
+              class Test {
+                  org.slf4j.Logger logger = null;
+
+                  void method(int cnt, String name) {
+                      switch (cnt) {
+                          case 1:
+                              try {
+                                  yield "bla";
+                              } catch (Exception e) {
+                                  logger.info("This is a message for " + name + " with a $ dollar sign");
+                                  yield "bla";
+                              }
+                              break;
+                          default:
+                              break;
+                      }
+                  }
+              }
+              """,
+            """
+              class Test {
+                  org.slf4j.Logger logger = null;
+
+                  void method(int cnt, String name) {
+                      switch (cnt) {
+                          case 1:
+                              try {
+                                  yield "bla";
+                              } catch (Exception e) {
+                                  logger.info("This is a message for {} with a $ dollar sign", name);
+                                  yield "bla";
+                              }
+                              break;
+                          default:
+                              break;
+                      }
+                  }
+              }"""
+          )
+        );
+    }
+
 }
