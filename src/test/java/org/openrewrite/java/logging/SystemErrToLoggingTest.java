@@ -286,4 +286,55 @@ class SystemErrToLoggingTest implements RewriteTest {
         );
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/192")
+    @Test
+    void switchCaseStatementsWithAdditionalMethods() {
+        rewriteRun(
+          spec -> spec.recipe(new SystemErrToLogging(false, "logger", "SLF4J")),
+          //language=java
+          java(
+            """
+              class A {
+                  org.slf4j.Logger logger = null;
+
+                  void m(int cnt) {
+                      switch (cnt) {
+                          case 1:
+                              System.err.println("Oh no");
+                              break;
+                          case 2:
+                          default:
+                              break;
+                      }
+                  }
+
+                  String m2() {
+                      return null;
+                  }
+              }
+              """,
+            """
+              class A {
+                  org.slf4j.Logger logger = null;
+
+                  void m(int cnt) {
+                      switch (cnt) {
+                          case 1:
+                              logger.error("Oh no");
+                              break;
+                          case 2:
+                          default:
+                              break;
+                      }
+                  }
+
+                  String m2() {
+                      return null;
+                  }
+              }
+              """
+          )
+        );
+    }
+
 }

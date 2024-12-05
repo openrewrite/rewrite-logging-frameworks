@@ -118,7 +118,8 @@ public class SystemErrToLogging extends Recipe {
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
                 if (systemErrPrint.matches((Expression) method)) {
-                    if (getCursor().getParentOrThrow().getValue() instanceof J.Lambda) {
+                    J firstEnclosing = getCursor().getParentOrThrow().firstEnclosing(J.class);
+                    if (firstEnclosing instanceof J.Lambda || firstEnclosing instanceof J.Block || firstEnclosing instanceof J.Case) {
                         if (m.getSelect() != null && m.getSelect() instanceof J.FieldAccess) {
                             JavaType.Variable field = ((J.FieldAccess) m.getSelect()).getName().getFieldType();
                             if (field != null && "err".equals(field.getName()) && TypeUtils.isOfClassType(field.getOwner(), "java.lang.System")) {
