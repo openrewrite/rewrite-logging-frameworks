@@ -333,6 +333,50 @@ class SystemErrToLoggingTest implements RewriteTest {
                   }
               }
               """
+          ),
+          //language=java
+          java(
+            """
+              class B {
+                  org.slf4j.Logger logger = null;
+
+                  void m(int cnt, Throwable t) {
+                      switch (cnt) {
+                          case 1:
+                              System.err.println("Oh " + cnt + " no");
+                              t.printStackTrace();
+                              break;
+                          case 2:
+                          default:
+                              break;
+                      }
+                  }
+
+                  String m2() {
+                      return null;
+                  }
+              }
+              """,
+            """
+              class B {
+                  org.slf4j.Logger logger = null;
+
+                  void m(int cnt, Throwable t) {
+                      switch (cnt) {
+                          case 1:
+                              logger.error("Oh {} no", cnt, t);
+                              break;
+                          case 2:
+                          default:
+                              break;
+                      }
+                  }
+
+                  String m2() {
+                      return null;
+                  }
+              }
+              """
           )
         );
     }
