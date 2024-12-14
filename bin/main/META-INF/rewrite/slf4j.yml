@@ -1,0 +1,195 @@
+#
+# Copyright 2024 the original author or authors.
+# <p>
+# Licensed under the Moderne Source Available License (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# <p>
+# https://docs.moderne.io/licensing/moderne-source-available-license
+# <p>
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.logging.slf4j.Log4jToSlf4j
+displayName: Migrate Log4j to SLF4J
+description: Migrates usage of Apache Log4j to using SLF4J directly. Use of the traditional Log4j to SLF4J bridge can result in loss of performance, as the Log4j messages must be formatted before they can be passed to SLF4J. Note, this currently does not modify `log4j.properties` files.
+tags:
+  - logging
+  - slf4j
+  - log4j
+recipeList:
+  # note, the idea for this recipe is to be syntactic sugar to easily specify the desire to migrate from any version of log4j (1.x or 2.x, etc.)
+  # and migrate it to the latest version of slf4j (1.x currently, but will be 2.x in the future)
+  - org.openrewrite.java.logging.slf4j.Log4j1ToSlf4j1
+  - org.openrewrite.java.logging.slf4j.LoggersNamedForEnclosingClass
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.apache.logging.log4j
+      artifactId: log4j-api
+      newVersion: latest.release
+      overrideManagedVersion: true
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.apache.logging.log4j
+      artifactId: log4j-core
+      newVersion: latest.release
+      overrideManagedVersion: true
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: org.slf4j
+      artifactId: slf4j-api
+      version: latest.release
+      onlyIfUsing: org.apache.logging.log4j.*
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: org.apache.logging.log4j
+      artifactId: log4j-slf4j2-impl
+      version: latest.release
+      onlyIfUsing: org.apache.logging.log4j.*
+  ### Additional AddDependency's since "onlyIfUsing" may think it isn't using log4j 2.x if doing an upgrade chaining from log4j1 recipes todo
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: org.slf4j
+      artifactId: slf4j-api
+      version: latest.release
+      onlyIfUsing: org.apache.log4j.*
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: org.apache.logging.log4j
+      artifactId: log4j-slf4j2-impl
+      version: latest.release
+      onlyIfUsing: org.apache.log4j.*
+  # Adapt to breaking change in compatibility in the SLF4J binding API with SLF4J 2.x
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.apache.logging.log4j
+      oldArtifactId: log4j-slf4j-impl
+      newArtifactId: log4j-slf4j2-impl
+      newVersion: latest.release
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.logging.slf4j.ParameterizedLogging
+displayName: Parameterize SLF4J's logging statements
+description: Use SLF4J's parameterized logging, which can significantly boost performance for messages that
+  otherwise would be assembled with String concatenation. Particularly impactful when the log level is not enabled, as
+  no work is done to assemble the message.
+tags:
+  - logging
+  - slf4j
+  - RSPEC-S2629
+recipeList:
+  - org.openrewrite.java.logging.ParameterizedLogging:
+      methodPattern: org.slf4j.Logger trace(..)
+  - org.openrewrite.java.logging.ParameterizedLogging:
+      methodPattern: org.slf4j.Logger debug(..)
+  - org.openrewrite.java.logging.ParameterizedLogging:
+      methodPattern: org.slf4j.Logger info(..)
+  - org.openrewrite.java.logging.ParameterizedLogging:
+      methodPattern: org.slf4j.Logger warn(..)
+  - org.openrewrite.java.logging.ParameterizedLogging:
+      methodPattern: org.slf4j.Logger error(..)
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.logging.slf4j.Log4j2ToSlf4j1
+displayName: Migrate Log4j 2.x to SLF4J 1.x
+description: Transforms usages of Log4j 2.x to leveraging SLF4J 1.x directly. Note, this currently does not modify `log4j.properties` files.
+tags:
+  - logging
+  - slf4j
+  - log4j
+recipeList:
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.apache.logging.log4j.LogManager
+      newFullyQualifiedTypeName: org.slf4j.LoggerFactory
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.apache.logging.log4j.Logger fatal(..)
+      newMethodName: error
+  - org.openrewrite.java.ChangeMethodName:
+      # here to convince org.apache.log4j.Logger fatal(..) invocations chained from Log4j1ToLog4j2 they should be migrated too
+      # consider fixing issue in the future; this occurs when using Log4j1ToSlf4j1 todo
+      methodPattern: org.apache.logging.log4j.Category fatal(..)
+      newMethodName: error
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.apache.logging.log4j.Logger
+      newFullyQualifiedTypeName: org.slf4j.Logger
+  - org.openrewrite.java.logging.slf4j.ParameterizedLogging
+  - org.openrewrite.java.logging.ChangeLombokLogAnnotation
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.logging.slf4j.Log4j1ToSlf4j1
+displayName: Migrate Log4j 1.x to SLF4J 1.x
+description: Transforms usages of Log4j 1.x to leveraging SLF4J 1.x directly. Note, this currently does not modify `log4j.properties` files.
+tags:
+  - logging
+  - slf4j
+  - log4j
+recipeList:
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.apache.log4j.MDC
+      newFullyQualifiedTypeName: org.slf4j.MDC
+  - org.openrewrite.java.logging.log4j.Log4j1ToLog4j2
+  - org.openrewrite.java.logging.slf4j.Log4j2ToSlf4j1
+  - org.openrewrite.java.logging.slf4j.ParameterizedLogging
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.logging.slf4j.Slf4jBestPractices
+displayName: SLF4J best practices
+description: Applies best practices to logging with SLF4J.
+tags:
+  - logging
+  - slf4j
+recipeList:
+  - org.openrewrite.java.logging.slf4j.LoggersNamedForEnclosingClass
+  - org.openrewrite.java.logging.slf4j.ParameterizedLogging
+  - org.openrewrite.java.logging.slf4j.Slf4jLogShouldBeConstant
+  - org.openrewrite.java.logging.slf4j.CompleteExceptionLogging
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.logging.slf4j.CommonsLogging1ToSlf4j1
+displayName: Migrate Apache Commons Logging 1.x to SLF4J 1.x
+description: Transforms usages of Apache Commons Logging 1.x to leveraging SLF4J 1.x directly.
+tags:
+  - logging
+  - slf4j
+  - commons-logging
+recipeList:
+  - org.openrewrite.java.SimplifyMethodChain:
+      methodPatternChain:
+        - org.apache.commons.logging.LogFactory getFactory()
+        - org.apache.commons.logging.LogFactory getInstance(..)
+      newMethodName: getLogger
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.apache.commons.logging.LogFactory getLog(..)
+      newMethodName: getLogger
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.apache.commons.logging.LogFactory
+      newFullyQualifiedTypeName: org.slf4j.LoggerFactory
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.apache.commons.logging.Log fatal(..)
+      newMethodName: error
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.apache.commons.logging.Log isFatalEnabled()
+      newMethodName: isErrorEnabled
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.apache.commons.logging.Log
+      newFullyQualifiedTypeName: org.slf4j.Logger
+  - org.openrewrite.java.logging.ChangeLombokLogAnnotation
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.logging.slf4j.JulToSlf4j
+displayName: Migrate JUL to SLF4J
+description: Migrates usage of Java Util Logging (JUL) to using SLF4J directly.
+tags:
+  - logging
+  - java-util-logging
+  - slf4j
+recipeList:
+  - org.openrewrite.java.logging.slf4j.JulGetLoggerToLoggerFactoryRecipes
+  - org.openrewrite.java.logging.slf4j.JulIsLoggableToIsEnabledRecipes
+  - org.openrewrite.java.logging.slf4j.JulParameterizedArguments
+  - org.openrewrite.java.logging.slf4j.JulToSlf4jLambdaSupplierRecipes
+  - org.openrewrite.java.logging.slf4j.JulToSlf4jLambdaSupplierWithThrowableRecipes
+  - org.openrewrite.java.logging.slf4j.JulToSlf4jSimpleCallsWithThrowableRecipes
+  - org.openrewrite.java.logging.slf4j.JulLevelAllToTraceRecipe
+  - org.openrewrite.java.logging.log4j.JulToLog4j
+  - org.openrewrite.java.logging.slf4j.Log4j2ToSlf4j1
