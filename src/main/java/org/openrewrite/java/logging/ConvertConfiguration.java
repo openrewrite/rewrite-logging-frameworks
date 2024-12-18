@@ -1,0 +1,95 @@
+package org.openrewrite.java.logging;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
+import lombok.AllArgsConstructor;
+import org.apache.logging.converter.config.ConfigurationConverter;
+import org.jspecify.annotations.Nullable;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.FindSourceFiles;
+import org.openrewrite.NlsRewrite.Description;
+import org.openrewrite.NlsRewrite.DisplayName;
+import org.openrewrite.Option;
+import org.openrewrite.Preconditions;
+import org.openrewrite.Recipe;
+import org.openrewrite.SourceFile;
+import org.openrewrite.Tree;
+import org.openrewrite.TreeVisitor;
+import org.openrewrite.text.PlainText;
+
+/**
+ * Converts a logging configuration file from one format to another.
+ */
+@AllArgsConstructor
+public class ConvertConfiguration extends Recipe {
+
+    @Option(displayName = "Pattern for the files to convert",
+            description = "If set, only the files that match this pattern will be converted.",
+            required = false)
+    @Nullable
+    String filePattern;
+
+    @Option(displayName = "Input format", description = "The id of the input logging configuration format. See [Log4j documentation](https://logging.staged.apache.org/log4j/transform/log4j-converter-config.html#formats) for a list of supported formats.", example = "v1:properties")
+    String inputFormat;
+
+    @Option(displayName = "Output format", description = "The id of the output logging configuration format. See [Log4j documentation](https://logging.staged.apache.org/log4j/transform/log4j-converter-config.html#formats) for a list of supported formats.", example = "v2:xml")
+    String outputFormat;
+
+    private static final ConfigurationConverter converter = ConfigurationConverter.getInstance();
+
+    @Override
+    public @DisplayName String getDisplayName() {
+        return "Convert logging configuration";
+    }
+
+    @Override
+    public @Description String getDescription() {
+        return "Converts the configuration of a logging backend from one format to another. For example it can convert a Log4j 1 properties configuration file into a Log4j Core 2 XML configuration file.";
+    }
+
+    @Override
+    public int maxCycles() {
+        return 1;
+    }
+
+    @Override
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return
+                Preconditions.check(new FindSourceFiles(filePattern),
+                        new TreeVisitor<Tree, ExecutionContext>() {
+
+                            @Override
+                            public boolean isAcceptable(SourceFile sourceFile, ExecutionContext executionContext) {
+                                return super.isAcceptable(sourceFile, executionContext);
+                            }
+
+                            @Override
+                            public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext executionContext) {
+                                if (tree instanceof SourceFile) {
+                                    SourceFile sourceFile = (SourceFile) tree;
+                                    ByteArrayInputStream inputStream = new ByteArrayInputStream(sourceFile.printAllAsBytes());
+                                    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+                                    converter.convert(inputStream, inputFormat, outputStream, outputFormat);
+
+                                    String utf8 = new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
+                                    if (tree instanceof PlainText) {
+                                        return ((PlainText) tree).withText(utf8).withCharset(StandardCharsets.UTF_8);
+                                    }
+                                    return PlainText.builder()
+                                            .id(sourceFile.getId())
+                                            .charsetBomMarked(sourceFile.isCharsetBomMarked())
+                                            .charsetName(StandardCharsets.UTF_8.name())
+                                            .checksum(sourceFile.getChecksum())
+                                            .fileAttributes(sourceFile.getFileAttributes())
+                                            .markers(sourceFile.getMarkers())
+                                            .sourcePath(sourceFile.getSourcePath())
+                                            .text(utf8)
+                                            .build();
+                                }
+                                return super.visit(tree, executionContext);
+                            }
+                        });
+    }
+}

@@ -115,7 +115,7 @@ class Slf4jToLog4jTest implements RewriteTest {
               class Test {
                   void method() {
                      ThreadContext.put("key", "value");
-                     try (CloseableThreadContext.Instance c = CloseableThreadContext.put("key2", "value2")) {
+                     try (org.apache.logging.log4j.CloseableThreadContext.Instance c = CloseableThreadContext.put("key2", "value2")) {
                          ThreadContext.get("key2");
                      }
                      ThreadContext.remove("key");

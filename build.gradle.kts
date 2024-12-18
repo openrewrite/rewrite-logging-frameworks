@@ -19,6 +19,12 @@ recipeDependencies {
     parserClasspath("org.projectlombok:lombok:1.18.+")
 }
 
+repositories {
+    mavenCentral()
+    mavenLocal()
+    maven("https://repository.apache.org/snapshots")
+}
+
 dependencies {
     compileOnly("org.projectlombok:lombok:latest.release")
     annotationProcessor("org.projectlombok:lombok:latest.release")
@@ -27,13 +33,15 @@ dependencies {
 
     implementation(platform("org.openrewrite:rewrite-bom:${rewriteVersion}"))
     implementation("org.openrewrite:rewrite-java")
+    implementation("org.openrewrite:rewrite-maven")
     implementation("org.openrewrite.recipe:rewrite-java-dependencies:${rewriteVersion}")
     implementation("org.openrewrite.recipe:rewrite-static-analysis:${rewriteVersion}")
     runtimeOnly("org.openrewrite:rewrite-java-17")
 
     implementation("log4j:log4j:1.+")
-    implementation("org.apache.logging.log4j:log4j-core:2.+")
+    implementation("org.apache.logging.log4j:log4j-core:2.24.3")
     implementation("org.slf4j:slf4j-api:2.+")
+    implementation("org.apache.logging.log4j:log4j-converter-config:0.3.0-SNAPSHOT")
 
     annotationProcessor("org.openrewrite:rewrite-templating:$rewriteVersion")
     implementation("org.openrewrite:rewrite-templating:$rewriteVersion")
@@ -46,7 +54,7 @@ dependencies {
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:latest.release")
 
     testImplementation("org.openrewrite:rewrite-kotlin:${rewriteVersion}")
-    testImplementation("org.openrewrite:rewrite-maven")
+    testImplementation("org.openrewrite:rewrite-properties:${rewriteVersion}")
     testImplementation("org.openrewrite:rewrite-test")
     testImplementation("org.openrewrite:rewrite-java-tck")
 

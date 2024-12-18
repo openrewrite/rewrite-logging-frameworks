@@ -26,9 +26,11 @@ import org.openrewrite.test.RewriteTest;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.openrewrite.java.Assertions.*;
 import static org.openrewrite.maven.Assertions.pomXml;
+import static org.openrewrite.properties.Assertions.properties;
 
 class Log4j1ToLog4j2Test implements RewriteTest {
 
@@ -308,6 +310,17 @@ class Log4j1ToLog4j2Test implements RewriteTest {
                           <groupId>com.mycompany.app</groupId>
                           <artifactId>my-app</artifactId>
                           <version>1</version>
+                          <dependencyManagement>
+                              <dependencies>
+                                  <dependency>
+                                      <groupId>org.apache.logging.log4j</groupId>
+                                      <artifactId>log4j-bom</artifactId>
+                                      <version>2.24.3</version>
+                                      <type>pom</type>
+                                      <scope>import</scope>
+                                  </dependency>
+                              </dependencies>
+                          </dependencyManagement>
                           <dependencies>
                               <dependency>
                                   <groupId>org.apache.httpcomponents</groupId>
@@ -321,13 +334,12 @@ class Log4j1ToLog4j2Test implements RewriteTest {
                               </dependency>
                               <dependency>
                                   <groupId>org.apache.logging.log4j</groupId>
-                                  <artifactId>log4j-core</artifactId>
-                                  <version>%1$s</version>
+                                  <artifactId>log4j-slf4j-impl</artifactId>
                               </dependency>
                               <dependency>
                                   <groupId>org.apache.logging.log4j</groupId>
-                                  <artifactId>log4j-slf4j-impl</artifactId>
-                                  <version>%1$s</version>
+                                  <artifactId>log4j-core</artifactId>
+                                  <scope>runtime</scope>
                               </dependency>
                           </dependencies>
                       </project>
@@ -337,5 +349,29 @@ class Log4j1ToLog4j2Test implements RewriteTest {
             )
           )
         );
+    }
+
+    @Test
+    void rewriteConfigurationFile() {
+        rewriteRun(mavenProject("project", srcMainResources(properties("""
+          log4j.appender.FILE = org.apache.log4j.FileAppender
+          log4j.appender.FILE.file = file.log
+          log4j.appender.FILE.layout = org.apache.log4j.SimpleLayout
+          log4j.rootLogger = INFO, FILE
+          """, """
+          <?xml version='1.0' encoding='UTF-8'?>
+          <Configuration xmlns="https://logging.apache.org/xml/ns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://logging.apache.org/xml/ns https://logging.apache.org/xml/ns/log4j-config-2.xsd">
+            <Properties/>
+            <Appenders>
+              <File append="true" bufferSize="8192" bufferedIo="false" fileName="file.log" immediateFlush="true" name="FILE">
+                <PatternLayout alwaysWriteExceptions="false" pattern="%p - %m%n"/>
+              </File>
+            </Appenders>
+            <Loggers>
+              <Root level="INFO">
+                <AppenderRef ref="FILE"/>
+              </Root>
+            </Loggers>
+          </Configuration>""", spec -> spec.path("log4j.properties").afterRecipe(s -> assertThat(s.getSourcePath()).hasFileName("log4j2.xml"))))));
     }
 }
