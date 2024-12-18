@@ -308,3 +308,4 @@ recipeList:
       newVersion: latest.release
   - org.openrewrite.java.logging.ChangeLombokLogAnnotation:
       loggingFramework: Log4j2
+  - org.openrewrite.java.ShortenFullyQualifiedTypeReferences
