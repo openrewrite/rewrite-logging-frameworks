@@ -22,10 +22,14 @@ recipeDependencies {
 repositories {
     mavenCentral()
     mavenLocal()
+    // Temporarily add Apache Snapshot repository for Log4j artifacts
     maven {
         setUrl("https://repository.apache.org/snapshots")
         mavenContent {
+            // Excessive 404 result codes in `repository.apache.org` will ban the worker IP
+            // https://infra.apache.org/infra-ban.html
             snapshotsOnly()
+            excludeGroupAndSubgroups("org.openrewrite")
         }
     }
 }
