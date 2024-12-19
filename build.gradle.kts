@@ -12,8 +12,8 @@ recipeDependencies {
 
     parserClasspath("org.slf4j:slf4j-api:2.+")
     parserClasspath("log4j:log4j:1.+")
-    parserClasspath("org.apache.logging.log4j:log4j-core:2.+")
-    parserClasspath("org.apache.logging.log4j:log4j-api:2.+")
+    parserClasspath("org.apache.logging.log4j:log4j-core:2.24.3")
+    parserClasspath("org.apache.logging.log4j:log4j-api:2.24.3")
     parserClasspath("commons-logging:commons-logging:1.+")
     parserClasspath("ch.qos.logback:logback-classic:1.3.+")
     parserClasspath("org.projectlombok:lombok:1.18.+")
@@ -22,7 +22,12 @@ recipeDependencies {
 repositories {
     mavenCentral()
     mavenLocal()
-    maven("https://repository.apache.org/snapshots")
+    maven {
+        setUrl("https://repository.apache.org/snapshots")
+        mavenContent {
+            snapshotsOnly()
+        }
+    }
 }
 
 dependencies {
