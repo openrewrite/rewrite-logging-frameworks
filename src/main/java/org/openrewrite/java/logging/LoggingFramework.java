@@ -53,37 +53,28 @@ public enum LoggingFramework {
             case SLF4J:
                 return JavaTemplate
                         .builder("#{any(org.slf4j.Logger)}.error(" + message + ", #{any(java.lang.Throwable)})")
-                        .contextSensitive()
-                        .javaParser(JavaParser.fromJavaVersion()
-                                .classpathFromResources(ctx, "slf4j-api-2.1"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.1"))
                         .build();
             case Log4J1:
                 return JavaTemplate
                         .builder("#{any(org.apache.log4j.Category)}.error(" + message + ", #{any(java.lang.Throwable)})")
-                        .contextSensitive()
-                        .javaParser(JavaParser.fromJavaVersion()
-                                .classpathFromResources(ctx, "log4j-1.2"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "log4j-1.2"))
                         .build();
 
             case Log4J2:
                 return JavaTemplate
                         .builder("#{any(org.apache.logging.log4j.Logger)}.error(" + message + ", #{any(java.lang.Throwable)})")
-                        .contextSensitive()
-                        .javaParser(JavaParser.fromJavaVersion()
-                                .classpathFromResources(ctx, "log4j-api-2.23"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "log4j-api-2.23"))
                         .build();
             case COMMONS:
                 return JavaTemplate
                         .builder("#{any(org.apache.commons.logging.Log)}.error(" + message + ", #{any(java.lang.Throwable)})")
-                        .contextSensitive()
-                        .javaParser(JavaParser.fromJavaVersion()
-                                .classpathFromResources(ctx, "commons-logging-1.3"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "commons-logging-1.3"))
                         .build();
             case JUL:
             default:
                 return JavaTemplate
                         .builder("#{any(java.util.logging.Logger)}.log(Level.SEVERE, " + message + ", #{any(java.lang.Throwable)})")
-                        .contextSensitive()
                         .imports("java.util.logging.Level")
                         .build();
         }
