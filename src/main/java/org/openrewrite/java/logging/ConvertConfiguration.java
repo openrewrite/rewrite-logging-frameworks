@@ -19,8 +19,6 @@ import lombok.AllArgsConstructor;
 import org.apache.logging.converter.config.ConfigurationConverter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
-import org.openrewrite.NlsRewrite.Description;
-import org.openrewrite.NlsRewrite.DisplayName;
 import org.openrewrite.text.PlainText;
 
 import java.io.ByteArrayInputStream;
@@ -35,25 +33,30 @@ public class ConvertConfiguration extends Recipe {
 
     @Option(displayName = "Pattern for the files to convert",
             description = "If set, only the files that match this pattern will be converted.",
+            example = "**/log4j.properties",
             required = false)
     @Nullable
     String filePattern;
 
-    @Option(displayName = "Input format", description = "The id of the input logging configuration format. See [Log4j documentation](https://logging.staged.apache.org/log4j/transform/log4j-converter-config.html#formats) for a list of supported formats.", example = "v1:properties")
+    @Option(displayName = "Input format",
+            description = "The id of the input logging configuration format. See [Log4j documentation](https://logging.staged.apache.org/log4j/transform/log4j-converter-config.html#formats) for a list of supported formats.",
+            example = "v1:properties")
     String inputFormat;
 
-    @Option(displayName = "Output format", description = "The id of the output logging configuration format. See [Log4j documentation](https://logging.staged.apache.org/log4j/transform/log4j-converter-config.html#formats) for a list of supported formats.", example = "v2:xml")
+    @Option(displayName = "Output format",
+            description = "The id of the output logging configuration format. See [Log4j documentation](https://logging.staged.apache.org/log4j/transform/log4j-converter-config.html#formats) for a list of supported formats.",
+            example = "v2:xml")
     String outputFormat;
 
     private static final ConfigurationConverter converter = ConfigurationConverter.getInstance();
 
     @Override
-    public @DisplayName String getDisplayName() {
+    public String getDisplayName() {
         return "Convert logging configuration";
     }
 
     @Override
-    public @Description String getDescription() {
+    public String getDescription() {
         return "Converts the configuration of a logging backend from one format to another. For example it can convert a Log4j 1 properties configuration file into a Log4j Core 2 XML configuration file.";
     }
 
@@ -69,12 +72,7 @@ public class ConvertConfiguration extends Recipe {
                         new TreeVisitor<Tree, ExecutionContext>() {
 
                             @Override
-                            public boolean isAcceptable(SourceFile sourceFile, ExecutionContext executionContext) {
-                                return super.isAcceptable(sourceFile, executionContext);
-                            }
-
-                            @Override
-                            public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext executionContext) {
+                            public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
                                 if (tree instanceof SourceFile) {
                                     SourceFile sourceFile = (SourceFile) tree;
                                     ByteArrayInputStream inputStream = new ByteArrayInputStream(sourceFile.printAllAsBytes());
@@ -97,7 +95,7 @@ public class ConvertConfiguration extends Recipe {
                                             .text(utf8)
                                             .build();
                                 }
-                                return super.visit(tree, executionContext);
+                                return super.visit(tree, ctx);
                             }
                         });
     }
