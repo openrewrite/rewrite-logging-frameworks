@@ -20,6 +20,10 @@ recipeDependencies {
 }
 
 dependencies {
+    compileOnly("log4j:log4j:1.+") {
+        because("log4j 1 has critical vulnerabilities but we need the type for the refaster recipe during compilation")
+    }
+
     compileOnly("org.projectlombok:lombok:latest.release")
     annotationProcessor("org.projectlombok:lombok:latest.release")
 
@@ -31,7 +35,6 @@ dependencies {
     implementation("org.openrewrite.recipe:rewrite-static-analysis:${rewriteVersion}")
     runtimeOnly("org.openrewrite:rewrite-java-17")
 
-    implementation("log4j:log4j:1.+")
     implementation("org.apache.logging.log4j:log4j-core:2.+")
     implementation("org.slf4j:slf4j-api:2.+")
 
