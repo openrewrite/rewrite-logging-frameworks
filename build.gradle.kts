@@ -55,3 +55,4 @@ dependencies {
     testImplementation("org.openrewrite:rewrite-java-tck")
 
     testImplementation("org.assertj:assertj-core:latest.release")
+}
