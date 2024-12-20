@@ -17,8 +17,8 @@
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.log4j.ParameterizedLogging
-displayName: Parameterize Log4j 2.x logging statements
-description: Use Log4j 2.x parameterized logging, which can significantly boost performance for messages that
+displayName: Parameterize Log4j API 2 logging statements
+description: Use Log4j API 2 parameterized logging, which can significantly boost performance for messages that
   otherwise would be assembled with String concatenation. Particularly impactful when the log level is not enabled, as
   no work is done to assemble the message.
 tags:
@@ -57,8 +57,22 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.log4j.Log4j1ToLog4j2
-displayName: Migrate Log4j 1.x to Log4j 2.x
-description: Migrates Log4j 1.x to Log4j 2.x.
+displayName: Migrate Log4j 1 to Log4j API/Log4j Core 2
+description: Transforms code written using Log4j 1 to use Log4j API 2
+  and switches the logging backend from Log4j 1 to Log4j Core 2.
+tags:
+  - logging
+  - log4j
+recipeList:
+  - org.openrewrite.java.logging.log4j.Log4j1ToLog4jApi
+  - org.openrewrite.java.logging.log4j.Log4j1ToLog4jCore2
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.logging.log4j.Log4j1ToLog4jApi
+displayName: Migrate Log4j 1 to Log4j API 2
+description: "Transforms code written using Log4j 1 to use Log4j API 2.
+  Should be used together with a recipe that switches the logging implementation to a more modern one:
+  e.g. JBoss LogManager, Log4j Core 2 or Logback."
 tags:
   - logging
   - log4j
@@ -71,7 +85,6 @@ recipeList:
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.apache.log4j.Logger getRootLogger()
       fullyQualifiedTargetTypeName: org.apache.logging.log4j.LogManager
-
   - org.openrewrite.java.logging.log4j.LoggerSetLevelToConfiguratorRecipe
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: org.apache.log4j.Priority isGreaterOrEqual(org.apache.log4j.Priority)
@@ -80,7 +93,6 @@ recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.apache.log4j.Priority
       newFullyQualifiedTypeName: org.apache.logging.log4j.Level
-
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.apache.log4j.Category getInstance(Class)
       fullyQualifiedTargetTypeName: org.apache.logging.log4j.LogManager
@@ -93,7 +105,6 @@ recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.apache.log4j.Category
       newFullyQualifiedTypeName: org.apache.logging.log4j.Logger
-
   - org.openrewrite.java.ChangePackage:
       oldPackageName: org.apache.log4j
       newPackageName: org.apache.logging.log4j
@@ -103,27 +114,41 @@ recipeList:
       artifactId: log4j-api
       version: 2.x
       onlyIfUsing: org.apache.log4j.*
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.logging.log4j.Log4j1ToLog4jCore2
+displayName: Migrate Log4j 1 to Log4j Core 2
+description: Replaces Log4j 1 as logging implementation with Log4j Core 2.
+  This recipe does not replace code occurrences of Log4j 1 and should be only used if Log4j 1 is not used
+  directly as logging API.
+recipeList:
+  # Guarantees alignment between Log4j API and Log4j Core version, regardless of the Maven conflict resolution
+  # algorithm used.
+  - org.openrewrite.maven.AddManagedDependency:
+      groupId: org.apache.logging.log4j
+      artifactId: log4j-bom
+      version: 2.x
+      type: pom
+      scope: import
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.apache.logging.log4j
       artifactId: log4j-core
       version: 2.x
-      onlyIfUsing: org.apache.log4j.*
+      scope: runtime
+  # Removes Log4j 1 and replacements
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: log4j
       artifactId: log4j
   - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.apache.logging.log4j
+      artifactId: log4j-1.2-api
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.slf4j
+      artifactId: log4j-over-slf4j
+  - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: ch.qos.reload4j
       artifactId: reload4j
-  - org.openrewrite.java.dependencies.AddDependency:
-      groupId: org.apache.logging.log4j
-      artifactId: log4j-api
-      version: 2.x
-      onlyIfUsing: org.apache.logging.log4j.*
-  - org.openrewrite.java.dependencies.AddDependency:
-      groupId: org.apache.logging.log4j
-      artifactId: log4j-core
-      version: 2.x
-      onlyIfUsing: org.apache.logging.log4j.*
+  # Switch the target of SLF4J-to-X bridges
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.slf4j
       oldArtifactId: slf4j-log4j12
@@ -136,8 +161,47 @@ recipeList:
       newGroupId: org.apache.logging.log4j
       newArtifactId: log4j-slf4j-impl
       newVersion: 2.x
+  #
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: commons-logging
+      artifactId: commons-logging
+      newVersion: latest.release
   - org.openrewrite.java.logging.log4j.UpgradeLog4J2DependencyVersion
-
+  - org.openrewrite.java.logging.log4j.Log4j1ConfigurationToLog4jCore2
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.logging.log4j.Log4j1ConfigurationToLog4jCore2
+displayName: Migrate Log4j 1 configuration to Log4j Core 2 format
+description: Migrates Log4j 1 configuration files to the Log4j Core 2 XML format.
+recipeList:
+  - org.openrewrite.java.logging.log4j.V1PropertiesToV2Xml
+  - org.openrewrite.java.logging.log4j.V1XmlToV2Xml
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.logging.log4j.V1PropertiesToV2Xml
+displayName: Migrate `log4j.properties` files to `log4j2.xml` format
+description: Migrates `log4j.properties` files to the `log4j2.xml` format.
+recipeList:
+  - org.openrewrite.java.logging.ConvertConfiguration:
+      filePattern: "**/log4j.properties"
+      inputFormat: "v1:properties"
+      outputFormat: "v2:xml"
+  - org.openrewrite.RenameFile:
+      fileMatcher: "**/log4j.properties"
+      fileName: "log4j2.xml"
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.logging.log4j.V1XmlToV2Xml
+displayName: Migrate `log4j.xml` files to `log4j2.xml` format
+description: Migrates `log4j.xml` files to the `log4j2.xml` format.
+recipeList:
+  - org.openrewrite.java.logging.ConvertConfiguration:
+      filePattern: "**/log4j.xml"
+      inputFormat: "v1:xml"
+      outputFormat: "v2:xml"
+  - org.openrewrite.RenameFile:
+      fileMatcher: "**/log4j.xml"
+      fileName: "log4j2.xml"
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.log4j.UpgradeLog4J2DependencyVersion
