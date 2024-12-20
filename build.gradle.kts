@@ -20,10 +20,6 @@ recipeDependencies {
 }
 
 dependencies {
-    compileOnly("log4j:log4j:1.+") {
-        because("log4j 1 has critical vulnerabilities but we need the type for the refaster recipe during compilation")
-    }
-
     compileOnly("org.projectlombok:lombok:latest.release")
     annotationProcessor("org.projectlombok:lombok:latest.release")
 
@@ -44,6 +40,11 @@ dependencies {
         exclude("com.google.auto.service", "auto-service-annotations")
     }
 
+    compileOnly("log4j:log4j:1.+") {
+        because("log4j 1 has critical vulnerabilities but we need the type for the refaster recipe during compilation")
+    }
+    testRuntimeOnly("log4j:log4j:1.+") // Necessary to match for now; explore alternatives for Refaster classpath in the future
+
     testImplementation("org.junit.jupiter:junit-jupiter-api:latest.release")
     testImplementation("org.junit.jupiter:junit-jupiter-params:latest.release")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:latest.release")
@@ -54,4 +55,3 @@ dependencies {
     testImplementation("org.openrewrite:rewrite-java-tck")
 
     testImplementation("org.assertj:assertj-core:latest.release")
-}
