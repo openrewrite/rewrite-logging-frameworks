@@ -57,7 +57,7 @@ public class PrependRandomName extends Recipe {
                 //noinspection ConstantConditions
                 if (parent instanceof J.MethodInvocation &&
                         logStatement.matches((J.MethodInvocation) parent) &&
-                        JavaType.Primitive.String.equals(literal.getType()) &&
+                       JavaType.Primitive.String == literal.getType() &&
                         !literal.getValue().toString().startsWith("<")) {
                     String value = "<" + randomName.next() + "> " + literal.getValue().toString();
                     return literal.withValue(value)
