@@ -37,7 +37,7 @@ class ParameterizedLoggingTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.parser(JavaParser.fromJavaVersion()
-          .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1", "log4j-api-2.23", "log4j-core-2.23"));
+          .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1", "log4j-api-2.23", "log4j-core-2.23", "lombok-1.18"));
     }
 
     @DocumentExample
@@ -697,4 +697,33 @@ class ParameterizedLoggingTest implements RewriteTest {
         );
     }
 
+    @Test
+    void lombokLoggingAnnotation() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
+          // language=java
+          java(
+            """
+              import lombok.extern.slf4j.Slf4j;
+
+              @Slf4j
+              class Test {
+                  static void method(String name) {
+                      log.info(marker, "Hello " + name + ", nice to meet you " + name);
+                  }
+              }
+              """,
+            """
+              import lombok.extern.slf4j.Slf4j;
+
+              @Slf4j
+              class Test {
+                  static void method(String name) {
+                      log.info(marker, "Hello {}, nice to meet you {}", name, name);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
