@@ -15,6 +15,9 @@
  */
 package org.openrewrite.java.logging;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -37,7 +40,7 @@ class ParameterizedLoggingTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.parser(JavaParser.fromJavaVersion()
-          .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1", "log4j-api-2.23", "log4j-core-2.23"));
+          .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1", "log4j-api-2.23", "log4j-core-2.23", "lombok"));
     }
 
     @DocumentExample
@@ -697,4 +700,48 @@ class ParameterizedLoggingTest implements RewriteTest {
         );
     }
 
+    @Nested
+    class LombokSupport {
+
+        @BeforeAll
+        static void setUp() {
+            System.setProperty("rewrite.lombok", "true");
+        }
+
+        @AfterAll
+        static void tearDown() {
+            System.clearProperty("rewrite.lombok");
+        }
+
+        @Test
+        void lombokLoggingAnnotation() {
+            rewriteRun(
+              spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
+              // language=java
+              java(
+                """
+                  import lombok.extern.slf4j.Slf4j;
+
+                  @Slf4j
+                  class Test {
+                      static void method(String name) {
+                          log.info("Hello " + name + ", nice to meet you " + name);
+                      }
+                  }
+                  """,
+                """
+                  import lombok.extern.slf4j.Slf4j;
+
+                  @Slf4j
+                  class Test {
+                      static void method(String name) {
+                          log.info("Hello {}, nice to meet you {}", name, name);
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+    }
 }
