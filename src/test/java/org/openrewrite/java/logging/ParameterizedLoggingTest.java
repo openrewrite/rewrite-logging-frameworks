@@ -17,6 +17,7 @@ package org.openrewrite.java.logging;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -35,16 +36,6 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
   "PlaceholderCountMatchesArgumentCount"
 })
 class ParameterizedLoggingTest implements RewriteTest {
-
-    @BeforeAll
-    static void setUp() {
-        System.setProperty("rewrite.lombok", "true");
-    }
-
-    @AfterAll
-    static void tearDown() {
-        System.clearProperty("rewrite.lombok");
-    }
 
     @Override
     public void defaults(RecipeSpec spec) {
@@ -709,33 +700,48 @@ class ParameterizedLoggingTest implements RewriteTest {
         );
     }
 
-    @Test
-    void lombokLoggingAnnotation() {
-        rewriteRun(
-          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
-          // language=java
-          java(
-            """
-              import lombok.extern.slf4j.Slf4j;
+    @Nested
+    class LombokSupport {
 
-              @Slf4j
-              class Test {
-                  static void method(String name) {
-                      log.info"Hello " + name + ", nice to meet you " + name);
-                  }
-              }
-              """,
-            """
-              import lombok.extern.slf4j.Slf4j;
+        @BeforeAll
+        static void setUp() {
+            System.setProperty("rewrite.lombok", "true");
+        }
 
-              @Slf4j
-              class Test {
-                  static void method(String name) {
-                      log.info("Hello {}, nice to meet you {}", name, name);
+        @AfterAll
+        static void tearDown() {
+            System.clearProperty("rewrite.lombok");
+        }
+
+        @Test
+        void lombokLoggingAnnotation() {
+            rewriteRun(
+              spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
+              // language=java
+              java(
+                """
+                  import lombok.extern.slf4j.Slf4j;
+
+                  @Slf4j
+                  class Test {
+                      static void method(String name) {
+                          log.info("Hello " + name + ", nice to meet you " + name);
+                      }
                   }
-              }
-              """
-          )
-        );
+                  """,
+                """
+                  import lombok.extern.slf4j.Slf4j;
+
+                  @Slf4j
+                  class Test {
+                      static void method(String name) {
+                          log.info("Hello {}, nice to meet you {}", name, name);
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
     }
 }
