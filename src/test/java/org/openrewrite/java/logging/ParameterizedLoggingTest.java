@@ -15,6 +15,8 @@
  */
 package org.openrewrite.java.logging;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -34,10 +36,20 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 })
 class ParameterizedLoggingTest implements RewriteTest {
 
+    @BeforeAll
+    static void setUp() {
+        System.setProperty("rewrite.lombok", "true");
+    }
+
+    @AfterAll
+    static void tearDown() {
+        System.clearProperty("rewrite.lombok");
+    }
+
     @Override
     public void defaults(RecipeSpec spec) {
         spec.parser(JavaParser.fromJavaVersion()
-          .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1", "log4j-api-2.23", "log4j-core-2.23", "lombok-1.18"));
+          .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1", "log4j-api-2.23", "log4j-core-2.23", "lombok"));
     }
 
     @DocumentExample
