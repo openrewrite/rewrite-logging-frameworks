@@ -721,7 +721,7 @@ class ParameterizedLoggingTest implements RewriteTest {
               @Slf4j
               class Test {
                   static void method(String name) {
-                      log.info(marker, "Hello " + name + ", nice to meet you " + name);
+                      log.info"Hello " + name + ", nice to meet you " + name);
                   }
               }
               """,
@@ -731,7 +731,7 @@ class ParameterizedLoggingTest implements RewriteTest {
               @Slf4j
               class Test {
                   static void method(String name) {
-                      log.info(marker, "Hello {}, nice to meet you {}", name, name);
+                      log.info("Hello {}, nice to meet you {}", name, name);
                   }
               }
               """
