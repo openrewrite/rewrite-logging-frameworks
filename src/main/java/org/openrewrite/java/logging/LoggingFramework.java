@@ -64,7 +64,7 @@ public enum LoggingFramework {
             case Log4J2:
                 return JavaTemplate
                         .builder("#{any(org.apache.logging.log4j.Logger)}.error(" + message + ", #{any(java.lang.Throwable)})")
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "log4j-api-2.23"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "log4j-api-2"))
                         .build();
             case COMMONS:
                 return JavaTemplate

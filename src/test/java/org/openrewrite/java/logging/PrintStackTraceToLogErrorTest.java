@@ -41,7 +41,7 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
               import org.slf4j.Logger;
               class Test {
                   Logger logger;
-                  
+
                   void test() {
                       try {
                       } catch(Throwable t) {
@@ -56,7 +56,7 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
               import org.slf4j.Logger;
               class Test {
                   Logger logger;
-                  
+
                   void test() {
                       try {
                       } catch(Throwable t) {
@@ -75,14 +75,14 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
     void useLog4j2() {
         rewriteRun(
           spec -> spec.recipe(new PrintStackTraceToLogError(null, "LOGGER", "Log4j2"))
-            .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "log4j-api-2.23")),
+            .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "log4j-api-2")),
           //language=java
           java(
             """
               import org.apache.logging.log4j.Logger;
               class Test {
                   Logger logger;
-                  
+
                   void test() {
                       try {
                       } catch(Throwable t) {
@@ -95,7 +95,7 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
               import org.apache.logging.log4j.Logger;
               class Test {
                   Logger logger;
-                  
+
                   void test() {
                       try {
                       } catch(Throwable t) {
@@ -118,7 +118,7 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
               import java.util.logging.Logger;
               class Test {
                   Logger logger;
-                  
+
                   void test() {
                       try {
                       } catch(Throwable t) {
@@ -130,10 +130,10 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
             """
               import java.util.logging.Level;
               import java.util.logging.Logger;
-                            
+
               class Test {
                   Logger logger;
-                  
+
                   void test() {
                       try {
                       } catch(Throwable t) {
@@ -165,10 +165,10 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
             """
               import org.slf4j.Logger;
               import org.slf4j.LoggerFactory;
-                            
+
               class Test {
                   private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
-                            
+
                   void test() {
                       try {
                       } catch(Throwable t) {
@@ -195,7 +195,7 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
                           e.printStackTrace();
                       }
                   }
-              
+
                   public static class Another {
                       public void close() {
                           try {
@@ -209,19 +209,19 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
             """
               import org.slf4j.Logger;
               import org.slf4j.LoggerFactory;
-              
+
               public class Test {
                   public static class MyErrorReceiver {
                       private static final Logger LOGGER = LoggerFactory.getLogger(MyErrorReceiver.class);
-              
+
                       public void error(Exception e) {
                           LOGGER.error("Exception", e);
                       }
                   }
-              
+
                   public static class Another {
                       private static final Logger LOGGER = LoggerFactory.getLogger(Another.class);
-              
+
                       public void close() {
                           try {
                           } catch ( java.io.IOException e ) {
