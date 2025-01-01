@@ -19,7 +19,10 @@ import lombok.AllArgsConstructor;
 import org.apache.logging.converter.config.ConfigurationConverter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
-import org.openrewrite.text.PlainText;
+import org.openrewrite.quark.Quark;
+import org.openrewrite.remote.Remote;
+import org.openrewrite.text.PlainTextParser;
+import org.openrewrite.tree.ParseError;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -48,8 +51,6 @@ public class ConvertConfiguration extends Recipe {
             example = "v2:xml")
     String outputFormat;
 
-    private static final ConfigurationConverter converter = ConfigurationConverter.getInstance();
-
     @Override
     public String getDisplayName() {
         return "Convert logging configuration";
@@ -60,43 +61,30 @@ public class ConvertConfiguration extends Recipe {
         return "Converts the configuration of a logging backend from one format to another. For example it can convert a Log4j 1 properties configuration file into a Log4j Core 2 XML configuration file.";
     }
 
-    @Override
-    public int maxCycles() {
-        return 1;
-    }
+    private static final ConfigurationConverter converter = ConfigurationConverter.getInstance();
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return
-                Preconditions.check(new FindSourceFiles(filePattern),
-                        new TreeVisitor<Tree, ExecutionContext>() {
+        return Preconditions.check(new FindSourceFiles(filePattern), new TreeVisitor<Tree, ExecutionContext>() {
+            @Override
+            public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
+                if (tree instanceof ParseError || tree instanceof Quark || tree instanceof Remote) {
+                    return tree;
+                }
+                if (tree instanceof SourceFile) {
+                    SourceFile sourceFile = (SourceFile) tree;
+                    ByteArrayInputStream inputStream = new ByteArrayInputStream(sourceFile.printAllAsBytes());
+                    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
-                            @Override
-                            public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
-                                if (tree instanceof SourceFile) {
-                                    SourceFile sourceFile = (SourceFile) tree;
-                                    ByteArrayInputStream inputStream = new ByteArrayInputStream(sourceFile.printAllAsBytes());
-                                    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+                    converter.convert(inputStream, inputFormat, outputStream, outputFormat);
+                    String utf8 = new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
 
-                                    converter.convert(inputStream, inputFormat, outputStream, outputFormat);
-
-                                    String utf8 = new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
-                                    if (tree instanceof PlainText) {
-                                        return ((PlainText) tree).withText(utf8).withCharset(StandardCharsets.UTF_8);
-                                    }
-                                    return PlainText.builder()
-                                            .id(sourceFile.getId())
-                                            .charsetBomMarked(sourceFile.isCharsetBomMarked())
-                                            .charsetName(StandardCharsets.UTF_8.name())
-                                            .checksum(sourceFile.getChecksum())
-                                            .fileAttributes(sourceFile.getFileAttributes())
-                                            .markers(sourceFile.getMarkers())
-                                            .sourcePath(sourceFile.getSourcePath())
-                                            .text(utf8)
-                                            .build();
-                                }
-                                return super.visit(tree, ctx);
-                            }
-                        });
+                    return PlainTextParser.convert(sourceFile)
+                            .withText(utf8)
+                            .withCharset(StandardCharsets.UTF_8);
+                }
+                return super.visit(tree, ctx);
+            }
+        });
     }
 }

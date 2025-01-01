@@ -351,25 +351,38 @@ class Log4j1ToLog4j2Test implements RewriteTest {
 
     @Test
     void rewriteConfigurationFile() {
-        rewriteRun(mavenProject("project", srcMainResources(properties("""
-          log4j.appender.FILE = org.apache.log4j.FileAppender
-          log4j.appender.FILE.file = file.log
-          log4j.appender.FILE.layout = org.apache.log4j.SimpleLayout
-          log4j.rootLogger = INFO, FILE
-          """, """
-          <?xml version='1.0' encoding='UTF-8'?>
-          <Configuration xmlns="https://logging.apache.org/xml/ns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://logging.apache.org/xml/ns https://logging.apache.org/xml/ns/log4j-config-2.xsd">
-            <Properties/>
-            <Appenders>
-              <File append="true" bufferSize="8192" bufferedIo="false" fileName="file.log" immediateFlush="true" name="FILE">
-                <PatternLayout alwaysWriteExceptions="false" pattern="%p - %m%n"/>
-              </File>
-            </Appenders>
-            <Loggers>
-              <Root level="INFO">
-                <AppenderRef ref="FILE"/>
-              </Root>
-            </Loggers>
-          </Configuration>""", spec -> spec.path("log4j.properties").afterRecipe(s -> assertThat(s.getSourcePath()).hasFileName("log4j2.xml"))))));
+        rewriteRun(
+          mavenProject("project",
+            srcMainResources(
+              properties(
+                //language=properties
+                """
+                  log4j.appender.FILE = org.apache.log4j.FileAppender
+                  log4j.appender.FILE.file = file.log
+                  log4j.appender.FILE.layout = org.apache.log4j.SimpleLayout
+                  log4j.rootLogger = INFO, FILE
+                  """,
+                //language=xml
+                """
+                  <?xml version='1.0' encoding='UTF-8'?>
+                  <Configuration xmlns="https://logging.apache.org/xml/ns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://logging.apache.org/xml/ns https://logging.apache.org/xml/ns/log4j-config-2.xsd">
+                    <Properties/>
+                    <Appenders>
+                      <File append="true" bufferSize="8192" bufferedIo="false" fileName="file.log" immediateFlush="true" name="FILE">
+                        <PatternLayout alwaysWriteExceptions="false" pattern="%p - %m%n"/>
+                      </File>
+                    </Appenders>
+                    <Loggers>
+                      <Root level="INFO">
+                        <AppenderRef ref="FILE"/>
+                      </Root>
+                    </Loggers>
+                  </Configuration>
+                  """,
+                spec -> spec.path("log4j.properties")
+                  .afterRecipe(s -> assertThat(s.getSourcePath()).hasFileName("log4j2.xml")))
+            )
+          )
+        );
     }
 }
