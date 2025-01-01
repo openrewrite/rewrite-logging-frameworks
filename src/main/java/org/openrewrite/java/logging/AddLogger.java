@@ -104,7 +104,7 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
                         .builder(getModifiers(scope) + " Logger #{} = LogManager.getLogger(#{}.class);")
                         .contextSensitive()
                         .imports("org.apache.logging.log4j.Logger", "org.apache.logging.log4j.LogManager")
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "log4j-api-2.23"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "log4j-api-2"))
                         .build()
         );
     }

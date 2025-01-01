@@ -205,7 +205,7 @@ public class SystemErrToLogging extends Recipe {
                     case Log4J2:
                         return JavaTemplate
                                 .builder("#{any(org.apache.logging.log4j.Logger)}.error(#{any(String)});")
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "log4j-api-2.23"))
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "log4j-api-2"))
                                 .build();
                     case JUL:
                     default:

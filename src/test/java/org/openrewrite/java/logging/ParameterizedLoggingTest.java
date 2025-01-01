@@ -40,7 +40,7 @@ class ParameterizedLoggingTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.parser(JavaParser.fromJavaVersion()
-          .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1", "log4j-api-2.23", "log4j-core-2.23", "lombok"));
+          .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1", "log4j-api-2", "log4j-core-2", "lombok"));
     }
 
     @DocumentExample
