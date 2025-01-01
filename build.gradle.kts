@@ -47,8 +47,7 @@ dependencies {
     implementation("org.openrewrite.recipe:rewrite-static-analysis:${rewriteVersion}")
     runtimeOnly("org.openrewrite:rewrite-java-17")
 
-    implementation("log4j:log4j:1.+")
-    implementation("org.apache.logging.log4j:log4j-core:2.24.3")
+    implementation("org.apache.logging.log4j:log4j-core:2.+")
     implementation("org.slf4j:slf4j-api:2.+")
     implementation("org.apache.logging.log4j:log4j-converter-config:0.3.0-SNAPSHOT")
 
@@ -57,6 +56,11 @@ dependencies {
     compileOnly("com.google.errorprone:error_prone_core:2.+") {
         exclude("com.google.auto.service", "auto-service-annotations")
     }
+
+    compileOnly("log4j:log4j:1.+") {
+        because("log4j 1 has critical vulnerabilities but we need the type for the refaster recipe during compilation")
+    }
+    testRuntimeOnly("log4j:log4j:1.+") // Necessary to match for now; explore alternatives for Refaster classpath in the future
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:latest.release")
     testImplementation("org.junit.jupiter:junit-jupiter-params:latest.release")
