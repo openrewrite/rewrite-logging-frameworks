@@ -5,7 +5,7 @@ plugins {
 group = "org.openrewrite.recipe"
 description = "Enforce logging best practices and migrate between logging frameworks. Automatically."
 
-val rewriteVersion = rewriteRecipe.rewriteVersion.get()
+val rewriteVersion = "latest.release"
 
 recipeDependencies {
 
@@ -24,17 +24,17 @@ dependencies {
 
     implementation("org.kohsuke:wordnet-random-name:latest.release")
 
-    implementation(platform("org.openrewrite:rewrite-bom:${rewriteVersion}"))
+    implementation(platform("org.openrewrite:rewrite-bom:8.41.1"))
     implementation("org.openrewrite:rewrite-java")
-    implementation("org.openrewrite.recipe:rewrite-java-dependencies:${rewriteVersion}")
-    implementation("org.openrewrite.recipe:rewrite-static-analysis:${rewriteVersion}")
+    implementation("org.openrewrite.recipe:rewrite-java-dependencies:1.24.1")
+    implementation("org.openrewrite.recipe:rewrite-static-analysis:1.21.1")
     runtimeOnly("org.openrewrite:rewrite-java-17")
 
     implementation("org.apache.logging.log4j:log4j-core:2.+")
     implementation("org.slf4j:slf4j-api:2.+")
 
-    annotationProcessor("org.openrewrite:rewrite-templating:$rewriteVersion")
-    implementation("org.openrewrite:rewrite-templating:$rewriteVersion")
+    annotationProcessor("org.openrewrite:rewrite-templating:1.19.1")
+    implementation("org.openrewrite:rewrite-templating:1.19.1")
     compileOnly("com.google.errorprone:error_prone_core:2.+") {
         exclude("com.google.auto.service", "auto-service-annotations")
     }
