@@ -700,48 +700,33 @@ class ParameterizedLoggingTest implements RewriteTest {
         );
     }
 
-    @Nested
-    class LombokSupport {
+    @Test
+    void lombokLoggingAnnotation() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
+          // language=java
+          java(
+            """
+              import lombok.extern.slf4j.Slf4j;
 
-        @BeforeAll
-        static void setUp() {
-            System.setProperty("rewrite.lombok", "true");
-        }
-
-        @AfterAll
-        static void tearDown() {
-            System.clearProperty("rewrite.lombok");
-        }
-
-        @Test
-        void lombokLoggingAnnotation() {
-            rewriteRun(
-              spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
-              // language=java
-              java(
-                """
-                  import lombok.extern.slf4j.Slf4j;
-
-                  @Slf4j
-                  class Test {
-                      static void method(String name) {
-                          log.info("Hello " + name + ", nice to meet you " + name);
-                      }
+              @Slf4j
+              class Test {
+                  static void method(String name) {
+                      log.info("Hello " + name + ", nice to meet you " + name);
                   }
-                  """,
-                """
-                  import lombok.extern.slf4j.Slf4j;
+              }
+              """,
+            """
+              import lombok.extern.slf4j.Slf4j;
 
-                  @Slf4j
-                  class Test {
-                      static void method(String name) {
-                          log.info("Hello {}, nice to meet you {}", name, name);
-                      }
+              @Slf4j
+              class Test {
+                  static void method(String name) {
+                      log.info("Hello {}, nice to meet you {}", name, name);
                   }
-                  """
-              )
-            );
-        }
-
+              }
+              """
+          )
+        );
     }
 }
