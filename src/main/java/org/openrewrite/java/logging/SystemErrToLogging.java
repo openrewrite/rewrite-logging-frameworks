@@ -194,18 +194,18 @@ public class SystemErrToLogging extends Recipe {
                     case SLF4J:
                         return JavaTemplate
                                 .builder("#{any(org.slf4j.Logger)}.error(#{any(String)});")
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.1"))
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.1.+"))
                                 .build();
                     case Log4J1:
                         return JavaTemplate
                                 .builder("#{any(org.apache.log4j.Category)}.error(#{any(String)});")
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "log4j-1.2"))
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "log4j-1.2.+"))
                                 .build();
 
                     case Log4J2:
                         return JavaTemplate
                                 .builder("#{any(org.apache.logging.log4j.Logger)}.error(#{any(String)});")
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "log4j-api-2.23"))
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "log4j-api-2.+"))
                                 .build();
                     case JUL:
                     default:

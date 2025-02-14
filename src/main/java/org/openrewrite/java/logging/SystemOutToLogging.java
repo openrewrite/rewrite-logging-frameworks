@@ -134,20 +134,20 @@ public class SystemOutToLogging extends Recipe {
                         return JavaTemplate
                                 .builder("#{any(org.slf4j.Logger)}." + levelOrDefault + "(#{any(String)})")
                                 .javaParser(JavaParser.fromJavaVersion()
-                                        .classpathFromResources(ctx, "slf4j-api-2.1"))
+                                        .classpathFromResources(ctx, "slf4j-api-2.1.+"))
                                 .build();
                     case Log4J1:
                         return JavaTemplate
                                 .builder("#{any(org.apache.log4j.Category)}." + levelOrDefault + "(#{any(String)})")
                                 .javaParser(JavaParser.fromJavaVersion()
-                                        .classpathFromResources(ctx, "log4j-1.2"))
+                                        .classpathFromResources(ctx, "log4j-1.2.+"))
                                 .build();
 
                     case Log4J2:
                         return JavaTemplate
                                 .builder("#{any(org.apache.logging.log4j.Logger)}." + levelOrDefault + "(#{any(String)})")
                                 .javaParser(JavaParser.fromJavaVersion()
-                                        .classpathFromResources(ctx, "log4j-api-2.23"))
+                                        .classpathFromResources(ctx, "log4j-api-2.+"))
                                 .build();
                     case JUL:
                     default:

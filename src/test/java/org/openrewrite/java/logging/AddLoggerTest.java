@@ -33,7 +33,7 @@ class AddLoggerTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.parser(JavaParser.fromJavaVersion()
-          .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1"));
+          .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1.+"));
     }
 
     @DocumentExample
@@ -50,10 +50,10 @@ class AddLoggerTest implements RewriteTest {
               """,
             """
               package test;
-              
+
               import org.slf4j.Logger;
               import org.slf4j.LoggerFactory;
-              
+
               class Test {
                   private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
               }
@@ -75,10 +75,10 @@ class AddLoggerTest implements RewriteTest {
               """,
             """
               package test;
-              
+
               import org.slf4j.Logger;
               import org.slf4j.LoggerFactory;
-              
+
               class Test {
                   private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
               }
@@ -95,10 +95,10 @@ class AddLoggerTest implements RewriteTest {
           java(
             """
               package test;
-              
+
               import org.slf4j.Logger;
               import org.slf4j.LoggerFactory;
-              
+
               class Test {
                   private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
               }
@@ -116,7 +116,7 @@ class AddLoggerTest implements RewriteTest {
             """
               import org.slf4j.Logger;
               import org.slf4j.LoggerFactory;
-              
+
               class Base {
                   protected static final Logger LOGGER = LoggerFactory.getLogger(Base.class);
               }
@@ -145,10 +145,10 @@ class AddLoggerTest implements RewriteTest {
             """
               import org.slf4j.Logger;
               import org.slf4j.LoggerFactory;
-              
+
               class Test {
                   private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
-              
+
                   enum Status { TRUE, FALSE, FILE_NOT_FOUND }
               }
               """
@@ -198,10 +198,10 @@ class AddLoggerTest implements RewriteTest {
               """,
             """
               package test;
-              
+
               import org.slf4j.Logger;
               import org.slf4j.LoggerFactory;
-              
+
               class Outer {
                   class Inner {
                       private final Logger LOGGER = LoggerFactory.getLogger(Inner.class);

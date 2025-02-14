@@ -30,7 +30,7 @@ class JulToLog4jTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipeFromResource("/META-INF/rewrite/log4j.yml", "org.openrewrite.java.logging.log4j.JulToLog4j")
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "log4j-api-2.23", "lombok-1.18"));
+            .classpathFromResources(new InMemoryExecutionContext(), "log4j-api-2.+", "lombok-1.18.+"));
     }
 
     @Test

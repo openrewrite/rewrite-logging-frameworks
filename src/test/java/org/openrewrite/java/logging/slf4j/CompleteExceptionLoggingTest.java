@@ -30,7 +30,7 @@ class CompleteExceptionLoggingTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipe(new CompleteExceptionLogging())
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1"));
+            .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1.+"));
     }
 
     @Test
@@ -41,10 +41,10 @@ class CompleteExceptionLoggingTest implements RewriteTest {
             """
               import org.slf4j.Logger;
               import org.slf4j.LoggerFactory;
-              
+
               class A {
                   private final static Logger LOG = LoggerFactory.getLogger(A.class);
-              
+
                   void produceException() {
                       throw new RuntimeException("");
                   }
@@ -54,7 +54,7 @@ class CompleteExceptionLoggingTest implements RewriteTest {
                       } catch (Exception e) {
                           // #1, String contains no format specifiers, `e.getMessage()` should be `e`.
                           LOG.error("An error occurred", e.getMessage());
-                          
+
                           // #2, String contains format specifiers, `e.getMessage()` should be `e`.
                           LOG.error("An error occurred {} times", 1, e.getMessage());
                       }
@@ -64,10 +64,10 @@ class CompleteExceptionLoggingTest implements RewriteTest {
             """
               import org.slf4j.Logger;
               import org.slf4j.LoggerFactory;
-              
+
               class A {
                   private final static Logger LOG = LoggerFactory.getLogger(A.class);
-              
+
                   void produceException() {
                       throw new RuntimeException("");
                   }
@@ -77,7 +77,7 @@ class CompleteExceptionLoggingTest implements RewriteTest {
                       } catch (Exception e) {
                           // #1, String contains no format specifiers, `e.getMessage()` should be `e`.
                           LOG.error("An error occurred", e);
-                          
+
                           // #2, String contains format specifiers, `e.getMessage()` should be `e`.
                           LOG.error("An error occurred {} times", 1, e);
                       }
@@ -96,10 +96,10 @@ class CompleteExceptionLoggingTest implements RewriteTest {
             """
               import org.slf4j.Logger;
               import org.slf4j.LoggerFactory;
-              
+
               class A {
                   private final static Logger LOG = LoggerFactory.getLogger(A.class);
-              
+
                   void produceException() {
                       throw new RuntimeException("");
                   }
@@ -109,7 +109,7 @@ class CompleteExceptionLoggingTest implements RewriteTest {
                       } catch (Exception e) {
                           // #1, String contains format specifiers, add `e` as follows.
                           LOG.error("Error message : {}", e.getMessage());
-                          
+
                           // #2, Multiple placeholders, add `e` as follows.
                           LOG.error("Error message : {} {} {}", 1, 2, e.getMessage());
                       }
@@ -119,10 +119,10 @@ class CompleteExceptionLoggingTest implements RewriteTest {
             """
               import org.slf4j.Logger;
               import org.slf4j.LoggerFactory;
-              
+
               class A {
                   private final static Logger LOG = LoggerFactory.getLogger(A.class);
-              
+
                   void produceException() {
                       throw new RuntimeException("");
                   }
@@ -132,7 +132,7 @@ class CompleteExceptionLoggingTest implements RewriteTest {
                       } catch (Exception e) {
                           // #1, String contains format specifiers, add `e` as follows.
                           LOG.error("Error message : {}", e.getMessage(), e);
-                          
+
                           // #2, Multiple placeholders, add `e` as follows.
                           LOG.error("Error message : {} {} {}", 1, 2, e.getMessage(), e);
                       }
@@ -151,10 +151,10 @@ class CompleteExceptionLoggingTest implements RewriteTest {
             """
               import org.slf4j.Logger;
               import org.slf4j.LoggerFactory;
-              
+
               class A {
                   private final static Logger LOG = LoggerFactory.getLogger(A.class);
-              
+
                   void produceException() {
                       throw new RuntimeException("");
                   }
@@ -164,16 +164,16 @@ class CompleteExceptionLoggingTest implements RewriteTest {
                       } catch (Exception e) {
                           // #1, GetMessage is not the last parameter
                           LOG.error("error message {}, occurred {} times ", e.getMessage(), 1);
-              
+
                           // #2, getMessage() is part of a string, no change
                           LOG.error("Error message : " + e.getMessage());
-              
+
                           // #3, getMessage() is not a parameter of LOG methods, no change
                           LOG.error(format(e.getMessage()));
                           LOG.error("Error message : ", format(e.getMessage()));
                       }
                   }
-              
+
                   String format(String input) {
                       return input + "!";
                   }
@@ -182,10 +182,10 @@ class CompleteExceptionLoggingTest implements RewriteTest {
             """
               import org.slf4j.Logger;
               import org.slf4j.LoggerFactory;
-              
+
               class A {
                   private final static Logger LOG = LoggerFactory.getLogger(A.class);
-              
+
                   void produceException() {
                       throw new RuntimeException("");
                   }
@@ -195,16 +195,16 @@ class CompleteExceptionLoggingTest implements RewriteTest {
                       } catch (Exception e) {
                           // #1, GetMessage is not the last parameter
                           LOG.error("error message {}, occurred {} times ", e.getMessage(), 1, e);
-              
+
                           // #2, getMessage() is part of a string, no change
                           LOG.error("Error message : " + e.getMessage(), e);
-              
+
                           // #3, getMessage() is not a parameter of LOG methods, no change
                           LOG.error(format(e.getMessage()), e);
                           LOG.error("Error message : ", format(e.getMessage()), e);
                       }
                   }
-              
+
                   String format(String input) {
                       return input + "!";
                   }
@@ -222,10 +222,10 @@ class CompleteExceptionLoggingTest implements RewriteTest {
             """
               import org.slf4j.Logger;
               import org.slf4j.LoggerFactory;
-              
+
               class A {
                   private final static Logger LOG = LoggerFactory.getLogger(A.class);
-              
+
                   void produceException() {
                       throw new RuntimeException("");
                   }
@@ -238,7 +238,7 @@ class CompleteExceptionLoggingTest implements RewriteTest {
                           LOG.info("An error occurred", e.getMessage());
                           LOG.trace("An error occurred", e.getMessage());
                           LOG.warn("An error occurred", e.getMessage());
-                          
+
                           LOG.debug("An error occurred", e.getLocalizedMessage());
                           LOG.error("An error occurred", e.getLocalizedMessage());
                           LOG.info("An error occurred", e.getLocalizedMessage());
@@ -251,10 +251,10 @@ class CompleteExceptionLoggingTest implements RewriteTest {
             """
               import org.slf4j.Logger;
               import org.slf4j.LoggerFactory;
-              
+
               class A {
                   private final static Logger LOG = LoggerFactory.getLogger(A.class);
-              
+
                   void produceException() {
                       throw new RuntimeException("");
                   }
@@ -267,7 +267,7 @@ class CompleteExceptionLoggingTest implements RewriteTest {
                           LOG.info("An error occurred", e);
                           LOG.trace("An error occurred", e);
                           LOG.warn("An error occurred", e);
-                          
+
                           LOG.debug("An error occurred", e);
                           LOG.error("An error occurred", e);
                           LOG.info("An error occurred", e);
@@ -289,7 +289,7 @@ class CompleteExceptionLoggingTest implements RewriteTest {
             """
               import org.slf4j.Logger;
               import org.slf4j.LoggerFactory;
-              
+
               class Test {
                   Logger logger = LoggerFactory.getLogger(Test.class);
                   void doSomething() {
@@ -305,7 +305,7 @@ class CompleteExceptionLoggingTest implements RewriteTest {
             """
               import org.slf4j.Logger;
               import org.slf4j.LoggerFactory;
-              
+
               class Test {
                   Logger logger = LoggerFactory.getLogger(Test.class);
                   void doSomething() {
@@ -331,7 +331,7 @@ class CompleteExceptionLoggingTest implements RewriteTest {
             """
               import org.slf4j.Logger;
               import org.slf4j.LoggerFactory;
-              
+
               class Test {
                   Logger logger = LoggerFactory.getLogger(Test.class);
                   void doSomething() {
@@ -340,13 +340,13 @@ class CompleteExceptionLoggingTest implements RewriteTest {
                       } catch (NumberFormatException e) {
                           // TEST CASE #1:
                           logger.error(e.getMessage());
-              
+
                           // TEST CASE #2:
                           logger.error("BEFORE MESSAGE " + e.getMessage());
-              
+
                           // TEST CASE #3:
                           logger.error("BEFORE MESSAGE " + e.getMessage() + " AFTER MESSAGE");
-              
+
                           // TEST CASE #4: No Changes, since stack trace already being logged
                           logger.error("BEFORE MESSAGE " + e.getMessage() + " AFTER MESSAGE", e);
                       }
@@ -357,7 +357,7 @@ class CompleteExceptionLoggingTest implements RewriteTest {
 
               import org.slf4j.Logger;
               import org.slf4j.LoggerFactory;
-              
+
               class Test {
                   Logger logger = LoggerFactory.getLogger(Test.class);
                   void doSomething() {
@@ -366,13 +366,13 @@ class CompleteExceptionLoggingTest implements RewriteTest {
                       } catch (NumberFormatException e) {
                           // TEST CASE #1:
                           logger.error("", e);
-              
+
                           // TEST CASE #2:
                           logger.error("BEFORE MESSAGE " + e.getMessage(), e);
-              
+
                           // TEST CASE #3:
                           logger.error("BEFORE MESSAGE " + e.getMessage() + " AFTER MESSAGE", e);
-              
+
                           // TEST CASE #4: No Changes, since stack trace already being logged
                           logger.error("BEFORE MESSAGE " + e.getMessage() + " AFTER MESSAGE", e);
                       }

@@ -31,7 +31,7 @@ class CommonsLoggingToLog4jTest implements RewriteTest {
         spec.recipeFromResource("/META-INF/rewrite/log4j.yml",
             "org.openrewrite.java.logging.log4j.CommonsLoggingToLog4j")
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "log4j-api-2.23", "commons-logging-1.3", "lombok-1.18"));
+            .classpathFromResources(new InMemoryExecutionContext(), "log4j-api-2.+", "commons-logging-1.3.+", "lombok-1.18.+"));
     }
 
     @DocumentExample
@@ -43,7 +43,7 @@ class CommonsLoggingToLog4jTest implements RewriteTest {
             """
               import org.apache.commons.logging.LogFactory;
               import org.apache.commons.logging.Log;
-              
+
               class Test {
                   Log log1 = LogFactory.getLog(Test.class);
                   Log log2 = LogFactory.getLog("Test");
@@ -54,7 +54,7 @@ class CommonsLoggingToLog4jTest implements RewriteTest {
             """
               import org.apache.logging.log4j.LogManager;
               import org.apache.logging.log4j.Logger;
-              
+
               class Test {
                   Logger log1 = LogManager.getLogger(Test.class);
                   Logger log2 = LogManager.getLogger("Test");
@@ -77,7 +77,7 @@ class CommonsLoggingToLog4jTest implements RewriteTest {
           java(
             """
               import lombok.extern.apachecommons.CommonsLog;
-              
+
               @CommonsLog
               class Test {
                   void method() {
@@ -87,7 +87,7 @@ class CommonsLoggingToLog4jTest implements RewriteTest {
               """,
             """
               import lombok.extern.log4j.Log4j2;
-              
+
               @Log4j2
               class Test {
                   void method() {

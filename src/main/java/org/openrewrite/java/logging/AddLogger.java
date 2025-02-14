@@ -72,7 +72,7 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
                         .contextSensitive()
                         .imports("org.slf4j.Logger", "org.slf4j.LoggerFactory")
                         .javaParser(JavaParser.fromJavaVersion()
-                                .classpathFromResources(ctx, "slf4j-api-2.1"))
+                                .classpathFromResources(ctx, "slf4j-api-2.1.+"))
                         .build()
         );
     }
@@ -93,7 +93,7 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
                         .builder(getModifiers(scope) + " Logger #{} = LogManager.getLogger(#{}.class);")
                         .contextSensitive()
                         .imports("org.apache.log4j.Logger", "org.apache.log4j.LogManager")
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "log4j-1.2"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "log4j-1.2.+"))
                         .build()
         );
     }
@@ -104,7 +104,7 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
                         .builder(getModifiers(scope) + " Logger #{} = LogManager.getLogger(#{}.class);")
                         .contextSensitive()
                         .imports("org.apache.logging.log4j.Logger", "org.apache.logging.log4j.LogManager")
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "log4j-api-2.23"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "log4j-api-2.+"))
                         .build()
         );
     }

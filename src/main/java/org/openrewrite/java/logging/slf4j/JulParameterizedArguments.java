@@ -116,7 +116,7 @@ public class JulParameterizedArguments extends Recipe {
                 return JavaTemplate.builder(createTemplateString(newName, targetArguments))
                         .contextSensitive()
                         .javaParser(JavaParser.fromJavaVersion()
-                                .classpathFromResources(ctx, "slf4j-api-2.1"))
+                                .classpathFromResources(ctx, "slf4j-api-2.1.+"))
                         .build()
                         .apply(getCursor(), method.getCoordinates().replaceMethod(), targetArguments.toArray());
             }

@@ -31,7 +31,7 @@ class ConvertJulEnteringTest implements RewriteTest {
         spec.recipes(new ConvertJulEntering(),
             new ChangeType("java.util.logging.Logger", "org.apache.logging.log4j.Logger", true))
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "log4j-api-2.23"));
+            .classpathFromResources(new InMemoryExecutionContext(), "log4j-api-2.+"));
     }
 
     @Test
