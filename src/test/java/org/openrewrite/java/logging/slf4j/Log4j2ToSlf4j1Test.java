@@ -34,7 +34,7 @@ class Log4j2ToSlf4j1Test implements RewriteTest {
             .build()
             .activateRecipes("org.openrewrite.java.logging.slf4j.Log4j2ToSlf4j1"))
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "log4j-api-2.23.+", "log4j-core-2.23.+", "lombok-1.18.+"));
+            .classpathFromResources(new InMemoryExecutionContext(), "log4j-api-2.+", "log4j-core-2.+", "lombok-1.18.+"));
     }
 
     @DocumentExample

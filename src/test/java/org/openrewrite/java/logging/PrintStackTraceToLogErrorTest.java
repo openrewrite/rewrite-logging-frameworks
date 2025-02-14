@@ -75,7 +75,7 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
     void useLog4j2() {
         rewriteRun(
           spec -> spec.recipe(new PrintStackTraceToLogError(null, "LOGGER", "Log4j2"))
-            .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "log4j-api-2.23.+")),
+            .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "log4j-api-2.+")),
           //language=java
           java(
             """

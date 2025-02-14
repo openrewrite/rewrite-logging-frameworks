@@ -31,7 +31,7 @@ class CommonsLoggingToLog4jTest implements RewriteTest {
         spec.recipeFromResource("/META-INF/rewrite/log4j.yml",
             "org.openrewrite.java.logging.log4j.CommonsLoggingToLog4j")
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "log4j-api-2.23.+", "commons-logging-1.3.+", "lombok-1.18.+"));
+            .classpathFromResources(new InMemoryExecutionContext(), "log4j-api-2.+", "commons-logging-1.3.+", "lombok-1.18.+"));
     }
 
     @DocumentExample
