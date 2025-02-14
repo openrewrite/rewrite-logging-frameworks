@@ -32,7 +32,7 @@ class LoggersNamedForEnclosingClassTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipe(new LoggersNamedForEnclosingClass())
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1"));
+            .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1.+"));
     }
 
     @DocumentExample
@@ -111,7 +111,7 @@ class LoggersNamedForEnclosingClassTest implements RewriteTest {
             """
               import org.slf4j.Logger;
               import org.slf4j.LoggerFactory;
-              
+
               class A {
                   /**
                    * @see org.slf4j.LoggerFactory#getLogger(Class)

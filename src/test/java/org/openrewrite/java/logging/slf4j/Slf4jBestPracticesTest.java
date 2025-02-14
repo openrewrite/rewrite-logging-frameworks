@@ -34,7 +34,7 @@ class Slf4jBestPracticesTest implements RewriteTest {
             .build()
             .activateRecipes("org.openrewrite.java.logging.slf4j.Slf4jBestPractices"))
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1"));
+            .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1.+"));
     }
 
     @DocumentExample

@@ -30,7 +30,7 @@ class PrependRandomNameTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipe(new PrependRandomName(2048))
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "log4j-1.2"));
+            .classpathFromResources(new InMemoryExecutionContext(), "log4j-1.2.+"));
     }
 
     @DocumentExample

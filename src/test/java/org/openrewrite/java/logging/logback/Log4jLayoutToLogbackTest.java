@@ -30,7 +30,7 @@ class Log4jLayoutToLogbackTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipe(new Log4jLayoutToLogback())
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "log4j-1.2"));
+            .classpathFromResources(new InMemoryExecutionContext(), "log4j-1.2.+"));
     }
 
     @DocumentExample

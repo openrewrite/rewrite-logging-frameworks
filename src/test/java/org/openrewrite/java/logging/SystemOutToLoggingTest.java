@@ -31,7 +31,7 @@ class SystemOutToLoggingTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.parser(JavaParser.fromJavaVersion()
-          .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1", "lombok-1.18"));
+          .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1.+", "lombok-1.18.+"));
     }
 
     @DocumentExample
@@ -46,7 +46,7 @@ class SystemOutToLoggingTest implements RewriteTest {
               class Test {
                   int n;
                   Logger logger;
-                  
+
                   void test() {
                       System.out.println("Oh " + n + " no");
                   }
@@ -57,7 +57,7 @@ class SystemOutToLoggingTest implements RewriteTest {
               class Test {
                   int n;
                   Logger logger;
-                  
+
                   void test() {
                       logger.debug("Oh {} no", n);
                   }
@@ -77,7 +77,7 @@ class SystemOutToLoggingTest implements RewriteTest {
               import org.slf4j.Logger;
               class Test {
                   Logger logger;
-                  
+
                   void test() {
                       Runnable r = () -> System.out.println("single");
                   }
@@ -87,7 +87,7 @@ class SystemOutToLoggingTest implements RewriteTest {
               import org.slf4j.Logger;
               class Test {
                   Logger logger;
-                  
+
                   void test() {
                       Runnable r = () -> logger.debug("single");
                   }
@@ -110,7 +110,7 @@ class SystemOutToLoggingTest implements RewriteTest {
               @Slf4j
               class Test {
                   int n;
-                  
+
                   void test() {
                       System.out.println("Oh " + n + " no");
                   }
@@ -121,7 +121,7 @@ class SystemOutToLoggingTest implements RewriteTest {
               @Slf4j
               class Test {
                   int n;
-                  
+
                   void test() {
                       log.info("Oh {} no", n);
                   }
@@ -150,10 +150,10 @@ class SystemOutToLoggingTest implements RewriteTest {
               import java.util.logging.Level;
               import java.util.logging.LogManager;
               import java.util.logging.Logger;
-                            
+
               class Foo {
                   private static final Logger log = LogManager.getLogManager().getLogger("Foo");
-                            
+
                   void bar() {
                       log.log(Level.INFO, "Test");
                 }

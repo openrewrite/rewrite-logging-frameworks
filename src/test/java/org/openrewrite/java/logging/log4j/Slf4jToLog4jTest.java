@@ -40,7 +40,7 @@ class Slf4jToLog4jTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipeFromResource("/META-INF/rewrite/log4j.yml", "org.openrewrite.java.logging.log4j.Slf4jToLog4j")
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "log4j-1.2", "slf4j-api-2.1", "lombok-1.18"));
+            .classpathFromResources(new InMemoryExecutionContext(), "log4j-1.2.+", "slf4j-api-2.1.+", "lombok-1.18.+"));
     }
 
     @DocumentExample

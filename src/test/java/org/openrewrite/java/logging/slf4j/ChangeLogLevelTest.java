@@ -30,7 +30,7 @@ class ChangeLogLevelTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipe(new ChangeLogLevel(ChangeLogLevel.Level.INFO, ChangeLogLevel.Level.DEBUG, "LaunchDarkly"))
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1"));
+            .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1.+"));
     }
 
     @DocumentExample
@@ -42,10 +42,10 @@ class ChangeLogLevelTest implements RewriteTest {
             """
             import org.slf4j.Logger;
             import org.slf4j.LoggerFactory;
-            
+
             class Test {
                 private static final Logger log = LoggerFactory.getLogger(Test.class);
-                
+
                 void test() {
                     log.info("LaunchDarkly Hello");
                 }
@@ -54,10 +54,10 @@ class ChangeLogLevelTest implements RewriteTest {
             """
             import org.slf4j.Logger;
             import org.slf4j.LoggerFactory;
-            
+
             class Test {
                 private static final Logger log = LoggerFactory.getLogger(Test.class);
-                
+
                 void test() {
                     log.debug("LaunchDarkly Hello");
                 }
@@ -74,10 +74,10 @@ class ChangeLogLevelTest implements RewriteTest {
             """
             import org.slf4j.Logger;
             import org.slf4j.LoggerFactory;
-            
+
             class Test {
                 private static final Logger log = LoggerFactory.getLogger(Test.class);
-                
+
                 void test() {
                     log.info("LaunchDarkly " + 1 + "Hello");
                 }
@@ -86,10 +86,10 @@ class ChangeLogLevelTest implements RewriteTest {
             """
             import org.slf4j.Logger;
             import org.slf4j.LoggerFactory;
-            
+
             class Test {
                 private static final Logger log = LoggerFactory.getLogger(Test.class);
-                
+
                 void test() {
                     log.debug("LaunchDarkly " + 1 + "Hello");
                 }
