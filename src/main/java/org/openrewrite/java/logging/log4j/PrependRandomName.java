@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.logging.log4j;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.kohsuke.randname.RandomNameGenerator;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -28,13 +29,14 @@ import org.openrewrite.java.tree.JavaType;
 
 public class PrependRandomName extends Recipe {
     private static final MethodMatcher logStatement = new MethodMatcher("org.apache.log4j.Category *(Object, ..)");
-    private final RandomNameGenerator randomName;
 
-    public PrependRandomName() {
-        randomName = new RandomNameGenerator();
-    }
+    private final int seed;
 
-    PrependRandomName(int seed) {
+    @JsonIgnore
+    private transient final RandomNameGenerator randomName;
+
+    public PrependRandomName(int seed) {
+        this.seed = seed;
         randomName = new RandomNameGenerator(seed);
     }
 

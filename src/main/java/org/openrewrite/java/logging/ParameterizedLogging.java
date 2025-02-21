@@ -135,25 +135,25 @@ public class ParameterizedLogging extends Recipe {
                 return TypeUtils.isAssignableTo("org.slf4j.Marker", expressionType) ||
                        TypeUtils.isAssignableTo("org.apache.logging.log4j.Marker", expressionType);
             }
-
-            class RemoveToStringVisitor extends JavaVisitor<ExecutionContext> {
-                private final JavaTemplate t = JavaTemplate.builder("#{any(java.lang.String)}").build();
-                private final MethodMatcher TO_STRING = new MethodMatcher("java.lang.Object toString()");
-
-                @Override
-                public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                    if (getCursor().getNearestMessage("DO_NOT_REMOVE", Boolean.FALSE)) {
-                        return method;
-                    }
-                    if (TO_STRING.matches(method.getSelect())) {
-                        getCursor().putMessage("DO_NOT_REMOVE", Boolean.TRUE);
-                    } else if (TO_STRING.matches(method)) {
-                        return t.apply(getCursor(), method.getCoordinates().replace(), method.getSelect());
-                    }
-                    return super.visitMethodInvocation(method, ctx);
-                }
-            }
         });
+    }
+
+    private static class RemoveToStringVisitor extends JavaVisitor<ExecutionContext> {
+        private final JavaTemplate t = JavaTemplate.builder("#{any(java.lang.String)}").build();
+        private final MethodMatcher TO_STRING = new MethodMatcher("java.lang.Object toString()");
+
+        @Override
+        public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+            if (getCursor().getNearestMessage("DO_NOT_REMOVE", Boolean.FALSE)) {
+                return method;
+            }
+            if (TO_STRING.matches(method.getSelect())) {
+                getCursor().putMessage("DO_NOT_REMOVE", Boolean.TRUE);
+            } else if (TO_STRING.matches(method)) {
+                return t.apply(getCursor(), method.getCoordinates().replace(), method.getSelect());
+            }
+            return super.visitMethodInvocation(method, ctx);
+        }
     }
 
     private static final class MessageAndArguments {
