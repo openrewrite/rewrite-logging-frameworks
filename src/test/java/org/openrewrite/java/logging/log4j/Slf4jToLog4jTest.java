@@ -110,7 +110,6 @@ class Slf4jToLog4jTest implements RewriteTest {
               """,
             """
               import org.apache.logging.log4j.CloseableThreadContext;
-              import org.apache.logging.log4j.CloseableThreadContext.Instance;
               import org.apache.logging.log4j.ThreadContext;
 
               class Test {

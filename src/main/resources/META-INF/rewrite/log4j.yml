@@ -296,7 +296,7 @@ recipeList:
       newFullyQualifiedTypeName: org.apache.logging.log4j.Marker
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.slf4j.MDC.MDCCloseable
-      newFullyQualifiedTypeName: org.apache.logging.log4j.CloseableThreadContext.Instance
+      newFullyQualifiedTypeName: org.apache.logging.log4j.CloseableThreadContext$Instance
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.slf4j.MDC
       newFullyQualifiedTypeName: org.apache.logging.log4j.CloseableThreadContext
