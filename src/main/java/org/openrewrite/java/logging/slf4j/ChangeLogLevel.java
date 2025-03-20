@@ -32,6 +32,7 @@ import java.util.List;
 @Value
 @EqualsAndHashCode(callSuper = false)
 public class ChangeLogLevel extends Recipe {
+
     @Override
     public String getDisplayName() {
         return "Change SLF4J log level";

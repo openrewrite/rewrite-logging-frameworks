@@ -43,6 +43,7 @@ dependencies {
         because("log4j 1 has critical vulnerabilities but we need the type for the refaster recipe during compilation")
     }
     testRuntimeOnly("log4j:log4j:1.+") // Necessary to match for now; explore alternatives for Refaster classpath in the future
+    testRuntimeOnly("ch.qos.logback:logback-classic:1.3.+")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:latest.release")
     testImplementation("org.junit.jupiter:junit-jupiter-params:latest.release")
