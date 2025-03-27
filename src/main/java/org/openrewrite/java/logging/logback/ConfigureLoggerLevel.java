@@ -81,8 +81,8 @@ public class ConfigureLoggerLevel extends Recipe {
             final XPathMatcher loggerMatcher = new XPathMatcher("/configuration/logger[@name='" + className + "']");
 
             @Override
-            public Xml.Tag visitTag(Xml.Tag tag, ExecutionContext executionContext) {
-                Xml.Tag t = super.visitTag(tag, executionContext);
+            public Xml.Tag visitTag(Xml.Tag tag, ExecutionContext ctx) {
+                Xml.Tag t = super.visitTag(tag, ctx);
                 if (loggerMatcher.matches(getCursor())) {
                     getCursor().putMessageOnFirstEnclosing(Xml.Document.class, "found", true);
                     t = t.withAttributes(ListUtils.map(t.getAttributes(), a -> {

@@ -91,8 +91,8 @@ public class CatchBlockLogLevel extends Recipe {
                 AtomicBoolean found = new AtomicBoolean(false);
                 new JavaIsoVisitor<ExecutionContext>() {
                     @Override
-                    public J.Identifier visitIdentifier(J.Identifier identifier, ExecutionContext executionContext) {
-                        J.Identifier i = super.visitIdentifier(identifier, executionContext);
+                    public J.Identifier visitIdentifier(J.Identifier identifier, ExecutionContext ctx) {
+                        J.Identifier i = super.visitIdentifier(identifier, ctx);
                         found.set(found.get() || TypeUtils.isAssignableTo("java.lang.Throwable", i.getType()));
                         return i;
                     }
