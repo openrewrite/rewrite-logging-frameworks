@@ -16,12 +16,14 @@
 package org.openrewrite.java.logging.logback;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.xml.Assertions.xml;
 
 class ConfigureLoggerLevelTest implements RewriteTest {
 
+    @DocumentExample
     @Test
     void editExistingLogger() {
         rewriteRun(

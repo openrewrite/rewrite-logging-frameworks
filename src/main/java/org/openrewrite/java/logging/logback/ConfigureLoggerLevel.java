@@ -31,12 +31,12 @@ import java.util.List;
 public class ConfigureLoggerLevel extends Recipe {
 
     @Override
-    public @NlsRewrite.DisplayName String getDisplayName() {
+    public String getDisplayName() {
         return "Configure logback logger level";
     }
 
     @Override
-    public @NlsRewrite.Description String getDescription() {
+    public String getDescription() {
         return "Within logback.xml configuration files sets the specified log level for a particular class. " +
                "Will not create a logback.xml if one does not already exist.";
     }

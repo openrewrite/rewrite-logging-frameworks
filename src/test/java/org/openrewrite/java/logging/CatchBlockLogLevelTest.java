@@ -16,6 +16,7 @@
 package org.openrewrite.java.logging;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -30,12 +31,14 @@ class CatchBlockLogLevelTest implements RewriteTest {
         spec.recipe(new CatchBlockLogLevel());
     }
 
+    @DocumentExample
     @Test
     void log4j1() {
         rewriteRun(
           spec -> spec.parser(JavaParser.fromJavaVersion().classpath("log4j")),
           //language=java
-          java("""
+          java(
+               """
               import org.apache.log4j.Logger;
 
               class A {
@@ -75,7 +78,8 @@ class CatchBlockLogLevelTest implements RewriteTest {
         rewriteRun(
           spec -> spec.parser(JavaParser.fromJavaVersion().classpath("log4j-core", "log4j-api")),
           //language=java
-          java("""
+          java(
+               """
               import org.apache.logging.log4j.LogManager;
               import org.apache.logging.log4j.Logger;
 
@@ -117,7 +121,8 @@ class CatchBlockLogLevelTest implements RewriteTest {
         rewriteRun(
           spec -> spec.parser(JavaParser.fromJavaVersion().classpath("slf4j-api")),
           //language=java
-          java("""
+          java(
+               """
               import org.slf4j.Logger;
               import org.slf4j.LoggerFactory;
 
@@ -159,7 +164,8 @@ class CatchBlockLogLevelTest implements RewriteTest {
         rewriteRun(
           spec -> spec.parser(JavaParser.fromJavaVersion().classpath("slf4j-api", "logback-classic", "logback-core")),
           //language=java
-          java("""
+          java(
+               """
               import ch.qos.logback.classic.Logger;
               import org.slf4j.LoggerFactory;
 

@@ -32,12 +32,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class CatchBlockLogLevel extends Recipe {
 
     @Override
-    public @NlsRewrite.DisplayName String getDisplayName() {
+    public String getDisplayName() {
         return "Catch block log level";
     }
 
     @Override
-    public @NlsRewrite.Description String getDescription() {
+    public String getDescription() {
         return "Sometimes exceptions are caught and logged at the wrong log level. This will set the log level of " +
                "logging statements within a catch block not containing an exception to \"warn\", and the log level of " +
                "logging statements containing an exception to \"error\". " +
@@ -65,9 +65,9 @@ public class CatchBlockLogLevel extends Recipe {
                     return m;
                 }
                 Object maybeCatch = getCursor().dropParentUntil(it ->
-                        it == Cursor.ROOT_VALUE
-                        || it instanceof J.Try.Catch || it instanceof J.Try
-                        || it instanceof J.MethodDeclaration || it instanceof J.Lambda || it instanceof J.ClassDeclaration).getValue();
+                        it == Cursor.ROOT_VALUE ||
+                        it instanceof J.Try.Catch || it instanceof J.Try ||
+                        it instanceof J.MethodDeclaration || it instanceof J.Lambda || it instanceof J.ClassDeclaration).getValue();
                 if (!(maybeCatch instanceof J.Try.Catch)) {
                     return m;
                 }
