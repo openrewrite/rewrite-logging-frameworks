@@ -135,4 +135,41 @@ class Log4j2ToSlf4j1Test implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void unparameterizedLogging() {
+        //language=java
+        rewriteRun(
+          java("""
+            package foo;
+            public class LogConstants {
+                public static final String CONSTANT = "constant";
+            }
+            """),
+          java(
+            """
+              import foo.LogConstants;
+              import org.apache.logging.log4j.Logger;
+
+              class Test {
+                  Logger logger;
+                  void method(String arg) {
+                      logger.info(LogConstants.CONSTANT + arg);
+                  }
+              }
+              """,
+            """
+              import foo.LogConstants;
+              import org.slf4j.Logger;
+
+              class Test {
+                  Logger logger;
+                  void method(String arg) {
+                      logger.info("{}{}", LogConstants.CONSTANT, arg);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
