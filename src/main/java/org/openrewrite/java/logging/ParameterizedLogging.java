@@ -105,7 +105,6 @@ public class ParameterizedLogging extends Recipe {
                             return message;
                         });
                         m = JavaTemplate.builder(escapeDollarSign(messageBuilder.toString()))
-                                .contextSensitive()
                                 .build()
                                 .apply(new Cursor(getCursor().getParent(), m), m.getCoordinates().replaceArguments(), newArgList.toArray());
                     } else if (logMsg instanceof J.Identifier && TypeUtils.isAssignableTo("java.lang.Throwable", logMsg.getType())) {
