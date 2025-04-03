@@ -140,7 +140,8 @@ class Log4j2ToSlf4j1Test implements RewriteTest {
     void unparameterizedLogging() {
         //language=java
         rewriteRun(
-          java("""
+          java(
+               """
             package foo;
             public class LogConstants {
                 public static final String CONSTANT = "constant";
