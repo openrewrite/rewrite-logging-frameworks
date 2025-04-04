@@ -726,4 +726,132 @@ class ParameterizedLoggingTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void returnsAnonymousClassThatUsesLoggerInMethodImplementation() {
+        rewriteRun(
+            spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
+            //language=java
+            java(
+                """
+                  import java.util.function.Predicate;
+                  import org.slf4j.Logger;
+    
+                  class Test {
+                      Logger logger;
+                      Predicate<String> method() {
+                          return new Predicate<String>() {
+                              @Override
+                              public boolean test(String s) {
+                                  logger.info("uh oh: " + s);
+                                  return true;
+                              }
+                          };
+                      }
+                  }
+                  """,
+                """
+                  import java.util.function.Predicate;
+                  import org.slf4j.Logger;
+    
+                  class Test {
+                      Logger logger;
+                      Predicate<String> method() {
+                          return new Predicate<String>() {
+                              @Override
+                              public boolean test(String s) {
+                                  logger.info("uh oh: {}", s);
+                                  return true;
+                              }
+                          };
+                      }
+                  }
+                  """
+            )
+        );
+    }
+
+    @Test
+    void loggerInAnonymousFunction() {
+        rewriteRun(
+            spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
+            //language=java
+            java(
+                """
+                  import java.util.List;
+                  import java.util.function.Consumer;
+                  import java.util.stream.Collectors;
+                  import org.slf4j.Logger;
+                  
+                  class Test {
+                      Logger logger;
+                      List<String> method() {
+                          List<String> list = List.of("a", "b", "c");
+                          return list.stream()
+                              .peek(item -> logger.info("uh oh: " + item))
+                              .collect(Collectors.toList());
+                      }
+                  }
+                  """,
+                """        
+                  import java.util.List;
+                  import java.util.function.Consumer;
+                  import java.util.stream.Collectors;
+                  import org.slf4j.Logger;
+
+                  class Test {
+                      Logger logger;
+                      List<String> method() {
+                          List<String> list = List.of("a", "b", "c");
+                          return list.stream()
+                              .peek(item -> logger.info("uh oh: {}", item))
+                              .collect(Collectors.toList());
+                      }
+                  }
+                  """
+            )
+        );
+    }
+
+    @Test
+    void loggerInInlineClassInstance() {
+        rewriteRun(
+            spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
+            //language=java
+            java(
+                """
+                  import org.slf4j.Logger;
+                  
+                  class Test {
+                      Logger logger;
+                      void method(String s) {
+                          Thread thread = new Thread(new Runnable() {
+                              @Override
+                              public void run() {
+                                  logger.info("uh oh: " + s);
+                              }
+                          });
+                          thread.start();
+                      }
+                  }
+                  """,
+                """
+                  import org.slf4j.Logger;
+
+                  class Test {
+                      Logger logger;
+                      void method(String s) {
+                          Thread thread = new Thread(new Runnable() {
+                              @Override
+                              public void run() {
+                                  logger.info("uh oh: {}", s);
+                              }
+                          });
+                          thread.start();
+                      }
+                  }
+                  """
+            )
+        );
+    }
 }
