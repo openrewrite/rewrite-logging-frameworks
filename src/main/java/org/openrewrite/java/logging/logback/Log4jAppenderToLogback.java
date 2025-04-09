@@ -59,8 +59,8 @@ public class Log4jAppenderToLogback extends Recipe {
                         maybeAddImport("ch.qos.logback.core.AppenderBase");
                         maybeAddImport("ch.qos.logback.classic.spi.ILoggingEvent");
 
-                        doAfterVisit(new ChangeType("org.apache.log4j.spi.LoggingEvent", "ch.qos.logback.classic.spi.ILoggingEvent", null).getVisitor());
-                        doAfterVisit(new ChangeType("org.apache.log4j.Layout", "ch.qos.logback.core.LayoutBase", null).getVisitor());
+                        doAfterVisit(new ChangeType("org.apache.log4j.spi.LoggingEvent", "ch.qos.logback.classic.spi.ILoggingEvent", null, null).getVisitor());
+                        doAfterVisit(new ChangeType("org.apache.log4j.Layout", "ch.qos.logback.core.LayoutBase", null, null).getVisitor());
 
                         cd = JavaTemplate.builder("AppenderBase<ILoggingEvent>")
                                 .contextSensitive()

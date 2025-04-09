@@ -59,7 +59,7 @@ public class ChangeLombokLogAnnotation extends Recipe {
                         "lombok.extern.slf4j.XSlf4j",
                         "lombok.CustomLog")
                 .filter(annotationType -> !annotationType.equals(targetLogAnnotationType))
-                .map(annotationType -> new ChangeType(annotationType, targetLogAnnotationType, true))
+                .map(annotationType -> new ChangeType(annotationType, targetLogAnnotationType, true, null))
                 .collect(Collectors.toList());
     }
 
