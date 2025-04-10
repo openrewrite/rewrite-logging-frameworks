@@ -72,7 +72,7 @@ public class Log4jLayoutToLogback extends Recipe {
                         maybeAddImport("ch.qos.logback.core.LayoutBase");
                         maybeAddImport("ch.qos.logback.classic.spi.ILoggingEvent");
 
-                        doAfterVisit(new ChangeType("org.apache.log4j.spi.LoggingEvent", "ch.qos.logback.classic.spi.ILoggingEvent", null, null).getVisitor());
+                        doAfterVisit(new ChangeType("org.apache.log4j.spi.LoggingEvent", "ch.qos.logback.classic.spi.ILoggingEvent", null).getVisitor());
 
                         cd = JavaTemplate.builder("LayoutBase<ILoggingEvent>")
                                 .contextSensitive()
