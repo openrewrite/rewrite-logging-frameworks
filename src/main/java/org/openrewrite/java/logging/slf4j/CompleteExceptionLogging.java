@@ -55,7 +55,7 @@ public class CompleteExceptionLogging extends Recipe {
                "Not all exception types have useful messages, and even if the message is useful this omits the stack " +
                "trace. Including a complete stack trace of the error along with the exception message in the log " +
                "allows developers to better understand the context of the exception and identify the source of the " +
-               "error more quickly and accurately. \n " +
+               "error more quickly and accurately. \n" +
                "If the method invocation includes any call to `Exception.getMessage()` or `Exception.getLocalizedMessage()` " +
                "and not an exception is already passed as the last parameter to the log method, then we will append " +
                "the exception as the last parameter in the log method.";
