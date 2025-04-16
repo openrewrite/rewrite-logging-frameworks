@@ -165,7 +165,8 @@ class Slf4jLogShouldBeConstantTest implements RewriteTest {
                     log.error(toString());
                 }
             }
-            """)
+            """
+          )
         );
     }
 
@@ -337,7 +338,8 @@ class Slf4jLogShouldBeConstantTest implements RewriteTest {
                     log.error(Arrays.toString(values));
                 }
             }
-            """)
+            """
+          )
         );
     }
 

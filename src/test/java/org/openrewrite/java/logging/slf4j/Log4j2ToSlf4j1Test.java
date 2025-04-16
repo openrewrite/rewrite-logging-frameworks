@@ -146,7 +146,8 @@ class Log4j2ToSlf4j1Test implements RewriteTest {
             public class LogConstants {
                 public static final String CONSTANT = "constant";
             }
-            """),
+            """
+          ),
           java(
             """
               import foo.LogConstants;

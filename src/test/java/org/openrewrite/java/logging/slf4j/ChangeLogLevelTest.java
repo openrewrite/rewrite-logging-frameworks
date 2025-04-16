@@ -62,7 +62,8 @@ class ChangeLogLevelTest implements RewriteTest {
                     log.debug("LaunchDarkly Hello");
                 }
             }
-            """)
+            """
+          )
         );
     }
 
@@ -94,7 +95,8 @@ class ChangeLogLevelTest implements RewriteTest {
                     log.debug("LaunchDarkly " + 1 + "Hello");
                 }
             }
-            """)
+            """
+          )
         );
     }
 

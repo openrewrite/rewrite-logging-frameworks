@@ -69,7 +69,8 @@ class CatchBlockLogLevelTest implements RewriteTest {
                       }
                   }
               }
-              """)
+              """
+          )
         );
     }
 
@@ -112,7 +113,8 @@ class CatchBlockLogLevelTest implements RewriteTest {
                       }
                   }
               }
-              """)
+              """
+          )
         );
     }
 
@@ -155,7 +157,8 @@ class CatchBlockLogLevelTest implements RewriteTest {
                       }
                   }
               }
-              """)
+              """
+          )
         );
     }
 
@@ -198,7 +201,8 @@ class CatchBlockLogLevelTest implements RewriteTest {
                       }
                   }
               }
-              """)
+              """
+          )
         );
 
     }
