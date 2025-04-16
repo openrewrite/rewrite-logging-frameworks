@@ -671,6 +671,70 @@ class ParameterizedLoggingTest implements RewriteTest {
     }
 
     @Test
+    void noConcatenationWithMarkerAndSupplier() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.apache.logging.log4j.Logger debug(..)", false)),
+          // language=java
+          java(
+            """
+              import lombok.extern.log4j.Log4j2;
+              import org.apache.logging.log4j.Marker;
+              import org.apache.logging.log4j.MarkerManager;
+
+              import java.util.function.Supplier;
+
+              @Log4j2
+               class A {
+                  public static final Marker MY_MARKER = MarkerManager.getMarker("my-A");
+                  void foo(String bar) {
+                      Supplier supplier = () -> bar;
+                      log.debug(MY_MARKER, supplier);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void markerWithObjectParameters() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.apache.logging.log4j.Logger debug(..)", false)),
+          // language=java
+          java(
+            """
+              import lombok.extern.log4j.Log4j2;
+              import org.apache.logging.log4j.Marker;
+              import org.apache.logging.log4j.MarkerManager;
+
+              @Log4j2
+               class Test {
+                  public static final Marker MY_MARKER = MarkerManager.getMarker("my-A");
+                  void foo(Test test) {
+                      log.debug(MY_MARKER, test);
+                      log.debug(MY_MARKER, new Object());
+                  }
+              }
+              """,
+            """
+              import lombok.extern.log4j.Log4j2;
+              import org.apache.logging.log4j.Marker;
+              import org.apache.logging.log4j.MarkerManager;
+
+              @Log4j2
+               class Test {
+                  public static final Marker MY_MARKER = MarkerManager.getMarker("my-A");
+                  void foo(Test test) {
+                      log.debug(MY_MARKER, "{}", test);
+                      log.debug(MY_MARKER, "{}", new Object());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void kotlinStringTemplateSkipped() {
         rewriteRun(
           spec -> spec
