@@ -109,9 +109,16 @@ public class ParameterizedLogging extends Recipe {
                                 .apply(new Cursor(getCursor().getParent(), m), m.getCoordinates().replaceArguments(), newArgList.toArray());
                     } else if (logMsg instanceof J.Identifier && TypeUtils.isAssignableTo("java.lang.Throwable", logMsg.getType())) {
                         return m;
-                    } else if (!TypeUtils.isString(logMsg.getType()) && logMsg.getType() instanceof JavaType.Class) {
-                        StringBuilder messageBuilder = new StringBuilder("\"{}\"");
-                        m.getArguments().forEach(arg -> messageBuilder.append(", #{any()}"));
+                    } else if (!TypeUtils.isString(logMsg.getType()) && logMsg.getType() instanceof JavaType.Class
+                            && !TypeUtils.isAssignableTo("java.util.function.Supplier", logMsg.getType())) {
+                        StringBuilder messageBuilder = new StringBuilder();
+                        if (logMsgIndex == 1) {
+                            messageBuilder.append("#{any()}, ");
+                        }
+                        messageBuilder.append("\"{}\"");
+                        for (int i = logMsgIndex; i < m.getArguments().size(); i++) {
+                            messageBuilder.append(", #{any()}");
+                        }
                         m = JavaTemplate.builder(escapeDollarSign(messageBuilder.toString()))
                                 .contextSensitive()
                                 .build()
