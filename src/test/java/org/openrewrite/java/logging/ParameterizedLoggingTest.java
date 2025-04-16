@@ -629,6 +629,48 @@ class ParameterizedLoggingTest implements RewriteTest {
     }
 
     @Test
+    void concatenationWithMarkerAndLambda() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.apache.logging.log4j.Logger debug(..)", false)),
+          // language=java
+          java(
+            """
+              import lombok.extern.log4j.Log4j2;
+              import org.apache.logging.log4j.Marker;
+              import org.apache.logging.log4j.MarkerManager;
+
+              @Log4j2
+               class A {
+                  public static final Marker MY_MARKER = MarkerManager.getMarker("my-A");
+                  void foo(String bar) {
+                      log.debug(MY_MARKER, "foo1");
+                      log.debug(MY_MARKER, "foo2 " + bar);
+                      log.debug(MY_MARKER, "foo3 " + bar + " foo4 " + bar);
+                      log.debug(MY_MARKER, () -> bar);
+                  }
+              }
+              """,
+            """
+              import lombok.extern.log4j.Log4j2;
+              import org.apache.logging.log4j.Marker;
+              import org.apache.logging.log4j.MarkerManager;
+
+              @Log4j2
+               class A {
+                  public static final Marker MY_MARKER = MarkerManager.getMarker("my-A");
+                  void foo(String bar) {
+                      log.debug(MY_MARKER, "foo1");
+                      log.debug(MY_MARKER, "foo2 {}", bar);
+                      log.debug(MY_MARKER, "foo3 {} foo4 {}", bar, bar);
+                      log.debug(MY_MARKER, () -> bar);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void kotlinStringTemplateSkipped() {
         rewriteRun(
           spec -> spec
@@ -736,7 +778,7 @@ class ParameterizedLoggingTest implements RewriteTest {
                 """
                   import java.util.function.Predicate;
                   import org.slf4j.Logger;
-    
+
                   class Test {
                       Logger logger;
                       Predicate<String> method() {
@@ -753,7 +795,7 @@ class ParameterizedLoggingTest implements RewriteTest {
                 """
                   import java.util.function.Predicate;
                   import org.slf4j.Logger;
-    
+
                   class Test {
                       Logger logger;
                       Predicate<String> method() {
@@ -782,7 +824,7 @@ class ParameterizedLoggingTest implements RewriteTest {
                   import java.util.function.Consumer;
                   import java.util.stream.Collectors;
                   import org.slf4j.Logger;
-                  
+
                   class Test {
                       Logger logger;
                       List<String> method() {
@@ -793,7 +835,7 @@ class ParameterizedLoggingTest implements RewriteTest {
                       }
                   }
                   """,
-                """        
+                """
                   import java.util.List;
                   import java.util.function.Consumer;
                   import java.util.stream.Collectors;
@@ -821,7 +863,7 @@ class ParameterizedLoggingTest implements RewriteTest {
             java(
                 """
                   import org.slf4j.Logger;
-                  
+
                   class Test {
                       Logger logger;
                       void method(String s) {
