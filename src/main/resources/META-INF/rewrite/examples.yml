@@ -1,0 +1,927 @@
+# Copyright 2025 the original author or authors.
+# <p>
+# Licensed under the Moderne Source Available License (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# <p>
+# https://docs.moderne.io/licensing/moderne-source-available-license
+# <p>
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.ChangeType
+examples:
+- description: ''
+  parameters:
+  - java.util.logging.Logger
+  - org.apache.logging.log4j.Logger
+  - 'true'
+  sources:
+  - before: |
+      import java.util.logging.Logger;
+
+      class Test {
+          void method(Logger logger) {
+            logger.exiting("Test", "method");
+            logger.exiting("Test", "method", "result");
+          }
+      }
+    after: |
+      import org.apache.logging.log4j.Logger;
+
+      class Test {
+          void method(Logger logger) {
+            logger.traceExit();
+            logger.traceExit("result");
+          }
+      }
+    language: java
+- description: ''
+  parameters:
+  - java.util.logging.Logger
+  - org.apache.logging.log4j.Logger
+  - 'true'
+  sources:
+  - before: |
+      import java.util.logging.Logger;
+
+      class Test {
+          void method(Logger logger) {
+            logger.entering("Test", "method");
+            logger.entering("Test", "method", "param");
+            logger.entering("Test", "method", new Object[]{"param1", "param2"});
+          }
+      }
+    after: |
+      import org.apache.logging.log4j.Logger;
+
+      class Test {
+          void method(Logger logger) {
+            logger.traceEntry();
+            logger.traceEntry(null, "param");
+            logger.traceEntry(null, new Object[]{"param1", "param2"});
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.AddLoggerTest$MaybeAddLoggerToClass
+examples:
+- description: ''
+  parameters:
+  - Test
+  sources:
+  - before: |
+      package test;
+      class Test {
+      }
+    after: |
+      package test;
+
+      import org.slf4j.Logger;
+      import org.slf4j.LoggerFactory;
+
+      class Test {
+          private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.CatchBlockLogLevel
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.apache.log4j.Logger;
+
+      class A {
+          Logger log = Logger.getLogger(A.class);
+          void test() {
+              try {
+                  log.info("unchanged");
+                  throw new RuntimeException();
+              } catch (Exception e) {
+                  log.info("Some context");
+                  log.info("Caught exception", e);
+              }
+          }
+      }
+    after: |
+      import org.apache.log4j.Logger;
+
+      class A {
+          Logger log = Logger.getLogger(A.class);
+          void test() {
+              try {
+                  log.info("unchanged");
+                  throw new RuntimeException();
+              } catch (Exception e) {
+                  log.warn("Some context");
+                  log.error("Caught exception", e);
+              }
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.ParameterizedLogging
+examples:
+- description: ''
+  parameters:
+  - org.slf4j.Logger info(..)
+  - 'false'
+  sources:
+  - before: |
+      import org.slf4j.Logger;
+
+      class Test {
+          static void method(Logger logger, String name) {
+              logger.info("Hello " + name + ", nice to meet you " + name);
+          }
+      }
+    after: |
+      import org.slf4j.Logger;
+
+      class Test {
+          static void method(Logger logger, String name) {
+              logger.info("Hello {}, nice to meet you {}", name, name);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.PrintStackTraceToLogError
+examples:
+- description: ''
+  parameters:
+  - 'null'
+  - LOGGER
+  - 'null'
+  sources:
+  - before: |
+      import org.slf4j.Logger;
+      class Test {
+          Logger logger;
+
+          void test() {
+              try {
+              } catch(Throwable t) {
+                  t.printStackTrace();
+                  t.printStackTrace(System.err);
+                  t.printStackTrace(System.out);
+              }
+          }
+      }
+    after: |
+      import org.slf4j.Logger;
+      class Test {
+          Logger logger;
+
+          void test() {
+              try {
+              } catch(Throwable t) {
+                  logger.error("Exception", t);
+                  logger.error("Exception", t);
+                  logger.error("Exception", t);
+              }
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.SystemErrToLogging
+examples:
+- description: ''
+  parameters:
+  - 'null'
+  - LOGGER
+  - 'null'
+  sources:
+  - before: |
+      import org.slf4j.Logger;
+      class Test {
+          int n;
+          Logger logger;
+
+          void test() {
+              try {
+              } catch(Throwable t) {
+                  System.err.println("Oh " + n + " no");
+                  t.printStackTrace();
+              }
+          }
+      }
+    after: |
+      import org.slf4j.Logger;
+      class Test {
+          int n;
+          Logger logger;
+
+          void test() {
+              try {
+              } catch(Throwable t) {
+                  logger.error("Oh {} no", n, t);
+              }
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.SystemOutToLogging
+examples:
+- description: ''
+  parameters:
+  - 'null'
+  - LOGGER
+  - 'null'
+  - debug
+  sources:
+  - before: |
+      import org.slf4j.Logger;
+      class Test {
+          int n;
+          Logger logger;
+
+          void test() {
+              System.out.println("Oh " + n + " no");
+          }
+      }
+    after: |
+      import org.slf4j.Logger;
+      class Test {
+          int n;
+          Logger logger;
+
+          void test() {
+              logger.debug("Oh {} no", n);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.jul.LoggerLevelArgumentToMethodRecipes
+examples:
+- description: ''
+  sources:
+  - before: |
+      import java.util.logging.Level;
+      import java.util.logging.Logger;
+
+      class Test {
+          void test(Logger logger, String message) {
+              logger.log(Level.FINEST, message);
+              logger.log(Level.FINER, message);
+              logger.log(Level.FINE, message);
+              logger.log(Level.INFO, message);
+              logger.log(Level.WARNING, message);
+              logger.log(Level.SEVERE, message);
+              logger.log(Level.CONFIG, message);
+          }
+      }
+    after: |
+      import java.util.logging.Logger;
+
+      class Test {
+          void test(Logger logger, String message) {
+              logger.finest(message);
+              logger.finer(message);
+              logger.fine(message);
+              logger.info(message);
+              logger.warning(message);
+              logger.severe(message);
+              logger.config(message);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.log4j.CommonsLoggingToLog4j
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.apache.commons.logging.LogFactory;
+      import org.apache.commons.logging.Log;
+
+      class Test {
+          Log log1 = LogFactory.getLog(Test.class);
+          Log log2 = LogFactory.getLog("Test");
+          Log log3 = LogFactory.getFactory().getInstance(Test.class);
+          Log log4 = LogFactory.getFactory().getInstance("Test");
+      }
+    after: |
+      import org.apache.logging.log4j.LogManager;
+      import org.apache.logging.log4j.Logger;
+
+      class Test {
+          Logger log1 = LogManager.getLogger(Test.class);
+          Logger log2 = LogManager.getLogger("Test");
+          Logger log3 = LogManager.getLogger(Test.class);
+          Logger log4 = LogManager.getLogger("Test");
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.log4j.JulToLog4j
+examples:
+- description: ''
+  sources:
+  - before: |
+      import java.util.logging.Level;import java.util.logging.Logger;
+
+      class Test {
+          void method(Logger logger) {
+              logger.config("Hello");
+              logger.config(() -> "Hello");
+              logger.fine("Hello");
+              logger.fine(() -> "Hello");
+              logger.finer("Hello");
+              logger.finer(() -> "Hello");
+              logger.finest("Hello");
+              logger.finest(() -> "Hello");
+              logger.info("Hello");
+              logger.info(() -> "Hello");
+              logger.severe("Hello");
+              logger.severe(() -> "Hello");
+              logger.warning("Hello");
+              logger.warning(() -> "Hello");
+
+              logger.log(Level.INFO, "Hello");
+              logger.log(Level.INFO, () -> "Hello");
+          }
+      }
+    after: |
+      import org.apache.logging.log4j.Logger;
+
+      class Test {
+          void method(Logger logger) {
+              logger.info("Hello");
+              logger.info(() -> "Hello");
+              logger.debug("Hello");
+              logger.debug(() -> "Hello");
+              logger.trace("Hello");
+              logger.trace(() -> "Hello");
+              logger.trace("Hello");
+              logger.trace(() -> "Hello");
+              logger.info("Hello");
+              logger.info(() -> "Hello");
+              logger.error("Hello");
+              logger.error(() -> "Hello");
+              logger.warn("Hello");
+              logger.warn(() -> "Hello");
+
+              logger.info("Hello");
+              logger.info(() -> "Hello");
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.log4j.Log4j1ToLog4j2
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.apache.log4j.Logger;
+
+      class Test {
+          Logger logger = Logger.getLogger(Test.class);
+      }
+    after: |
+      import org.apache.logging.log4j.Logger;
+      import org.apache.logging.log4j.LogManager;
+
+      class Test {
+          Logger logger = LogManager.getLogger(Test.class);
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.log4j.LoggingExceptionConcatenationRecipe
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.apache.logging.log4j.Logger;
+
+      class Test {
+          void test(Logger logger, RuntimeException e) {
+              logger.error("test" + e);
+          }
+      }
+    after: |
+      import org.apache.logging.log4j.Logger;
+
+      class Test {
+          void test(Logger logger, RuntimeException e) {
+              logger.error("test", e);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.log4j.PrependRandomName
+examples:
+- description: ''
+  parameters:
+  - '2048'
+  sources:
+  - before: |
+      import org.apache.log4j.Logger;
+
+      class Test {
+          Logger logger;
+          void test() {
+              logger.info("test");
+          }
+      }
+    after: |
+      import org.apache.log4j.Logger;
+
+      class Test {
+          Logger logger;
+          void test() {
+              logger.info("<rural_crew> test");
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.log4j.Slf4jToLog4j
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.slf4j.Logger;
+      import org.slf4j.LoggerFactory;
+      import org.slf4j.Marker;
+      import org.slf4j.MarkerFactory;
+
+      class Test {
+          private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
+          private static final Marker MARKER = MarkerFactory.getMarker("MARKER");
+
+          public static void main(String[] args) {
+              if (LOGGER.isDebugEnabled()) {
+                  LOGGER.debug("logger message");
+              }
+              LOGGER.warn(MARKER, "Hello {}!", "world");
+          }
+      }
+    after: |
+      import org.apache.logging.log4j.LogManager;
+      import org.apache.logging.log4j.Logger;
+      import org.apache.logging.log4j.Marker;
+      import org.apache.logging.log4j.MarkerManager;
+
+      class Test {
+          private static final Logger LOGGER = LogManager.getLogger(Test.class);
+          private static final Marker MARKER = MarkerManager.getMarker("MARKER");
+
+          public static void main(String[] args) {
+              if (LOGGER.isDebugEnabled()) {
+                  LOGGER.debug("logger message");
+              }
+              LOGGER.warn(MARKER, "Hello {}!", "world");
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.logback.ConfigureLoggerLevel
+examples:
+- description: ''
+  parameters:
+  - org.springframework
+  - ConfigureLoggerLevel.LogLevel.off
+  sources:
+  - before: |
+      <configuration>
+          <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+              <layout class="ch.qos.logback.classic.PatternLayout">
+                  <Pattern>
+                      %d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n
+                  </Pattern>
+              </layout>
+          </appender>
+
+          <logger name="org.springframework" level="error" additivity="false">
+              <appender-ref ref="STDOUT" />
+          </logger>
+      </configuration>
+    after: |
+      <configuration>
+          <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+              <layout class="ch.qos.logback.classic.PatternLayout">
+                  <Pattern>
+                      %d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n
+                  </Pattern>
+              </layout>
+          </appender>
+
+          <logger name="org.springframework" level="off" additivity="false">
+              <appender-ref ref="STDOUT" />
+          </logger>
+      </configuration>
+    language: xml
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.logback.Log4jAppenderToLogback
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.apache.log4j.AppenderSkeleton;
+      import org.apache.log4j.spi.LoggingEvent;
+
+      class TrivialAppender extends AppenderSkeleton {
+          @Override
+          protected void append(LoggingEvent loggingEvent) {
+              String s = this.layout.format(loggingEvent);
+              System.out.println(s);
+          }
+
+          @Override
+          public void close() {
+              // nothing to do
+          }
+
+          @Override
+          public boolean requiresLayout() {
+              return true;
+          }
+      }
+    after: |
+      import ch.qos.logback.classic.spi.ILoggingEvent;
+      import ch.qos.logback.core.AppenderBase;
+
+      class TrivialAppender extends AppenderBase<ILoggingEvent> {
+          @Override
+          protected void append(ILoggingEvent loggingEvent) {
+              String s = this.layout.doLayout(loggingEvent);
+              System.out.println(s);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.logback.Log4jLayoutToLogback
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.apache.log4j.Layout;
+      import org.apache.log4j.spi.LoggingEvent;
+
+      class TrivialLayout extends Layout {
+
+          @Override
+          public void activateOptions() {
+              // there are no options to activate
+          }
+
+          @Override
+          public String format(LoggingEvent loggingEvent) {
+              return loggingEvent.getRenderedMessage();
+          }
+
+          @Override
+          public boolean ignoresThrowable() {
+              return true;
+          }
+      }
+    after: |
+      import ch.qos.logback.classic.spi.ILoggingEvent;
+      import ch.qos.logback.core.LayoutBase;
+
+      class TrivialLayout extends LayoutBase<ILoggingEvent> {
+
+          @Override
+          public String doLayout(ILoggingEvent loggingEvent) {
+              return loggingEvent.getMessage();
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.slf4j.ChangeLogLevel
+examples:
+- description: ''
+  parameters:
+  - ChangeLogLevel.Level.INFO
+  - ChangeLogLevel.Level.DEBUG
+  - LaunchDarkly
+  sources:
+  - before: |
+      import org.slf4j.Logger;
+      import org.slf4j.LoggerFactory;
+
+      class Test {
+          private static final Logger log = LoggerFactory.getLogger(Test.class);
+
+          void test() {
+              log.info("LaunchDarkly Hello");
+          }
+      }
+    after: |
+      import org.slf4j.Logger;
+      import org.slf4j.LoggerFactory;
+
+      class Test {
+          private static final Logger log = LoggerFactory.getLogger(Test.class);
+
+          void test() {
+              log.debug("LaunchDarkly Hello");
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.slf4j.CommonsLogging1ToSlf4j1
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.apache.commons.logging.LogFactory;
+      import org.apache.commons.logging.Log;
+
+      class Test {
+          Log logger0 = LogFactory.getLog(Test.class);
+          Log logger1 = LogFactory.getLog("foobar");
+          Log logger2 = LogFactory.getFactory().getInstance(Test.class);
+          Log logger3 = LogFactory.getFactory().getInstance("foobar");
+      }
+    after: |
+      import org.slf4j.Logger;
+      import org.slf4j.LoggerFactory;
+
+      class Test {
+          Logger logger0 = LoggerFactory.getLogger(Test.class);
+          Logger logger1 = LoggerFactory.getLogger("foobar");
+          Logger logger2 = LoggerFactory.getLogger(Test.class);
+          Logger logger3 = LoggerFactory.getLogger("foobar");
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.slf4j.CompleteExceptionLogging
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.slf4j.Logger;
+      import org.slf4j.LoggerFactory;
+
+      class Test {
+          Logger logger = LoggerFactory.getLogger(Test.class);
+          void doSomething() {
+              try {
+                  Integer num = Integer.valueOf("a");
+              } catch (NumberFormatException e) {
+                  // TEST CASE #1:
+                  logger.error(e.getMessage());
+
+                  // TEST CASE #2:
+                  logger.error("BEFORE MESSAGE " + e.getMessage());
+
+                  // TEST CASE #3:
+                  logger.error("BEFORE MESSAGE " + e.getMessage() + " AFTER MESSAGE");
+
+                  // TEST CASE #4: No Changes, since stack trace already being logged
+                  logger.error("BEFORE MESSAGE " + e.getMessage() + " AFTER MESSAGE", e);
+              }
+          }
+      }
+    after: |2
+
+      import org.slf4j.Logger;
+      import org.slf4j.LoggerFactory;
+
+      class Test {
+          Logger logger = LoggerFactory.getLogger(Test.class);
+          void doSomething() {
+              try {
+                  Integer num = Integer.valueOf("a");
+              } catch (NumberFormatException e) {
+                  // TEST CASE #1:
+                  logger.error("", e);
+
+                  // TEST CASE #2:
+                  logger.error("BEFORE MESSAGE " + e.getMessage(), e);
+
+                  // TEST CASE #3:
+                  logger.error("BEFORE MESSAGE " + e.getMessage() + " AFTER MESSAGE", e);
+
+                  // TEST CASE #4: No Changes, since stack trace already being logged
+                  logger.error("BEFORE MESSAGE " + e.getMessage() + " AFTER MESSAGE", e);
+              }
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.slf4j.JulToSlf4j
+examples:
+- description: ''
+  sources:
+  - before: |
+      import java.util.logging.Level;
+      import java.util.logging.Logger;
+
+      class Test {
+          void method(Logger logger) {
+              logger.finest("finest");
+              logger.finer("finer");
+              logger.fine("fine");
+              logger.config("config");
+              logger.info("info");
+              logger.warning("warning");
+              logger.severe("severe");
+
+              logger.log(Level.FINEST, "finest");
+              logger.log(Level.FINER, "finer");
+              logger.log(Level.FINE, "fine");
+              logger.log(Level.CONFIG, "config");
+              logger.log(Level.INFO, "info");
+              logger.log(Level.WARNING, "warning");
+              logger.log(Level.SEVERE, "severe");
+
+              logger.log(Level.ALL, "all");
+          }
+      }
+    after: |
+      import org.slf4j.Logger;
+
+      class Test {
+          void method(Logger logger) {
+              logger.trace("finest");
+              logger.trace("finer");
+              logger.debug("fine");
+              logger.info("config");
+              logger.info("info");
+              logger.warn("warning");
+              logger.error("severe");
+
+              logger.trace("finest");
+              logger.trace("finer");
+              logger.debug("fine");
+              logger.info("config");
+              logger.info("info");
+              logger.warn("warning");
+              logger.error("severe");
+
+              logger.trace("all");
+          }
+      }
+    language: java
+- description: ''
+  sources:
+  - before: |
+      import java.util.logging.Level;
+      import java.util.logging.Logger;
+
+      class Test {
+          void method(Logger logger, String param1) {
+              logger.log(Level.INFO, "INFO Log entry, param1: {0}", param1);
+          }
+      }
+    after: |
+      import org.slf4j.Logger;
+
+      class Test {
+          void method(Logger logger, String param1) {
+              logger.info("INFO Log entry, param1: {}", param1);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.slf4j.Log4j1ToSlf4j1
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.apache.log4j.Logger;
+      import org.apache.log4j.LogManager;
+
+      class Test {
+          Logger logger0 = Logger.getLogger(Test.class);
+          Logger logger1 = LogManager.getLogger(Test.class);
+      }
+    after: |
+      import org.slf4j.Logger;
+      import org.slf4j.LoggerFactory;
+
+      class Test {
+          Logger logger0 = LoggerFactory.getLogger(Test.class);
+          Logger logger1 = LoggerFactory.getLogger(Test.class);
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.slf4j.Log4j2ToSlf4j1
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.apache.logging.log4j.Logger;
+
+      class Test {
+          static void method(Logger logger) {
+              logger.fatal("uh oh");
+          }
+      }
+    after: |
+      import org.slf4j.Logger;
+
+      class Test {
+          static void method(Logger logger) {
+              logger.error("uh oh");
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.slf4j.LoggersNamedForEnclosingClass
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.slf4j.Logger;
+      import org.slf4j.LoggerFactory;
+      class WrongClass {}
+      class A {
+          Logger log = LoggerFactory.getLogger(WrongClass.class);
+      }
+    after: |
+      import org.slf4j.Logger;
+      import org.slf4j.LoggerFactory;
+      class WrongClass {}
+      class A {
+          Logger log = LoggerFactory.getLogger(A.class);
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.slf4j.Slf4jBestPractices
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.slf4j.Logger;
+      import org.slf4j.LoggerFactory;
+      class Test {
+          Logger logger = LoggerFactory.getLogger(String.class);
+          void test() {
+              Object obj1 = new Object();
+              Object obj2 = new Object();
+              logger.info("Hello " + obj1 + ", " + obj2);
+              Exception e = new Exception();
+              logger.warn(String.valueOf(e));
+              logger.error(e.getMessage());
+              logger.error(e.getLocalizedMessage());
+          }
+      }
+    after: |
+      import org.slf4j.Logger;
+      import org.slf4j.LoggerFactory;
+      class Test {
+          Logger logger = LoggerFactory.getLogger(Test.class);
+          void test() {
+              Object obj1 = new Object();
+              Object obj2 = new Object();
+              logger.info("Hello {}, {}", obj1, obj2);
+              Exception e = new Exception();
+              logger.warn("Exception", e);
+              logger.error("", e);
+              logger.error("", e);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.slf4j.Slf4jLogShouldBeConstant
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.slf4j.Logger;
+      class A {
+          Logger log;
+          void method() {
+              log.info(String.format("The first argument is '%d', and the second argument is '%.2f'.", 1, 2.3333));
+          }
+      }
+    after: |
+      import org.slf4j.Logger;
+      class A {
+          Logger log;
+          void method() {
+              log.info("The first argument is '{}', and the second argument is '{}'.", 1, 2.3333);
+          }
+      }
+    language: java
