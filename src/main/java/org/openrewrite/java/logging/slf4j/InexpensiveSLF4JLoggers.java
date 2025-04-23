@@ -23,7 +23,7 @@ public class InexpensiveSLF4JLoggers extends Recipe {
     static final MethodMatcher errorMethodMatcher = new MethodMatcher("org.slf4j.Logger debug(..)");
     static final MethodMatcher warnMethodMatcher = new MethodMatcher("org.slf4j.Logger debug(..)");
     static final JavaTemplate ifEnabledThenLog = JavaTemplate
-          .builder("if(#{logger:any(org.slf4j.Logger)}.is#{}Enabled()) { #{}; }")
+          .builder("if(#{logger:any(org.slf4j.Logger)}.is#{}Enabled()) {}")
           .imports("org.slf4j.Logger")
           .javaParser(JavaParser.fromJavaVersion()
                 .classpath("slf4j-api-2.1.+"))
@@ -45,10 +45,12 @@ public class InexpensiveSLF4JLoggers extends Recipe {
             @Override
             public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
                 J.MethodInvocation m = (J.MethodInvocation) super.visitMethodInvocation(method, executionContext);
-                if (debugMethodMatcher.matches(m)) {
+                if (debugMethodMatcher.matches(m) && !(getCursor().getParentTreeCursor().getValue() instanceof J.If)) {
                     List<Expression> arguments = ListUtils.filter(m.getArguments(), a -> !(a instanceof J.Literal));
                     if(m.getSelect() != null && !arguments.isEmpty()) {
-                        return ifEnabledThenLog.apply(getCursor(), m.getCoordinates().replace(), m.getSelect(), capitalizeFirstLetter(m.getSimpleName()), m.toString());
+                        J.If if_ = ifEnabledThenLog.apply(getCursor(), m.getCoordinates().replace(),
+                                m.getSelect(), capitalizeFirstLetter(m.getSimpleName()));
+                        return if_.withThenPart(m);
                     }
                 }
                 return m;
