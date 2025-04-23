@@ -58,8 +58,8 @@ public class InexpensiveSLF4JLoggers extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new UsesMethod<>(debugMethodMatcher), new JavaVisitor<ExecutionContext>() {
             @Override
-            public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext executionContext) {
-                J.MethodInvocation m = (J.MethodInvocation) super.visitMethodInvocation(method, executionContext);
+            public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                J.MethodInvocation m = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
                 if (debugMethodMatcher.matches(m) && !(getCursor().getParentTreeCursor().getValue() instanceof J.If)) {
                     List<Expression> arguments = ListUtils.filter(m.getArguments(), a -> !(a instanceof J.Literal));
                     if(m.getSelect() != null && !arguments.isEmpty()) {
