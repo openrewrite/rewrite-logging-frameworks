@@ -33,6 +33,7 @@ class InexpensiveSLF4JLoggersTest implements RewriteTest {
             .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1.+"));
     }
 
+    @DocumentExample
     @Test
     void replaceGetMessageWithException() {
         //language=java
