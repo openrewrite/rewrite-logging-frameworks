@@ -32,11 +32,11 @@ import java.util.List;
 
 public class InexpensiveSLF4JLoggers extends Recipe {
 
-    static final MethodMatcher infoMethodMatcher = new MethodMatcher("org.slf4j.Logger debug(..)");
+    static final MethodMatcher infoMethodMatcher = new MethodMatcher("org.slf4j.Logger info(..)");
     static final MethodMatcher debugMethodMatcher = new MethodMatcher("org.slf4j.Logger debug(..)");
-    static final MethodMatcher traceMethodMatcher = new MethodMatcher("org.slf4j.Logger debug(..)");
-    static final MethodMatcher errorMethodMatcher = new MethodMatcher("org.slf4j.Logger debug(..)");
-    static final MethodMatcher warnMethodMatcher = new MethodMatcher("org.slf4j.Logger debug(..)");
+    static final MethodMatcher traceMethodMatcher = new MethodMatcher("org.slf4j.Logger trace(..)");
+    static final MethodMatcher errorMethodMatcher = new MethodMatcher("org.slf4j.Logger error(..)");
+    static final MethodMatcher warnMethodMatcher = new MethodMatcher("org.slf4j.Logger warn(..)");
     static final JavaTemplate ifEnabledThenLog = JavaTemplate
           .builder("if(#{logger:any(org.slf4j.Logger)}.is#{}Enabled()) {}")
           .imports("org.slf4j.Logger")
