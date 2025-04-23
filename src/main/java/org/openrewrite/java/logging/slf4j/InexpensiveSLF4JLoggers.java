@@ -30,6 +30,8 @@ import org.openrewrite.java.tree.J;
 
 import java.util.List;
 
+import static org.openrewrite.Preconditions.or;
+
 public class InexpensiveSLF4JLoggers extends Recipe {
 
     static final MethodMatcher infoMethodMatcher = new MethodMatcher("org.slf4j.Logger info(..)");
@@ -37,9 +39,10 @@ public class InexpensiveSLF4JLoggers extends Recipe {
     static final MethodMatcher traceMethodMatcher = new MethodMatcher("org.slf4j.Logger trace(..)");
     static final MethodMatcher errorMethodMatcher = new MethodMatcher("org.slf4j.Logger error(..)");
     static final MethodMatcher warnMethodMatcher = new MethodMatcher("org.slf4j.Logger warn(..)");
+
     static final JavaTemplate ifEnabledThenLog = JavaTemplate
           .builder("if(#{logger:any(org.slf4j.Logger)}.is#{}Enabled()) {}")
-          .imports("org.slf4j.Logger")
+          /*.imports("org.slf4j.Logger")*/
           .javaParser(JavaParser.fromJavaVersion()
                 .classpath("slf4j-api-2.1.+"))
           .build();
@@ -56,16 +59,22 @@ public class InexpensiveSLF4JLoggers extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesMethod<>(debugMethodMatcher), new JavaVisitor<ExecutionContext>() {
+        return Preconditions.check(or(new UsesMethod<>(infoMethodMatcher), new UsesMethod<>(debugMethodMatcher), new UsesMethod<>(traceMethodMatcher), new UsesMethod<>(errorMethodMatcher), new UsesMethod<>(warnMethodMatcher)), new JavaVisitor<ExecutionContext>() {
             @Override
             public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation m = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
-                if (debugMethodMatcher.matches(m) && !(getCursor().getParentTreeCursor().getValue() instanceof J.If)) {
-                    List<Expression> arguments = ListUtils.filter(m.getArguments(), a -> !(a instanceof J.Literal));
+                if (!(getCursor().getParentTreeCursor().getValue() instanceof J.If) && (
+                      infoMethodMatcher.matches(m) ||
+                            debugMethodMatcher.matches(m) ||
+                            traceMethodMatcher.matches(m) ||
+                            errorMethodMatcher.matches(m) ||
+                            warnMethodMatcher.matches(m)
+                )) {
+                    List<Expression> arguments = ListUtils.filter(m.getArguments(), a -> !(a instanceof J.Literal || a instanceof J.Identifier));
                     if(m.getSelect() != null && !arguments.isEmpty()) {
                         J.If if_ = ifEnabledThenLog.apply(getCursor(), m.getCoordinates().replace(),
                                 m.getSelect(), capitalizeFirstLetter(m.getSimpleName()));
-                        return if_.withThenPart(m);
+                        return autoFormat(if_.withThenPart(m), ctx);
                     }
                 }
                 return m;

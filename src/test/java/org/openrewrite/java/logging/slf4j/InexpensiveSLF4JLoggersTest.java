@@ -13,10 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import org.openrewrite.DocumentExample;
 package org.openrewrite.java.logging.slf4j;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -35,7 +37,7 @@ class InexpensiveSLF4JLoggersTest implements RewriteTest {
 
     @DocumentExample
     @Test
-    void replaceGetMessageWithException() {
+    void documentationExample() {
         //language=java
         rewriteRun(
           java(
@@ -57,9 +59,8 @@ class InexpensiveSLF4JLoggersTest implements RewriteTest {
 
               class A {
                   void method(Logger LOG) {
-                      if (LOG.isDebugEnabled()) {
+                      if (LOG.isDebugEnabled())
                           LOG.debug("SomeString {}, {}", "some param", expensiveOp());
-                      }
                   }
 
                   String expensiveOp() {
@@ -67,6 +68,69 @@ class InexpensiveSLF4JLoggersTest implements RewriteTest {
                   }
               }
               """
+          )
+        );
+    }
+
+    @ParameterizedTest
+    @CsvSource("""
+      info, Info
+      debug, Debug
+      trace, Trace
+      error, Error
+      warn, Warn
+      """)
+    void allLogMethods(String method, String check) {
+        //language=java
+        rewriteRun(
+          java(
+            String.format("""
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger LOG) {
+                      LOG.%s("SomeString {}, {}", "some param", expensiveOp());
+                  }
+
+                  String expensiveOp() {
+                      return "expensive";
+                  }
+              }
+              """, method),
+            String.format("""
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger LOG) {
+                      if (LOG.is%sEnabled())
+                          LOG.%s("SomeString {}, {}", "some param", expensiveOp());
+                  }
+
+                  String expensiveOp() {
+                      return "expensive";
+                  }
+              }
+              """, check, method)
+          )
+        );
+    }
+
+    @Test
+    void leaveCheapLogLines() {
+        rewriteRun(
+          //language=java
+          java(
+            String.format("""
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger LOG) {
+                      String s = "message";
+                      LOG.info("SomeString {}", "some param");
+                      LOG.info("SomeString {}", s);
+                  }
+              }
+              """)
           )
         );
     }
