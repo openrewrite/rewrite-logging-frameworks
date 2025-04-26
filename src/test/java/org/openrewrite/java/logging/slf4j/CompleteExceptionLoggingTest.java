@@ -33,6 +33,67 @@ class CompleteExceptionLoggingTest implements RewriteTest {
             .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1.+"));
     }
 
+    @DocumentExample
+    @Test
+    void addExceptionToBeTheLastArg() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Test {
+                  Logger logger = LoggerFactory.getLogger(Test.class);
+                  void doSomething() {
+                      try {
+                          Integer num = Integer.valueOf("a");
+                      } catch (NumberFormatException e) {
+                          // TEST CASE #1:
+                          logger.error(e.getMessage());
+
+                          // TEST CASE #2:
+                          logger.error("BEFORE MESSAGE " + e.getMessage());
+
+                          // TEST CASE #3:
+                          logger.error("BEFORE MESSAGE " + e.getMessage() + " AFTER MESSAGE");
+
+                          // TEST CASE #4: No Changes, since stack trace already being logged
+                          logger.error("BEFORE MESSAGE " + e.getMessage() + " AFTER MESSAGE", e);
+                      }
+                  }
+              }
+              """,
+            """
+
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Test {
+                  Logger logger = LoggerFactory.getLogger(Test.class);
+                  void doSomething() {
+                      try {
+                          Integer num = Integer.valueOf("a");
+                      } catch (NumberFormatException e) {
+                          // TEST CASE #1:
+                          logger.error("", e);
+
+                          // TEST CASE #2:
+                          logger.error("BEFORE MESSAGE " + e.getMessage(), e);
+
+                          // TEST CASE #3:
+                          logger.error("BEFORE MESSAGE " + e.getMessage() + " AFTER MESSAGE", e);
+
+                          // TEST CASE #4: No Changes, since stack trace already being logged
+                          logger.error("BEFORE MESSAGE " + e.getMessage() + " AFTER MESSAGE", e);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Test
     void replaceGetMessageWithException() {
         //language=java
@@ -314,67 +375,6 @@ class CompleteExceptionLoggingTest implements RewriteTest {
                       } catch (NumberFormatException e) {
                           logger.error("", e);
                           logger.warn("", e);
-                      }
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @DocumentExample
-    @Test
-    void addExceptionToBeTheLastArg() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import org.slf4j.Logger;
-              import org.slf4j.LoggerFactory;
-
-              class Test {
-                  Logger logger = LoggerFactory.getLogger(Test.class);
-                  void doSomething() {
-                      try {
-                          Integer num = Integer.valueOf("a");
-                      } catch (NumberFormatException e) {
-                          // TEST CASE #1:
-                          logger.error(e.getMessage());
-
-                          // TEST CASE #2:
-                          logger.error("BEFORE MESSAGE " + e.getMessage());
-
-                          // TEST CASE #3:
-                          logger.error("BEFORE MESSAGE " + e.getMessage() + " AFTER MESSAGE");
-
-                          // TEST CASE #4: No Changes, since stack trace already being logged
-                          logger.error("BEFORE MESSAGE " + e.getMessage() + " AFTER MESSAGE", e);
-                      }
-                  }
-              }
-              """,
-            """
-
-              import org.slf4j.Logger;
-              import org.slf4j.LoggerFactory;
-
-              class Test {
-                  Logger logger = LoggerFactory.getLogger(Test.class);
-                  void doSomething() {
-                      try {
-                          Integer num = Integer.valueOf("a");
-                      } catch (NumberFormatException e) {
-                          // TEST CASE #1:
-                          logger.error("", e);
-
-                          // TEST CASE #2:
-                          logger.error("BEFORE MESSAGE " + e.getMessage(), e);
-
-                          // TEST CASE #3:
-                          logger.error("BEFORE MESSAGE " + e.getMessage() + " AFTER MESSAGE", e);
-
-                          // TEST CASE #4: No Changes, since stack trace already being logged
-                          logger.error("BEFORE MESSAGE " + e.getMessage() + " AFTER MESSAGE", e);
                       }
                   }
               }

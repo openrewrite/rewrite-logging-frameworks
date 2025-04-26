@@ -35,6 +35,34 @@ class Slf4jLogShouldBeConstantTest implements RewriteTest {
             .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1.+"));
     }
 
+    @DocumentExample
+    @Test
+    void differentFormatSpecifier() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+              class A {
+                  Logger log;
+                  void method() {
+                      log.info(String.format("The first argument is '%d', and the second argument is '%.2f'.", 1, 2.3333));
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              class A {
+                  Logger log;
+                  void method() {
+                      log.info("The first argument is '{}', and the second argument is '{}'.", 1, 2.3333);
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Test
     void firstParameterIsNotLiteral() {
         //language=java
@@ -181,34 +209,6 @@ class Slf4jLogShouldBeConstantTest implements RewriteTest {
                   Logger log;
                   void method() {
                       log.info(String.format("The the second argument is '%2$s', and the first argument is '%1$s'.", "foo", "bar"));
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @DocumentExample
-    @Test
-    void differentFormatSpecifier() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import org.slf4j.Logger;
-              class A {
-                  Logger log;
-                  void method() {
-                      log.info(String.format("The first argument is '%d', and the second argument is '%.2f'.", 1, 2.3333));
-                  }
-              }
-              """,
-            """
-              import org.slf4j.Logger;
-              class A {
-                  Logger log;
-                  void method() {
-                      log.info("The first argument is '{}', and the second argument is '{}'.", 1, 2.3333);
                   }
               }
               """
