@@ -356,4 +356,99 @@ class InexpensiveSLF4JLoggersTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void lambdas() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              import java.util.Optional;
+
+              class A {
+                  void method(Optional<String> op, Logger LOG) {
+                      op.ifPresent(s -> {
+                          LOG.info("SomeString {}", s);
+                          LOG.info("SomeString {}", expensiveOp());
+                      });
+                      op.ifPresent(s -> LOG.info("SomeString {}", expensiveOp()));
+                  }
+
+                  String expensiveOp() {
+                      return "expensive";
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import java.util.Optional;
+
+              class A {
+                  void method(Optional<String> op, Logger LOG) {
+                      op.ifPresent(s -> {
+                          if (LOG.isInfoEnabled()) {
+                              LOG.info("SomeString {}", s);
+                              LOG.info("SomeString {}", expensiveOp());
+                          }
+                      });
+                      op.ifPresent(s -> LOG.info("SomeString {}", expensiveOp()));
+                  }
+
+                  String expensiveOp() {
+                      return "expensive";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void unrelatedIf() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger LOG) {
+                      LOG.info("Going to do something {}", expensiveOp());
+                      if (expensiveOp().equals("test")) {
+                          LOG.info("Doing Something {}", expensiveOp());
+                          return;
+                      }
+                  }
+
+                  String expensiveOp() {
+                      return "expensive";
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger LOG) {
+                      if (LOG.isInfoEnabled()) {
+                          LOG.info("Going to do something {}", expensiveOp());
+                      }
+                      if (expensiveOp().equals("test")) {
+                          if (LOG.isInfoEnabled()) {
+                              LOG.info("Doing Something {}", expensiveOp());
+                          }
+                          return;
+                      }
+                  }
+
+                  String expensiveOp() {
+                      return "expensive";
+                  }
+              }
+              """
+          )
+        );
+    }
 }
+

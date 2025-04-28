@@ -75,16 +75,19 @@ public class InexpensiveSLF4JLoggers extends Recipe {
                 )) {
                     List<Expression> arguments = ListUtils.filter(m.getArguments(), a -> a instanceof J.MethodInvocation);
                     if (m.getSelect() != null && !arguments.isEmpty()) {
-                        UUID id = ((J.Block) getCursor().getParentTreeCursor().getValue()).getId();
-                        J.If if_ = ((J.If) JavaTemplate
-                              .builder("if(#{logger:any(org.slf4j.Logger)}.is#{}Enabled()) {}")
-                              .javaParser(JavaParser.fromJavaVersion()
-                                    .classpath("slf4j-api-2.1.+"))
-                              .build()
-                              .apply(getCursor(), m.getCoordinates().replace(),
-                                    m.getSelect(), capitalizeFirstLetter(m.getSimpleName()))).withThenPart(m);
-                        visitedBlocks.add(id);
-                        return autoFormat(if_, ctx);
+                        J container = getCursor().getParentTreeCursor().getValue();
+                        if (container instanceof J.Block) {
+                            UUID id = container.getId();
+                            J.If if_ = ((J.If) JavaTemplate
+                                  .builder("if(#{logger:any(org.slf4j.Logger)}.is#{}Enabled()) {}")
+                                  .javaParser(JavaParser.fromJavaVersion()
+                                        .classpath("slf4j-api-2.1.+"))
+                                  .build()
+                                  .apply(getCursor(), m.getCoordinates().replace(),
+                                        m.getSelect(), capitalizeFirstLetter(m.getSimpleName()))).withThenPart(m);
+                            visitedBlocks.add(id);
+                            return autoFormat(if_, ctx);
+                        }
                     }
                 }
                 return m;
@@ -145,7 +148,7 @@ public class InexpensiveSLF4JLoggers extends Recipe {
             J.Block b = super.visitBlock(block, ctx);
             if (blockIds.contains(b.getId())) {
                 StatementAccumulator acc = new StatementAccumulator();
-                for (Statement statement : block.getStatements()) {
+                for (Statement statement : b.getStatements()) {
                     acc.push(statement);
                 }
                 return autoFormat(b.withStatements(acc.pull()), ctx);
@@ -169,13 +172,15 @@ public class InexpensiveSLF4JLoggers extends Recipe {
             accumulatorKind = newKind;
             if (statement instanceof J.If) {
                 J.If if_ = (J.If) statement;
-                if (if_.getThenPart() instanceof J.MethodInvocation) {
+                if (if_.getThenPart() instanceof J.MethodInvocation &&
+                      isInIfStatementWithOnlyLogLevelCheck(if_, (J.MethodInvocation) if_.getThenPart())) {
                     if (newKind != AccumulatorKind.NONE) {
                         logStatementsCache.add(if_.getThenPart());
                         ifCache = if_;
                     } else {
                         statements.add(if_.getThenPart());
                     }
+                    return;
                 } else if (if_.getThenPart() instanceof J.Block) {
                     if (!((J.Block) if_.getThenPart()).getStatements().isEmpty() &&
                           ((J.Block) if_.getThenPart()).getStatements().stream().allMatch(
@@ -186,17 +191,16 @@ public class InexpensiveSLF4JLoggers extends Recipe {
                         } else {
                             statements.addAll(((J.Block) if_.getThenPart()).getStatements());
                         }
+                        return;
                     }
                 }
             } else if (statement instanceof J.MethodInvocation) {
                 if (newKind != AccumulatorKind.NONE) {
                     logStatementsCache.add(statement);
-                } else {
-                    statements.add(statement);
+                    return;
                 }
-            } else {
-                statements.add(statement);
             }
+            statements.add(statement);
         }
 
         public List<Statement> pull() {
@@ -209,7 +213,8 @@ public class InexpensiveSLF4JLoggers extends Recipe {
         private AccumulatorKind getKind(Statement statement) {
             if (statement instanceof J.If) {
                 J.If if_ = (J.If) statement;
-                if (if_.getThenPart() instanceof J.MethodInvocation) {
+                if (if_.getThenPart() instanceof J.MethodInvocation &&
+                      isInIfStatementWithOnlyLogLevelCheck(if_, (J.MethodInvocation) if_.getThenPart())) {
                     J.MethodInvocation mi = (J.MethodInvocation) if_.getThenPart();
                     return AccumulatorKind.fromMethodInvocation(mi);
                 } else if (if_.getThenPart() instanceof J.Block &&
