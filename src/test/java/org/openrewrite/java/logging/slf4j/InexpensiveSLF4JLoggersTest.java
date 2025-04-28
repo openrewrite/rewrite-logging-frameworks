@@ -74,7 +74,13 @@ class InexpensiveSLF4JLoggersTest implements RewriteTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"info, Info", "debug, Debug", "trace, Trace", "error, Error", "warn, Warn"})
+    @CsvSource(textBlock = """
+      info, Info
+      debug, Debug
+      trace, Trace
+      error, Error
+      warn, Warn
+      """)
     void allLogMethods(String method, String check) {
         //language=java
         rewriteRun(
@@ -419,6 +425,7 @@ class InexpensiveSLF4JLoggersTest implements RewriteTest {
                           LOG.info("Doing Something {}", expensiveOp());
                           return;
                       }
+                      expensiveOp();
                   }
 
                   String expensiveOp() {
@@ -440,6 +447,7 @@ class InexpensiveSLF4JLoggersTest implements RewriteTest {
                           }
                           return;
                       }
+                      expensiveOp();
                   }
 
                   String expensiveOp() {
