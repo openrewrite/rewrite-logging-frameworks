@@ -91,9 +91,9 @@ public class InexpensiveSLF4JLoggers extends Recipe {
             }
 
             @Override
-            public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext executionContext) {
+            public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
                 doAfterVisit(new MergeLogStatementsInCheck(visitedBlocks));
-                return super.visitCompilationUnit(cu, executionContext);
+                return super.visitCompilationUnit(cu, ctx);
             }
         });
     }
@@ -133,11 +133,11 @@ public class InexpensiveSLF4JLoggers extends Recipe {
         Set<UUID> blockIds;
 
         @Override
-        public boolean isAcceptable(SourceFile sourceFile, ExecutionContext executionContext) {
+        public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
             if (blockIds.isEmpty()) {
                 return false;
             }
-            return super.isAcceptable(sourceFile, executionContext);
+            return super.isAcceptable(sourceFile, ctx);
         }
 
         @Override
