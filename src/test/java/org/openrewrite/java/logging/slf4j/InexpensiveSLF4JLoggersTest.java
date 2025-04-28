@@ -59,8 +59,9 @@ class InexpensiveSLF4JLoggersTest implements RewriteTest {
 
               class A {
                   void method(Logger LOG) {
-                      if (LOG.isDebugEnabled())
+                      if (LOG.isDebugEnabled()) {
                           LOG.debug("SomeString {}, {}", "some param", expensiveOp());
+                      }
                   }
 
                   String expensiveOp() {
@@ -73,13 +74,7 @@ class InexpensiveSLF4JLoggersTest implements RewriteTest {
     }
 
     @ParameterizedTest
-    @CsvSource("""
-      info, Info
-      debug, Debug
-      trace, Trace
-      error, Error
-      warn, Warn
-      """)
+    @CsvSource({"info, Info", "debug, Debug", "trace, Trace", "error, Error", "warn, Warn"})
     void allLogMethods(String method, String check) {
         //language=java
         rewriteRun(
@@ -102,8 +97,9 @@ class InexpensiveSLF4JLoggersTest implements RewriteTest {
 
               class A {
                   void method(Logger LOG) {
-                      if (LOG.is%sEnabled())
+                      if (LOG.is%sEnabled()) {
                           LOG.%s("SomeString {}, {}", "some param", expensiveOp());
+                      }
                   }
 
                   String expensiveOp() {
@@ -116,11 +112,56 @@ class InexpensiveSLF4JLoggersTest implements RewriteTest {
     }
 
     @Test
+    void handleBlocksWithExpensiveOperations() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger LOG) {
+                      System.out.println("an unrelated statement");
+                      LOG.info(expensiveOp());
+                      LOG.info("SomeString {}", "some param");
+                      LOG.info("SomeString {}", expensiveOp());
+                      System.out.println("another unrelated statement");
+                  }
+
+                  String expensiveOp() {
+                      return "expensive";
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger LOG) {
+                      System.out.println("an unrelated statement");
+                      if (LOG.isInfoEnabled()) {
+                          LOG.info(expensiveOp());
+                          LOG.info("SomeString {}", "some param");
+                          LOG.info("SomeString {}", expensiveOp());
+                      }
+                      System.out.println("another unrelated statement");
+                  }
+
+                  String expensiveOp() {
+                      return "expensive";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void leaveCheapLogLines() {
         rewriteRun(
           //language=java
           java(
-            String.format("""
+            """
               import org.slf4j.Logger;
 
               class A {
@@ -130,7 +171,188 @@ class InexpensiveSLF4JLoggersTest implements RewriteTest {
                       LOG.info("SomeString {}", s);
                   }
               }
-              """)
+              """
+          )
+        );
+    }
+
+    @Test
+    void leaveLogLinesInIfWithOtherChecks() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger LOG) {
+                      String s = "message";
+                      LOG.info("SomeString {}", "some param");
+                      if(LOG.isInfoEnabled()) {
+                          LOG.info("SomeString {}", expensiveOp());
+                      }
+                      if(1 == 1 && LOG.isInfoEnabled()) {
+                          LOG.info("SomeString {}", expensiveOp());
+                      }
+                      LOG.info("SomeString {}", s);
+                  }
+
+                  String expensiveOp() {
+                      return "expensive";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void partiallyPrecheckedStatements() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger LOG) {
+                      String s = "message";
+                      LOG.info("SomeString {}", "some param");
+                      if (LOG.isInfoEnabled()) {
+                          LOG.info("SomeString {}", expensiveOp());
+                      }
+                      LOG.info(expensiveOp());
+                  }
+
+                  String expensiveOp() {
+                      return "expensive";
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger LOG) {
+                      String s = "message";
+                      if (LOG.isInfoEnabled()) {
+                          LOG.info("SomeString {}", "some param");
+                          LOG.info("SomeString {}", expensiveOp());
+                          LOG.info(expensiveOp());
+                      }
+                  }
+
+                  String expensiveOp() {
+                      return "expensive";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void differentLogLevelStatements() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger LOG) {
+                      String s = "message";
+                      LOG.info("SomeString {}", "some param");
+                      LOG.info("SomeString {}", expensiveOp());
+                      LOG.debug("SomeString {}", "some param");
+                      LOG.debug(expensiveOp());
+                      LOG.info(expensiveOp());
+                  }
+
+                  String expensiveOp() {
+                      return "expensive";
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger LOG) {
+                      String s = "message";
+                      if (LOG.isInfoEnabled()) {
+                          LOG.info("SomeString {}", "some param");
+                          LOG.info("SomeString {}", expensiveOp());
+                      }
+                      if (LOG.isDebugEnabled()) {
+                          LOG.debug("SomeString {}", "some param");
+                          LOG.debug(expensiveOp());
+                      }
+                      if (LOG.isInfoEnabled()) {
+                          LOG.info(expensiveOp());
+                      }
+                  }
+
+                  String expensiveOp() {
+                      return "expensive";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void logStatementsInOuterIf() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger LOG) {
+                      if (expensiveOp().equals("test")) {
+                          String s = "message";
+                          LOG.info("SomeString {}", "some param");
+                          LOG.info("SomeString {}", expensiveOp());
+                          LOG.debug("SomeString {}", "some param");
+                          LOG.debug(expensiveOp());
+                          LOG.info(expensiveOp());
+                      }
+                  }
+
+                  String expensiveOp() {
+                      return "expensive";
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger LOG) {
+                      if (expensiveOp().equals("test")) {
+                          String s = "message";
+                          if (LOG.isInfoEnabled()) {
+                              LOG.info("SomeString {}", "some param");
+                              LOG.info("SomeString {}", expensiveOp());
+                          }
+                          if (LOG.isDebugEnabled()) {
+                              LOG.debug("SomeString {}", "some param");
+                              LOG.debug(expensiveOp());
+                          }
+                          if (LOG.isInfoEnabled()) {
+                              LOG.info(expensiveOp());
+                          }
+                      }
+                  }
+
+                  String expensiveOp() {
+                      return "expensive";
+                  }
+              }
+              """
           )
         );
     }
