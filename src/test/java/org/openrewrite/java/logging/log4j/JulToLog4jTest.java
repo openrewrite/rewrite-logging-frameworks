@@ -34,30 +34,6 @@ class JulToLog4jTest implements RewriteTest {
     }
 
     @Test
-    void loggerToLogManager() {
-        rewriteRun(
-          // language=java
-          java(
-            """
-              import java.util.logging.Logger;
-
-              class Test {
-                  Logger log = Logger.getLogger("Test");
-              }
-              """,
-            """
-              import org.apache.logging.log4j.LogManager;
-              import org.apache.logging.log4j.Logger;
-
-              class Test {
-                  Logger log = LogManager.getLogger("Test");
-              }
-              """
-          )
-        );
-    }
-
-    @Test
     @DocumentExample
     void simpleLoggerCalls() {
         rewriteRun(
@@ -111,6 +87,30 @@ class JulToLog4jTest implements RewriteTest {
                       logger.info("Hello");
                       logger.info(() -> "Hello");
                   }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void loggerToLogManager() {
+        rewriteRun(
+          // language=java
+          java(
+            """
+              import java.util.logging.Logger;
+
+              class Test {
+                  Logger log = Logger.getLogger("Test");
+              }
+              """,
+            """
+              import org.apache.logging.log4j.LogManager;
+              import org.apache.logging.log4j.Logger;
+
+              class Test {
+                  Logger log = LogManager.getLogger("Test");
               }
               """
           )
