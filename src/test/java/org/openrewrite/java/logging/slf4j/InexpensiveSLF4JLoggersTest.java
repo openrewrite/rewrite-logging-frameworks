@@ -458,5 +458,62 @@ class InexpensiveSLF4JLoggersTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void whiteSpaceAndComments() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger LOG) {
+                      System.out.println();
+
+                      // Log this as Info
+                      LOG.info("Do something {}", expensiveOp());
+
+                      // Log this also
+                      LOG.info("Do something else {}", expensiveOp());
+                      // And this
+                      LOG.info("Do something different {}", expensiveOp());
+
+                      System.out.println();
+                   }
+
+                  String expensiveOp() {
+                      return "expensive";
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger LOG) {
+                      System.out.println();
+
+                      if (LOG.isInfoEnabled()) {
+                          // Log this as Info
+                          LOG.info("Do something {}", expensiveOp());
+
+                          // Log this also
+                          LOG.info("Do something else {}", expensiveOp());
+                          // And this
+                          LOG.info("Do something different {}", expensiveOp());
+                      }
+
+                      System.out.println();
+                  }
+
+                  String expensiveOp() {
+                      return "expensive";
+                  }
+              }
+              """
+          )
+        );
+    }
 }
 

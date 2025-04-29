@@ -84,7 +84,9 @@ public class InexpensiveSLF4JLoggers extends Recipe {
                                         .classpath("slf4j-api-2.1.+"))
                                   .build()
                                   .apply(getCursor(), m.getCoordinates().replace(),
-                                        m.getSelect(), capitalizeFirstLetter(m.getSimpleName()))).withThenPart(m);
+                                        m.getSelect(), capitalizeFirstLetter(m.getSimpleName())))
+                                  .withThenPart(m.withPrefix(m.getPrefix().withWhitespace("\n" + m.getPrefix().getWhitespace().replace("\n", ""))))
+                                  .withPrefix(m.getPrefix().withComments(Collections.emptyList()));
                             visitedBlocks.add(id);
                             return autoFormat(if_, ctx);
                         }
@@ -175,8 +177,12 @@ public class InexpensiveSLF4JLoggers extends Recipe {
                 if (if_.getThenPart() instanceof J.MethodInvocation &&
                       isInIfStatementWithOnlyLogLevelCheck(if_, (J.MethodInvocation) if_.getThenPart())) {
                     if (newKind != AccumulatorKind.NONE) {
-                        logStatementsCache.add(if_.getThenPart());
-                        ifCache = if_;
+                        if(ifCache == null) {
+                            ifCache = if_;
+                            logStatementsCache.add(if_.getThenPart());
+                        } else {
+                            logStatementsCache.add(if_.getThenPart().withPrefix(if_.getThenPart().getPrefix().withWhitespace(if_.getPrefix().getWhitespace())));
+                        }
                     } else {
                         statements.add(if_.getThenPart());
                     }
