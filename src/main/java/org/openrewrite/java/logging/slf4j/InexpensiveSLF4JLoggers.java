@@ -250,7 +250,11 @@ public class InexpensiveSLF4JLoggers extends Recipe {
         }
 
         private void handleLogStatements() {
-            statements.add(ifCache.withThenPart(new J.Block(randomId(), Space.EMPTY, Markers.EMPTY, JRightPadded.build(false), logStatementsCache.stream().map(JRightPadded::build).collect(Collectors.toList()), Space.EMPTY)));
+            if (ifCache == null) {
+                statements.addAll(logStatementsCache);
+            } else {
+                statements.add(ifCache.withThenPart(new J.Block(randomId(), Space.EMPTY, Markers.EMPTY, JRightPadded.build(false), logStatementsCache.stream().map(JRightPadded::build).collect(Collectors.toList()), Space.EMPTY)));
+            }
             logStatementsCache.clear();
             ifCache = null;
         }
