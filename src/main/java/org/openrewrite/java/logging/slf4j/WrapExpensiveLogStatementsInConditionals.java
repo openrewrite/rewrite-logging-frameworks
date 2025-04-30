@@ -97,7 +97,7 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
         @Override
         public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
             J j = super.visitCompilationUnit(cu, ctx);
-            if (j != cu) {
+            if (j != cu && !visitedBlocks.isEmpty()) {
                 doAfterVisit(new MergeLogStatementsInCheck(visitedBlocks));
             }
             return j;
@@ -122,14 +122,6 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
         Set<UUID> blockIds;
 
         @Override
-        public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
-            if (blockIds.isEmpty()) {
-                return false;
-            }
-            return super.isAcceptable(sourceFile, ctx);
-        }
-
-        @Override
         public J.Block visitBlock(J.Block block, ExecutionContext ctx) {
             J.Block b = super.visitBlock(block, ctx);
             if (blockIds.contains(b.getId())) {
@@ -141,14 +133,12 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
             }
             return b;
         }
-
     }
-
 
     /**
      * The Statement Accumulator receives statements in a J.Block.
      * It internally keeps track of the kind of statements it's collecting.
-     * It differentiates between all different logstatement (e.g. INFO is different from DEBUG) and NONE for any statement that isn't a logstatement.
+     * It differentiates between all different log statements (e.g. INFO is different from DEBUG) and NONE for any statement that isn't a logstatement.
      * <p>
      * Statements that aren't log statements are immediately added to the statements list.
      * <p>
