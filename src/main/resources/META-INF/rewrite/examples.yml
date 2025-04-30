@@ -724,39 +724,6 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
-recipeName: org.openrewrite.java.logging.slf4j.InexpensiveSLF4JLoggers
-examples:
-- description: ''
-  sources:
-  - before: |
-      import org.slf4j.Logger;
-
-      class A {
-          void method(Logger LOG) {
-              LOG.debug("SomeString {}, {}", "some param", expensiveOp());
-          }
-
-          String expensiveOp() {
-              return "expensive";
-          }
-      }
-    after: |
-      import org.slf4j.Logger;
-
-      class A {
-          void method(Logger LOG) {
-              if (LOG.isDebugEnabled()) {
-                  LOG.debug("SomeString {}, {}", "some param", expensiveOp());
-              }
-          }
-
-          String expensiveOp() {
-              return "expensive";
-          }
-      }
-    language: java
----
-type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.slf4j.JulToSlf4j
 examples:
 - description: ''
@@ -955,6 +922,39 @@ examples:
           Logger log;
           void method() {
               log.info("The first argument is '{}', and the second argument is '{}'.", 1, 2.3333);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.slf4j.WrapExpensiveLogStatementsInConditionals
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.slf4j.Logger;
+
+      class A {
+          void method(Logger LOG) {
+              LOG.debug("SomeString {}, {}", "some param", expensiveOp());
+          }
+
+          String expensiveOp() {
+              return "expensive";
+          }
+      }
+    after: |
+      import org.slf4j.Logger;
+
+      class A {
+          void method(Logger LOG) {
+              if (LOG.isDebugEnabled()) {
+                  LOG.debug("SomeString {}, {}", "some param", expensiveOp());
+              }
+          }
+
+          String expensiveOp() {
+              return "expensive";
           }
       }
     language: java
