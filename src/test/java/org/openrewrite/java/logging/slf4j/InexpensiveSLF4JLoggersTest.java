@@ -516,4 +516,3 @@ class InexpensiveSLF4JLoggersTest implements RewriteTest {
         );
     }
 }
-
