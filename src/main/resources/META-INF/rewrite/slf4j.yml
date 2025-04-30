@@ -143,6 +143,7 @@ recipeList:
   - org.openrewrite.java.logging.slf4j.Slf4jLogShouldBeConstant
   - org.openrewrite.java.logging.slf4j.CompleteExceptionLogging
   - org.openrewrite.java.logging.CatchBlockLogLevel
+  - org.openrewrite.java.logging.slf4j.InexpensiveSLF4JLoggers
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.slf4j.CommonsLogging1ToSlf4j1
