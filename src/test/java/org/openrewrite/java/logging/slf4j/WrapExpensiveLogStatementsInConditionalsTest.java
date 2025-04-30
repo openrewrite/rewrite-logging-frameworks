@@ -26,11 +26,11 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-class InexpensiveSLF4JLoggersTest implements RewriteTest {
+class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.recipe(new InexpensiveSLF4JLoggers())
+        spec.recipe(new WrapExpensiveLogStatementsInConditionals())
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1.+"));
     }

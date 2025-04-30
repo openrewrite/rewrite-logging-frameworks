@@ -33,7 +33,7 @@ import static java.util.Collections.emptyList;
 import static org.openrewrite.Preconditions.or;
 import static org.openrewrite.Tree.randomId;
 
-public class InexpensiveSLF4JLoggers extends Recipe {
+public class WrapExpensiveLogStatementsInConditionals extends Recipe {
 
     // Only matching up to INFO, as WARN and ERROR are rarely disabled
     private static final MethodMatcher infoMatcher = new MethodMatcher("org.slf4j.Logger info(..)");
@@ -46,12 +46,13 @@ public class InexpensiveSLF4JLoggers extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Inexpensive SLF4J loggers";
+        return "Wrap expensive log statements in conditionals";
     }
 
     @Override
     public String getDescription() {
-        return "When log statements use methods for constructing log messages those methods are called regardless of whether the log level is enabled. " +
+        return "When trace, debug and info log statements use methods for constructing log messages, " +
+                "those methods are called regardless of whether the log level is enabled. " +
                 "This recipe encapsulates those log statements in an `if` statement that checks the log level before calling the log method. " +
                 "It then bundles surrounding log statements with the same log level into the `if` statement to improve readability of the resulting code.";
     }
