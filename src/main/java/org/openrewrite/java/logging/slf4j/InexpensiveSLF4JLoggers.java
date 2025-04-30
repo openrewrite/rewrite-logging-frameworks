@@ -97,7 +97,7 @@ public class InexpensiveSLF4JLoggers extends Recipe {
                                         .classpath("slf4j-api-2.1.+"))
                                   .build()
                                   .apply(getCursor(), m.getCoordinates().replace(),
-                                        m.getSelect(), capitalizeFirstLetter(m.getSimpleName())))
+                                        m.getSelect(), StringUtils.capitalize(m.getSimpleName())))
                                   .withThenPart(m.withPrefix(m.getPrefix().withWhitespace("\n" + m.getPrefix().getWhitespace().replace("\n", ""))))
                                   .withPrefix(m.getPrefix().withComments(Collections.emptyList()));
                             visitedBlocks.add(id);
@@ -127,21 +127,11 @@ public class InexpensiveSLF4JLoggers extends Recipe {
 
     private boolean isInIfStatementWithLogLevelCheck(J.If if_, J.MethodInvocation m) {
         J.ControlParentheses<Expression> ifCondition = if_.getIfCondition();
-        if ((infoMethodMatcher.matches(m) && ifCondition.getSideEffects().stream().allMatch(e -> e instanceof J.MethodInvocation && isInfoEnabledMethodMatcher.matches((J.MethodInvocation) e))) ||
+        return (infoMethodMatcher.matches(m) && ifCondition.getSideEffects().stream().allMatch(e -> e instanceof J.MethodInvocation && isInfoEnabledMethodMatcher.matches((J.MethodInvocation) e))) ||
               (debugMethodMatcher.matches(m) && ifCondition.getSideEffects().stream().allMatch(e -> e instanceof J.MethodInvocation && isDebugEnabledMethodMatcher.matches((J.MethodInvocation) e))) ||
               (traceMethodMatcher.matches(m) && ifCondition.getSideEffects().stream().allMatch(e -> e instanceof J.MethodInvocation && isTraceEnabledMethodMatcher.matches((J.MethodInvocation) e))) ||
               (errorMethodMatcher.matches(m) && ifCondition.getSideEffects().stream().allMatch(e -> e instanceof J.MethodInvocation && isErrorEnabledMethodMatcher.matches((J.MethodInvocation) e))) ||
-              (warnMethodMatcher.matches(m) && ifCondition.getSideEffects().stream().allMatch(e -> e instanceof J.MethodInvocation && isWarnEnabledMethodMatcher.matches((J.MethodInvocation) e)))) {
-            return true;
-        }
-        return false;
-    }
-
-    private String capitalizeFirstLetter(String str) {
-        if (StringUtils.isNullOrEmpty(str)) {
-            return str;
-        }
-        return str.substring(0, 1).toUpperCase() + str.substring(1);
+              (warnMethodMatcher.matches(m) && ifCondition.getSideEffects().stream().allMatch(e -> e instanceof J.MethodInvocation && isWarnEnabledMethodMatcher.matches((J.MethodInvocation) e)));
     }
 
     @Value
@@ -181,11 +171,17 @@ public class InexpensiveSLF4JLoggers extends Recipe {
 
         public void push(Statement statement) {
             AccumulatorKind newKind = getKind(statement);
+            // if the kind of logstatements we are collecting changes, and we were previously collecting logstatements in the cache,
+            // the cached logstatements need to be either bundled in the cached if, or added to the statements list.
             if (newKind != accumulatorKind && accumulatorKind != AccumulatorKind.NONE) {
                 handleLogStatements();
             }
             accumulatorKind = newKind;
             if (statement instanceof J.If) {
+                // if the statement is an if-statement
+                // if it has a condition checking only loglevel, and all statement in the if-statement are logstatements of the same log level
+                // then cache the ifstatement and all statements in the if-statement
+                // return
                 J.If if_ = (J.If) statement;
                 if (if_.getThenPart() instanceof J.MethodInvocation &&
                       isInIfStatementWithOnlyLogLevelCheck(if_, (J.MethodInvocation) if_.getThenPart())) {
@@ -205,8 +201,8 @@ public class InexpensiveSLF4JLoggers extends Recipe {
                           ((J.Block) if_.getThenPart()).getStatements().stream().allMatch(
                                 s -> s instanceof J.MethodInvocation && isInIfStatementWithOnlyLogLevelCheck(if_, (J.MethodInvocation) s))) {
                         if (newKind != AccumulatorKind.NONE) {
-                            logStatementsCache.addAll(((J.Block) if_.getThenPart()).getStatements());
                             ifCache = if_;
+                            logStatementsCache.addAll(((J.Block) if_.getThenPart()).getStatements());
                         } else {
                             statements.addAll(((J.Block) if_.getThenPart()).getStatements());
                         }
@@ -214,11 +210,15 @@ public class InexpensiveSLF4JLoggers extends Recipe {
                     }
                 }
             } else if (statement instanceof J.MethodInvocation) {
+                // if the statement is an method invocation and the kind of statement is a logstatement
+                // then cache the statement
+                // return
                 if (newKind != AccumulatorKind.NONE) {
                     logStatementsCache.add(statement);
                     return;
                 }
             }
+            // if it is any other statement, add it to the statements.
             statements.add(statement);
         }
 
