@@ -162,6 +162,18 @@ public class InexpensiveSLF4JLoggers extends Recipe {
         }
     }
 
+    /**
+     * The Statement Accumulator receives statements in a J.Block.
+     * It internally keeps track of the kind of statements it's collecting.
+     * It differentiates between all different logstatement (e.g. INFO is different from DEBUG) and NONE for any statement that isn't a logstatement.
+     *
+     * Statement that aren't log statement are immediately added to the statements list.
+     *
+     * While the Accumulator receives the same kind of log statements, or if-statements with only an is<kind>Enabled condition and only containing log statements matching that kind
+     * it will cache the statements and the if-statement.
+     *
+     * When the kind of statement changes the Accumulator will bundle all cached log statements in the cached if, and add the newly created if to the statements list.
+     */
     private static class StatementAccumulator {
 
         AccumulatorKind accumulatorKind = AccumulatorKind.NONE;
@@ -171,17 +183,11 @@ public class InexpensiveSLF4JLoggers extends Recipe {
 
         public void push(Statement statement) {
             AccumulatorKind newKind = getKind(statement);
-            // if the kind of logstatements we are collecting changes, and we were previously collecting logstatements in the cache,
-            // the cached logstatements need to be either bundled in the cached if, or added to the statements list.
             if (newKind != accumulatorKind && accumulatorKind != AccumulatorKind.NONE) {
                 handleLogStatements();
             }
             accumulatorKind = newKind;
             if (statement instanceof J.If) {
-                // if the statement is an if-statement
-                // if it has a condition checking only loglevel, and all statement in the if-statement are logstatements of the same log level
-                // then cache the ifstatement and all statements in the if-statement
-                // return
                 J.If if_ = (J.If) statement;
                 if (if_.getThenPart() instanceof J.MethodInvocation &&
                       isInIfStatementWithOnlyLogLevelCheck(if_, (J.MethodInvocation) if_.getThenPart())) {
@@ -210,15 +216,11 @@ public class InexpensiveSLF4JLoggers extends Recipe {
                     }
                 }
             } else if (statement instanceof J.MethodInvocation) {
-                // if the statement is an method invocation and the kind of statement is a logstatement
-                // then cache the statement
-                // return
                 if (newKind != AccumulatorKind.NONE) {
                     logStatementsCache.add(statement);
                     return;
                 }
             }
-            // if it is any other statement, add it to the statements.
             statements.add(statement);
         }
 
