@@ -283,16 +283,21 @@ public class InexpensiveSLF4JLoggers extends Recipe {
             WARN;
 
             public static AccumulatorKind fromMethodInvocation(J.MethodInvocation mi) {
-                if (infoMethodMatcher.matches(mi))
+                if (infoMethodMatcher.matches(mi)) {
                     return INFO;
-                if (debugMethodMatcher.matches(mi))
+                }
+                if (debugMethodMatcher.matches(mi)) {
                     return DEBUG;
-                if (traceMethodMatcher.matches(mi))
+                }
+                if (traceMethodMatcher.matches(mi)) {
                     return TRACE;
-                if (errorMethodMatcher.matches(mi))
+                }
+                if (errorMethodMatcher.matches(mi)) {
                     return ERROR;
-                if (warnMethodMatcher.matches(mi))
+                }
+                if (warnMethodMatcher.matches(mi)) {
                     return WARN;
+                }
                 return NONE;
             }
         }
