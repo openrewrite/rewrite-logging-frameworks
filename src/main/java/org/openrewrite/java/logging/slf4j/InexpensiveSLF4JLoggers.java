@@ -167,12 +167,12 @@ public class InexpensiveSLF4JLoggers extends Recipe {
      * It internally keeps track of the kind of statements it's collecting.
      * It differentiates between all different logstatement (e.g. INFO is different from DEBUG) and NONE for any statement that isn't a logstatement.
      *
-     * Statement that aren't log statement are immediately added to the statements list.
+     * Statements that aren't log statements are immediately added to the statements list.
      *
      * While the Accumulator receives the same kind of log statements, or if-statements with only an is<kind>Enabled condition and only containing log statements matching that kind
      * it will cache the statements and the if-statement.
      *
-     * When the kind of statement changes the Accumulator will bundle all cached log statements in the cached if, and add the newly created if to the statements list.
+     * When the kind of statement changes, the Accumulator will bundle all cached log statements in the cached if, and add this newly created if to the statements list.
      */
     private static class StatementAccumulator {
 
