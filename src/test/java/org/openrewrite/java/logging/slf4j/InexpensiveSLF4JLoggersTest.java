@@ -78,8 +78,6 @@ class InexpensiveSLF4JLoggersTest implements RewriteTest {
       info, Info
       debug, Debug
       trace, Trace
-      error, Error
-      warn, Warn
       """)
     void allLogMethods(String method, String check) {
         //language=java

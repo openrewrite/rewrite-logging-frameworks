@@ -29,22 +29,20 @@ import org.openrewrite.marker.Markers;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static java.util.Collections.emptyList;
 import static org.openrewrite.Preconditions.or;
 import static org.openrewrite.Tree.randomId;
 
 public class InexpensiveSLF4JLoggers extends Recipe {
 
-    static final MethodMatcher infoMethodMatcher = new MethodMatcher("org.slf4j.Logger info(..)");
-    static final MethodMatcher debugMethodMatcher = new MethodMatcher("org.slf4j.Logger debug(..)");
-    static final MethodMatcher traceMethodMatcher = new MethodMatcher("org.slf4j.Logger trace(..)");
-    static final MethodMatcher errorMethodMatcher = new MethodMatcher("org.slf4j.Logger error(..)");
-    static final MethodMatcher warnMethodMatcher = new MethodMatcher("org.slf4j.Logger warn(..)");
+    // Only matching up to INFO, as WARN and ERROR are rarely disabled
+    private static final MethodMatcher infoMatcher = new MethodMatcher("org.slf4j.Logger info(..)");
+    private static final MethodMatcher debugMatcher = new MethodMatcher("org.slf4j.Logger debug(..)");
+    private static final MethodMatcher traceMatcher = new MethodMatcher("org.slf4j.Logger trace(..)");
 
-    static final MethodMatcher isInfoEnabledMethodMatcher = new MethodMatcher("org.slf4j.Logger isInfoEnabled()");
-    static final MethodMatcher isDebugEnabledMethodMatcher = new MethodMatcher("org.slf4j.Logger isDebugEnabled()");
-    static final MethodMatcher isTraceEnabledMethodMatcher = new MethodMatcher("org.slf4j.Logger isTraceEnabled()");
-    static final MethodMatcher isErrorEnabledMethodMatcher = new MethodMatcher("org.slf4j.Logger isErrorEnabled()");
-    static final MethodMatcher isWarnEnabledMethodMatcher = new MethodMatcher("org.slf4j.Logger isWarnEnabled()");
+    private static final MethodMatcher isInfoEnabledMatcher = new MethodMatcher("org.slf4j.Logger isInfoEnabled()");
+    private static final MethodMatcher isDebugEnabledMatcher = new MethodMatcher("org.slf4j.Logger isDebugEnabled()");
+    private static final MethodMatcher isTraceEnabledMatcher = new MethodMatcher("org.slf4j.Logger isTraceEnabled()");
 
     @Override
     public String getDisplayName() {
@@ -61,11 +59,7 @@ public class InexpensiveSLF4JLoggers extends Recipe {
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(
-                or(new UsesMethod<>(infoMethodMatcher),
-                        new UsesMethod<>(debugMethodMatcher),
-                        new UsesMethod<>(traceMethodMatcher),
-                        new UsesMethod<>(errorMethodMatcher),
-                        new UsesMethod<>(warnMethodMatcher)),
+                or(new UsesMethod<>(infoMatcher), new UsesMethod<>(debugMatcher), new UsesMethod<>(traceMatcher)),
                 new AddIfEnabledVisitor());
     }
 
@@ -77,11 +71,7 @@ public class InexpensiveSLF4JLoggers extends Recipe {
         public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation m = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
             if (!isInIfStatementWithLogLevelCheck(getCursor(), m) &&
-                    (infoMethodMatcher.matches(m) ||
-                            debugMethodMatcher.matches(m) ||
-                            traceMethodMatcher.matches(m) ||
-                            errorMethodMatcher.matches(m) ||
-                            warnMethodMatcher.matches(m))) {
+                    (infoMatcher.matches(m) || debugMatcher.matches(m) || traceMatcher.matches(m))) {
                 List<Expression> arguments = ListUtils.filter(m.getArguments(), a -> a instanceof J.MethodInvocation);
                 if (m.getSelect() != null && !arguments.isEmpty()) {
                     J container = getCursor().getParentTreeCursor().getValue();
@@ -89,13 +79,12 @@ public class InexpensiveSLF4JLoggers extends Recipe {
                         UUID id = container.getId();
                         J.If if_ = ((J.If) JavaTemplate
                                 .builder("if(#{logger:any(org.slf4j.Logger)}.is#{}Enabled()) {}")
-                                .javaParser(JavaParser.fromJavaVersion()
-                                        .classpath("slf4j-api-2.1.+"))
+                                .javaParser(JavaParser.fromJavaVersion().classpath("slf4j-api-2.1.+"))
                                 .build()
                                 .apply(getCursor(), m.getCoordinates().replace(),
                                         m.getSelect(), StringUtils.capitalize(m.getSimpleName())))
                                 .withThenPart(m.withPrefix(m.getPrefix().withWhitespace("\n" + m.getPrefix().getWhitespace().replace("\n", ""))))
-                                .withPrefix(m.getPrefix().withComments(Collections.emptyList()));
+                                .withPrefix(m.getPrefix().withComments(emptyList()));
                         visitedBlocks.add(id);
                         return autoFormat(if_, ctx);
                     }
@@ -124,11 +113,9 @@ public class InexpensiveSLF4JLoggers extends Recipe {
 
         private boolean isInIfStatementWithLogLevelCheck(J.If if_, J.MethodInvocation m) {
             J.ControlParentheses<Expression> ifCondition = if_.getIfCondition();
-            return (infoMethodMatcher.matches(m) && ifCondition.getSideEffects().stream().allMatch(e -> e instanceof J.MethodInvocation && isInfoEnabledMethodMatcher.matches((J.MethodInvocation) e))) ||
-                    (debugMethodMatcher.matches(m) && ifCondition.getSideEffects().stream().allMatch(e -> e instanceof J.MethodInvocation && isDebugEnabledMethodMatcher.matches((J.MethodInvocation) e))) ||
-                    (traceMethodMatcher.matches(m) && ifCondition.getSideEffects().stream().allMatch(e -> e instanceof J.MethodInvocation && isTraceEnabledMethodMatcher.matches((J.MethodInvocation) e))) ||
-                    (errorMethodMatcher.matches(m) && ifCondition.getSideEffects().stream().allMatch(e -> e instanceof J.MethodInvocation && isErrorEnabledMethodMatcher.matches((J.MethodInvocation) e))) ||
-                    (warnMethodMatcher.matches(m) && ifCondition.getSideEffects().stream().allMatch(e -> e instanceof J.MethodInvocation && isWarnEnabledMethodMatcher.matches((J.MethodInvocation) e)));
+            return (infoMatcher.matches(m) && ifCondition.getSideEffects().stream().allMatch(e -> e instanceof J.MethodInvocation && isInfoEnabledMatcher.matches((J.MethodInvocation) e))) ||
+                    (debugMatcher.matches(m) && ifCondition.getSideEffects().stream().allMatch(e -> e instanceof J.MethodInvocation && isDebugEnabledMatcher.matches((J.MethodInvocation) e))) ||
+                    (traceMatcher.matches(m) && ifCondition.getSideEffects().stream().allMatch(e -> e instanceof J.MethodInvocation && isTraceEnabledMatcher.matches((J.MethodInvocation) e)));
         }
     }
 
@@ -265,40 +252,29 @@ public class InexpensiveSLF4JLoggers extends Recipe {
         private boolean isInIfStatementWithOnlyLogLevelCheck(J.If if_, J.MethodInvocation m) {
             J.ControlParentheses<Expression> ifCondition = if_.getIfCondition();
             return ifCondition.getTree() instanceof J.MethodInvocation && (
-                    (infoMethodMatcher.matches(m) && isInfoEnabledMethodMatcher.matches(ifCondition.getTree())) ||
-                            (debugMethodMatcher.matches(m) && isDebugEnabledMethodMatcher.matches(ifCondition.getTree())) ||
-                            (traceMethodMatcher.matches(m) && isTraceEnabledMethodMatcher.matches(ifCondition.getTree())) ||
-                            (errorMethodMatcher.matches(m) && isErrorEnabledMethodMatcher.matches(ifCondition.getTree())) ||
-                            (warnMethodMatcher.matches(m) && isWarnEnabledMethodMatcher.matches(ifCondition.getTree())));
+                    (infoMatcher.matches(m) && isInfoEnabledMatcher.matches(ifCondition.getTree())) ||
+                            (debugMatcher.matches(m) && isDebugEnabledMatcher.matches(ifCondition.getTree())) ||
+                            (traceMatcher.matches(m) && isTraceEnabledMatcher.matches(ifCondition.getTree())));
         }
 
         private enum AccumulatorKind {
             NONE,
             INFO,
             DEBUG,
-            TRACE,
-            ERROR,
-            WARN;
+            TRACE;
 
             public static AccumulatorKind fromMethodInvocation(J.MethodInvocation mi) {
-                if (infoMethodMatcher.matches(mi)) {
+                if (infoMatcher.matches(mi)) {
                     return INFO;
                 }
-                if (debugMethodMatcher.matches(mi)) {
+                if (debugMatcher.matches(mi)) {
                     return DEBUG;
                 }
-                if (traceMethodMatcher.matches(mi)) {
+                if (traceMatcher.matches(mi)) {
                     return TRACE;
-                }
-                if (errorMethodMatcher.matches(mi)) {
-                    return ERROR;
-                }
-                if (warnMethodMatcher.matches(mi)) {
-                    return WARN;
                 }
                 return NONE;
             }
         }
-
     }
 }
