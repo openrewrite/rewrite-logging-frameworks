@@ -17,25 +17,13 @@ package org.openrewrite.java.logging.slf4j;
 
 import lombok.EqualsAndHashCode;
 import lombok.Value;
-import org.openrewrite.Cursor;
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Preconditions;
-import org.openrewrite.Recipe;
-import org.openrewrite.SourceFile;
-import org.openrewrite.TreeVisitor;
+import org.jspecify.annotations.Nullable;
+import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.StringUtils;
-import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaParser;
-import org.openrewrite.java.JavaTemplate;
-import org.openrewrite.java.JavaVisitor;
-import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JRightPadded;
-import org.openrewrite.java.tree.Space;
-import org.openrewrite.java.tree.Statement;
+import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
 import java.util.*;
@@ -66,54 +54,62 @@ public class InexpensiveSLF4JLoggers extends Recipe {
     @Override
     public String getDescription() {
         return "When log statements use methods for constructing log messages those methods are called regardless of whether the log level is enabled. " +
-              "This recipe encapsulates those log statements in an `if` statement that checks the log level before calling the log method. " +
-              "It then bundles surrounding log statements with the same log level into the `if` statement to improve readability of the resulting code.";
+                "This recipe encapsulates those log statements in an `if` statement that checks the log level before calling the log method. " +
+                "It then bundles surrounding log statements with the same log level into the `if` statement to improve readability of the resulting code.";
     }
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(
+                or(new UsesMethod<>(infoMethodMatcher),
+                        new UsesMethod<>(debugMethodMatcher),
+                        new UsesMethod<>(traceMethodMatcher),
+                        new UsesMethod<>(errorMethodMatcher),
+                        new UsesMethod<>(warnMethodMatcher)),
+                new JavaVisitor<ExecutionContext>() {
 
-        Set<UUID> visitedBlocks = new HashSet<>();
+                    final Set<UUID> visitedBlocks = new HashSet<>();
 
-        return Preconditions.check(or(new UsesMethod<>(infoMethodMatcher), new UsesMethod<>(debugMethodMatcher), new UsesMethod<>(traceMethodMatcher), new UsesMethod<>(errorMethodMatcher), new UsesMethod<>(warnMethodMatcher)), new JavaVisitor<ExecutionContext>() {
-            @Override
-            public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                J.MethodInvocation m = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
-                if (!isInIfStatementWithLogLevelCheck(getCursor(), m) && (
-                      infoMethodMatcher.matches(m) ||
-                            debugMethodMatcher.matches(m) ||
-                            traceMethodMatcher.matches(m) ||
-                            errorMethodMatcher.matches(m) ||
-                            warnMethodMatcher.matches(m)
-                )) {
-                    List<Expression> arguments = ListUtils.filter(m.getArguments(), a -> a instanceof J.MethodInvocation);
-                    if (m.getSelect() != null && !arguments.isEmpty()) {
-                        J container = getCursor().getParentTreeCursor().getValue();
-                        if (container instanceof J.Block) {
-                            UUID id = container.getId();
-                            J.If if_ = ((J.If) JavaTemplate
-                                  .builder("if(#{logger:any(org.slf4j.Logger)}.is#{}Enabled()) {}")
-                                  .javaParser(JavaParser.fromJavaVersion()
-                                        .classpath("slf4j-api-2.1.+"))
-                                  .build()
-                                  .apply(getCursor(), m.getCoordinates().replace(),
-                                        m.getSelect(), StringUtils.capitalize(m.getSimpleName())))
-                                  .withThenPart(m.withPrefix(m.getPrefix().withWhitespace("\n" + m.getPrefix().getWhitespace().replace("\n", ""))))
-                                  .withPrefix(m.getPrefix().withComments(Collections.emptyList()));
-                            visitedBlocks.add(id);
-                            return autoFormat(if_, ctx);
+                    @Override
+                    public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                        J.MethodInvocation m = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
+                        if (!isInIfStatementWithLogLevelCheck(getCursor(), m) &&
+                                (infoMethodMatcher.matches(m) ||
+                                        debugMethodMatcher.matches(m) ||
+                                        traceMethodMatcher.matches(m) ||
+                                        errorMethodMatcher.matches(m) ||
+                                        warnMethodMatcher.matches(m))) {
+                            List<Expression> arguments = ListUtils.filter(m.getArguments(), a -> a instanceof J.MethodInvocation);
+                            if (m.getSelect() != null && !arguments.isEmpty()) {
+                                J container = getCursor().getParentTreeCursor().getValue();
+                                if (container instanceof J.Block) {
+                                    UUID id = container.getId();
+                                    J.If if_ = ((J.If) JavaTemplate
+                                            .builder("if(#{logger:any(org.slf4j.Logger)}.is#{}Enabled()) {}")
+                                            .javaParser(JavaParser.fromJavaVersion()
+                                                    .classpath("slf4j-api-2.1.+"))
+                                            .build()
+                                            .apply(getCursor(), m.getCoordinates().replace(),
+                                                    m.getSelect(), StringUtils.capitalize(m.getSimpleName())))
+                                            .withThenPart(m.withPrefix(m.getPrefix().withWhitespace("\n" + m.getPrefix().getWhitespace().replace("\n", ""))))
+                                            .withPrefix(m.getPrefix().withComments(Collections.emptyList()));
+                                    visitedBlocks.add(id);
+                                    return autoFormat(if_, ctx);
+                                }
+                            }
                         }
+                        return m;
                     }
-                }
-                return m;
-            }
 
-            @Override
-            public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-                doAfterVisit(new MergeLogStatementsInCheck(visitedBlocks));
-                return super.visitCompilationUnit(cu, ctx);
-            }
-        });
+                    @Override
+                    public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+                        J j = super.visitCompilationUnit(cu, ctx);
+                        if (j != cu) {
+                            doAfterVisit(new MergeLogStatementsInCheck(visitedBlocks));
+                        }
+                        return j;
+                    }
+                });
     }
 
     private boolean isInIfStatementWithLogLevelCheck(Cursor cursor, J.MethodInvocation m) {
@@ -128,10 +124,10 @@ public class InexpensiveSLF4JLoggers extends Recipe {
     private boolean isInIfStatementWithLogLevelCheck(J.If if_, J.MethodInvocation m) {
         J.ControlParentheses<Expression> ifCondition = if_.getIfCondition();
         return (infoMethodMatcher.matches(m) && ifCondition.getSideEffects().stream().allMatch(e -> e instanceof J.MethodInvocation && isInfoEnabledMethodMatcher.matches((J.MethodInvocation) e))) ||
-              (debugMethodMatcher.matches(m) && ifCondition.getSideEffects().stream().allMatch(e -> e instanceof J.MethodInvocation && isDebugEnabledMethodMatcher.matches((J.MethodInvocation) e))) ||
-              (traceMethodMatcher.matches(m) && ifCondition.getSideEffects().stream().allMatch(e -> e instanceof J.MethodInvocation && isTraceEnabledMethodMatcher.matches((J.MethodInvocation) e))) ||
-              (errorMethodMatcher.matches(m) && ifCondition.getSideEffects().stream().allMatch(e -> e instanceof J.MethodInvocation && isErrorEnabledMethodMatcher.matches((J.MethodInvocation) e))) ||
-              (warnMethodMatcher.matches(m) && ifCondition.getSideEffects().stream().allMatch(e -> e instanceof J.MethodInvocation && isWarnEnabledMethodMatcher.matches((J.MethodInvocation) e)));
+                (debugMethodMatcher.matches(m) && ifCondition.getSideEffects().stream().allMatch(e -> e instanceof J.MethodInvocation && isDebugEnabledMethodMatcher.matches((J.MethodInvocation) e))) ||
+                (traceMethodMatcher.matches(m) && ifCondition.getSideEffects().stream().allMatch(e -> e instanceof J.MethodInvocation && isTraceEnabledMethodMatcher.matches((J.MethodInvocation) e))) ||
+                (errorMethodMatcher.matches(m) && ifCondition.getSideEffects().stream().allMatch(e -> e instanceof J.MethodInvocation && isErrorEnabledMethodMatcher.matches((J.MethodInvocation) e))) ||
+                (warnMethodMatcher.matches(m) && ifCondition.getSideEffects().stream().allMatch(e -> e instanceof J.MethodInvocation && isWarnEnabledMethodMatcher.matches((J.MethodInvocation) e)));
     }
 
     @Value
@@ -166,12 +162,12 @@ public class InexpensiveSLF4JLoggers extends Recipe {
      * The Statement Accumulator receives statements in a J.Block.
      * It internally keeps track of the kind of statements it's collecting.
      * It differentiates between all different logstatement (e.g. INFO is different from DEBUG) and NONE for any statement that isn't a logstatement.
-     *
+     * <p>
      * Statements that aren't log statements are immediately added to the statements list.
-     *
+     * <p>
      * While the Accumulator receives the same kind of log statements, or if-statements with only an is<kind>Enabled condition and only containing log statements matching that kind
      * it will cache the statements and the if-statement.
-     *
+     * <p>
      * When the kind of statement changes, the Accumulator will bundle all cached log statements in the cached if, and add this newly created if to the statements list.
      */
     private static class StatementAccumulator {
@@ -179,7 +175,7 @@ public class InexpensiveSLF4JLoggers extends Recipe {
         AccumulatorKind accumulatorKind = AccumulatorKind.NONE;
         List<Statement> statements = new ArrayList<>();
         List<Statement> logStatementsCache = new ArrayList<>();
-        J.If ifCache = null;
+        J.@Nullable If ifCache = null;
 
         public void push(Statement statement) {
             AccumulatorKind newKind = getKind(statement);
@@ -190,9 +186,9 @@ public class InexpensiveSLF4JLoggers extends Recipe {
             if (statement instanceof J.If) {
                 J.If if_ = (J.If) statement;
                 if (if_.getThenPart() instanceof J.MethodInvocation &&
-                      isInIfStatementWithOnlyLogLevelCheck(if_, (J.MethodInvocation) if_.getThenPart())) {
+                        isInIfStatementWithOnlyLogLevelCheck(if_, (J.MethodInvocation) if_.getThenPart())) {
                     if (newKind != AccumulatorKind.NONE) {
-                        if(ifCache == null) {
+                        if (ifCache == null) {
                             ifCache = if_;
                             logStatementsCache.add(if_.getThenPart());
                         } else {
@@ -204,8 +200,8 @@ public class InexpensiveSLF4JLoggers extends Recipe {
                     return;
                 } else if (if_.getThenPart() instanceof J.Block) {
                     if (!((J.Block) if_.getThenPart()).getStatements().isEmpty() &&
-                          ((J.Block) if_.getThenPart()).getStatements().stream().allMatch(
-                                s -> s instanceof J.MethodInvocation && isInIfStatementWithOnlyLogLevelCheck(if_, (J.MethodInvocation) s))) {
+                            ((J.Block) if_.getThenPart()).getStatements().stream().allMatch(
+                                    s -> s instanceof J.MethodInvocation && isInIfStatementWithOnlyLogLevelCheck(if_, (J.MethodInvocation) s))) {
                         if (newKind != AccumulatorKind.NONE) {
                             ifCache = if_;
                             logStatementsCache.addAll(((J.Block) if_.getThenPart()).getStatements());
@@ -235,13 +231,13 @@ public class InexpensiveSLF4JLoggers extends Recipe {
             if (statement instanceof J.If) {
                 J.If if_ = (J.If) statement;
                 if (if_.getThenPart() instanceof J.MethodInvocation &&
-                      isInIfStatementWithOnlyLogLevelCheck(if_, (J.MethodInvocation) if_.getThenPart())) {
+                        isInIfStatementWithOnlyLogLevelCheck(if_, (J.MethodInvocation) if_.getThenPart())) {
                     J.MethodInvocation mi = (J.MethodInvocation) if_.getThenPart();
                     return AccumulatorKind.fromMethodInvocation(mi);
                 } else if (if_.getThenPart() instanceof J.Block &&
-                      !((J.Block) if_.getThenPart()).getStatements().isEmpty() &&
-                      ((J.Block) if_.getThenPart()).getStatements().stream().allMatch(
-                            s -> s instanceof J.MethodInvocation && isInIfStatementWithOnlyLogLevelCheck(if_, (J.MethodInvocation) s))) {
+                        !((J.Block) if_.getThenPart()).getStatements().isEmpty() &&
+                        ((J.Block) if_.getThenPart()).getStatements().stream().allMatch(
+                                s -> s instanceof J.MethodInvocation && isInIfStatementWithOnlyLogLevelCheck(if_, (J.MethodInvocation) s))) {
                     return AccumulatorKind.fromMethodInvocation((J.MethodInvocation) ((J.Block) if_.getThenPart()).getStatements().get(0));
                 }
             } else if (statement instanceof J.MethodInvocation) {
@@ -263,15 +259,12 @@ public class InexpensiveSLF4JLoggers extends Recipe {
 
         private boolean isInIfStatementWithOnlyLogLevelCheck(J.If if_, J.MethodInvocation m) {
             J.ControlParentheses<Expression> ifCondition = if_.getIfCondition();
-            if (ifCondition.getTree() instanceof J.MethodInvocation && (
-                  (infoMethodMatcher.matches(m) && isInfoEnabledMethodMatcher.matches(ifCondition.getTree())) ||
-                        (debugMethodMatcher.matches(m) && isDebugEnabledMethodMatcher.matches(ifCondition.getTree())) ||
-                        (traceMethodMatcher.matches(m) && isTraceEnabledMethodMatcher.matches(ifCondition.getTree())) ||
-                        (errorMethodMatcher.matches(m) && isErrorEnabledMethodMatcher.matches(ifCondition.getTree())) ||
-                        (warnMethodMatcher.matches(m) && isWarnEnabledMethodMatcher.matches(ifCondition.getTree())))) {
-                return true;
-            }
-            return false;
+            return ifCondition.getTree() instanceof J.MethodInvocation && (
+                    (infoMethodMatcher.matches(m) && isInfoEnabledMethodMatcher.matches(ifCondition.getTree())) ||
+                            (debugMethodMatcher.matches(m) && isDebugEnabledMethodMatcher.matches(ifCondition.getTree())) ||
+                            (traceMethodMatcher.matches(m) && isTraceEnabledMethodMatcher.matches(ifCondition.getTree())) ||
+                            (errorMethodMatcher.matches(m) && isErrorEnabledMethodMatcher.matches(ifCondition.getTree())) ||
+                            (warnMethodMatcher.matches(m) && isWarnEnabledMethodMatcher.matches(ifCondition.getTree())));
         }
 
         private enum AccumulatorKind {
