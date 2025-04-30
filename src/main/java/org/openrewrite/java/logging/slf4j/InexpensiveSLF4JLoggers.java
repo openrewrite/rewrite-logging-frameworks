@@ -70,8 +70,8 @@ public class InexpensiveSLF4JLoggers extends Recipe {
         @Override
         public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation m = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
-            if (!isInIfStatementWithLogLevelCheck(getCursor(), m) &&
-                    (infoMatcher.matches(m) || debugMatcher.matches(m) || traceMatcher.matches(m))) {
+            if ((infoMatcher.matches(m) || debugMatcher.matches(m) || traceMatcher.matches(m)) &&
+                    !isInIfStatementWithLogLevelCheck(getCursor(), m)) {
                 List<Expression> arguments = ListUtils.filter(m.getArguments(), a -> a instanceof J.MethodInvocation);
                 if (m.getSelect() != null && !arguments.isEmpty()) {
                     J container = getCursor().getParentTreeCursor().getValue();
@@ -103,26 +103,20 @@ public class InexpensiveSLF4JLoggers extends Recipe {
         }
 
         private boolean isInIfStatementWithLogLevelCheck(Cursor cursor, J.MethodInvocation m) {
-            try {
-                Cursor enclosingIf = cursor.dropParentUntil(elem -> elem instanceof J.If);
-                return isInIfStatementWithLogLevelCheck((J.If) enclosingIf.getValue(), m);
-            } catch (Exception ignore) {
+            J.If enclosingIf = cursor.firstEnclosing(J.If.class);
+            if (enclosingIf == null) {
                 return false;
             }
-        }
-
-        private boolean isInIfStatementWithLogLevelCheck(J.If if_, J.MethodInvocation m) {
-            J.ControlParentheses<Expression> ifCondition = if_.getIfCondition();
-            return (infoMatcher.matches(m) && ifCondition.getSideEffects().stream().allMatch(e -> e instanceof J.MethodInvocation && isInfoEnabledMatcher.matches((J.MethodInvocation) e))) ||
-                    (debugMatcher.matches(m) && ifCondition.getSideEffects().stream().allMatch(e -> e instanceof J.MethodInvocation && isDebugEnabledMatcher.matches((J.MethodInvocation) e))) ||
-                    (traceMatcher.matches(m) && ifCondition.getSideEffects().stream().allMatch(e -> e instanceof J.MethodInvocation && isTraceEnabledMatcher.matches((J.MethodInvocation) e)));
+            List<J> sideEffects = enclosingIf.getIfCondition().getSideEffects();
+            return (infoMatcher.matches(m) && sideEffects.stream().allMatch(e -> e instanceof J.MethodInvocation && isInfoEnabledMatcher.matches((J.MethodInvocation) e))) ||
+                    (debugMatcher.matches(m) && sideEffects.stream().allMatch(e -> e instanceof J.MethodInvocation && isDebugEnabledMatcher.matches((J.MethodInvocation) e))) ||
+                    (traceMatcher.matches(m) && sideEffects.stream().allMatch(e -> e instanceof J.MethodInvocation && isTraceEnabledMatcher.matches((J.MethodInvocation) e)));
         }
     }
 
     @Value
     @EqualsAndHashCode(callSuper = false)
     private static class MergeLogStatementsInCheck extends JavaIsoVisitor<ExecutionContext> {
-
 
         Set<UUID> blockIds;
 
