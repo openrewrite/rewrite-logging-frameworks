@@ -27,6 +27,7 @@ import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
@@ -125,7 +126,7 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
         public J.Block visitBlock(J.Block block, ExecutionContext ctx) {
             J.Block b = super.visitBlock(block, ctx);
             if (blockIds.contains(b.getId())) {
-                StatementAccumulator acc = new StatementAccumulator(this, ctx);
+                StatementAccumulator acc = new StatementAccumulator((J j) -> autoFormat(j, ctx, getCursor()));
                 for (Statement statement : b.getStatements()) {
                     acc.push(statement);
                 }
@@ -149,16 +150,14 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
      */
     private static class StatementAccumulator {
 
-        private final JavaIsoVisitor<ExecutionContext> visitor;
-        private final ExecutionContext ctx;
+        private final Function<J, J> formatter;
         AccumulatorKind accumulatorKind = AccumulatorKind.NONE;
         List<Statement> statements = new ArrayList<>();
         List<Statement> logStatementsCache = new ArrayList<>();
         J.@Nullable If ifCache = null;
 
-        public StatementAccumulator(JavaIsoVisitor<ExecutionContext> visitor, ExecutionContext ctx) {
-            this.visitor = visitor;
-            this.ctx = ctx;
+        public StatementAccumulator(Function<J, J> formatter) {
+            this.formatter = formatter;
         }
 
         public void push(Statement statement) {
@@ -235,7 +234,8 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
             if (ifCache == null) {
                 statements.addAll(logStatementsCache);
             } else {
-                statements.add((Statement) visitor.autoFormat(ifCache.withThenPart(new J.Block(randomId(), Space.EMPTY, Markers.EMPTY, JRightPadded.build(false), logStatementsCache.stream().map(JRightPadded::build).collect(Collectors.toList()), Space.EMPTY)), ctx, visitor.getCursor()));
+                J.If anIf = ifCache.withThenPart(new J.Block(randomId(), Space.EMPTY, Markers.EMPTY, JRightPadded.build(false), logStatementsCache.stream().map(JRightPadded::build).collect(Collectors.toList()), Space.EMPTY));
+                statements.add((Statement) formatter.apply(anIf));
             }
             logStatementsCache.clear();
             ifCache = null;
