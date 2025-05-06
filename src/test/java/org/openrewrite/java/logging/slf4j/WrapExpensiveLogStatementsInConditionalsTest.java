@@ -478,7 +478,7 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
                       LOG.info("Do something different {}", expensiveOp());
 
                       System.out.println();
-                   }
+                  }
 
                   String expensiveOp() {
                       return "expensive";
@@ -503,6 +503,73 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
                       }
 
                       System.out.println();
+                  }
+
+                  String expensiveOp() {
+                      return "expensive";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void leaveSurroundingFormatting() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              import java.lang.StringBuilder;
+
+              class A {
+                  String method(Logger LOG, StringBuilder builder) {
+                          System.out.println();
+
+                      // Log this as Info
+                      LOG.info("Do something {}", expensiveOp());
+
+                      // Log this also
+                      LOG.info("Do something else {}", expensiveOp());
+                      // And this
+                      LOG.info("Do something different {}", expensiveOp());
+
+                      return builder
+                                                  .append("test")
+                                          .append(1)
+                                 .append(true)
+                                 .toString();
+                  }
+
+                  String expensiveOp() {
+                      return "expensive";
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import java.lang.StringBuilder;
+
+              class A {
+                  String method(Logger LOG, StringBuilder builder) {
+                          System.out.println();
+
+                      if (LOG.isInfoEnabled()) {
+                          // Log this as Info
+                          LOG.info("Do something {}", expensiveOp());
+
+                          // Log this also
+                          LOG.info("Do something else {}", expensiveOp());
+                          // And this
+                          LOG.info("Do something different {}", expensiveOp());
+                      }
+
+                      return builder
+                                                  .append("test")
+                                          .append(1)
+                                 .append(true)
+                                 .toString();
                   }
 
                   String expensiveOp() {

@@ -87,7 +87,8 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
                                 .withThenPart(m.withPrefix(m.getPrefix().withWhitespace("\n" + m.getPrefix().getWhitespace().replace("\n", ""))))
                                 .withPrefix(m.getPrefix().withComments(emptyList()));
                         visitedBlocks.add(id);
-                        return autoFormat(if_, ctx);
+                        //return autoFormat(if_, ctx);
+                        return if_;
                     }
                 }
             }
@@ -125,11 +126,12 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
         public J.Block visitBlock(J.Block block, ExecutionContext ctx) {
             J.Block b = super.visitBlock(block, ctx);
             if (blockIds.contains(b.getId())) {
-                StatementAccumulator acc = new StatementAccumulator();
+                StatementAccumulator acc = new StatementAccumulator(this, ctx);
                 for (Statement statement : b.getStatements()) {
                     acc.push(statement);
                 }
-                return autoFormat(b.withStatements(acc.pull()), ctx);
+                //return autoFormat(b.withStatements(acc.pull()), ctx);
+                return b.withStatements(acc.pull());
             }
             return b;
         }
@@ -149,10 +151,17 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
      */
     private static class StatementAccumulator {
 
+        private final JavaIsoVisitor<ExecutionContext> visitor;
+        private final ExecutionContext ctx;
         AccumulatorKind accumulatorKind = AccumulatorKind.NONE;
         List<Statement> statements = new ArrayList<>();
         List<Statement> logStatementsCache = new ArrayList<>();
         J.@Nullable If ifCache = null;
+
+        public StatementAccumulator(JavaIsoVisitor<ExecutionContext> visitor, ExecutionContext ctx) {
+            this.visitor = visitor;
+            this.ctx = ctx;
+        }
 
         public void push(Statement statement) {
             AccumulatorKind newKind = getKind(statement);
@@ -228,7 +237,7 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
             if (ifCache == null) {
                 statements.addAll(logStatementsCache);
             } else {
-                statements.add(ifCache.withThenPart(new J.Block(randomId(), Space.EMPTY, Markers.EMPTY, JRightPadded.build(false), logStatementsCache.stream().map(JRightPadded::build).collect(Collectors.toList()), Space.EMPTY)));
+                statements.add((Statement) visitor.autoFormat(ifCache.withThenPart(new J.Block(randomId(), Space.EMPTY, Markers.EMPTY, JRightPadded.build(false), logStatementsCache.stream().map(JRightPadded::build).collect(Collectors.toList()), Space.EMPTY)), ctx, visitor.getCursor()));
             }
             logStatementsCache.clear();
             ifCache = null;
