@@ -151,10 +151,10 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
     private static class StatementAccumulator {
 
         private final Function<J, J> formatter;
-        AccumulatorKind accumulatorKind = AccumulatorKind.NONE;
-        List<Statement> statements = new ArrayList<>();
-        List<Statement> logStatementsCache = new ArrayList<>();
-        J.@Nullable If ifCache = null;
+        private final List<Statement> statements = new ArrayList<>();
+        private final List<Statement> logStatementsCache = new ArrayList<>();
+        private AccumulatorKind accumulatorKind = AccumulatorKind.NONE;
+        private J.@Nullable If ifCache = null;
 
         public StatementAccumulator(Function<J, J> formatter) {
             this.formatter = formatter;
