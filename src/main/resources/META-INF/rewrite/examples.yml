@@ -26,8 +26,9 @@ examples:
 
       class Test {
           void method(Logger logger) {
-            logger.exiting("Test", "method");
-            logger.exiting("Test", "method", "result");
+            logger.entering("Test", "method");
+            logger.entering("Test", "method", "param");
+            logger.entering("Test", "method", new Object[]{"param1", "param2"});
           }
       }
     after: |
@@ -35,8 +36,9 @@ examples:
 
       class Test {
           void method(Logger logger) {
-            logger.traceExit();
-            logger.traceExit("result");
+            logger.traceEntry();
+            logger.traceEntry(null, "param");
+            logger.traceEntry(null, new Object[]{"param1", "param2"});
           }
       }
     language: java
@@ -51,9 +53,8 @@ examples:
 
       class Test {
           void method(Logger logger) {
-            logger.entering("Test", "method");
-            logger.entering("Test", "method", "param");
-            logger.entering("Test", "method", new Object[]{"param1", "param2"});
+            logger.exiting("Test", "method");
+            logger.exiting("Test", "method", "result");
           }
       }
     after: |
@@ -61,9 +62,8 @@ examples:
 
       class Test {
           void method(Logger logger) {
-            logger.traceEntry();
-            logger.traceEntry(null, "param");
-            logger.traceEntry(null, new Object[]{"param1", "param2"});
+            logger.traceExit();
+            logger.traceExit("result");
           }
       }
     language: java
@@ -733,6 +733,26 @@ examples:
       import java.util.logging.Logger;
 
       class Test {
+          void method(Logger logger, String param1) {
+              logger.log(Level.INFO, "INFO Log entry, param1: {0}", param1);
+          }
+      }
+    after: |
+      import org.slf4j.Logger;
+
+      class Test {
+          void method(Logger logger, String param1) {
+              logger.info("INFO Log entry, param1: {}", param1);
+          }
+      }
+    language: java
+- description: ''
+  sources:
+  - before: |
+      import java.util.logging.Level;
+      import java.util.logging.Logger;
+
+      class Test {
           void method(Logger logger) {
               logger.finest("finest");
               logger.finer("finer");
@@ -775,26 +795,6 @@ examples:
               logger.error("severe");
 
               logger.trace("all");
-          }
-      }
-    language: java
-- description: ''
-  sources:
-  - before: |
-      import java.util.logging.Level;
-      import java.util.logging.Logger;
-
-      class Test {
-          void method(Logger logger, String param1) {
-              logger.log(Level.INFO, "INFO Log entry, param1: {0}", param1);
-          }
-      }
-    after: |
-      import org.slf4j.Logger;
-
-      class Test {
-          void method(Logger logger, String param1) {
-              logger.info("INFO Log entry, param1: {}", param1);
           }
       }
     language: java
