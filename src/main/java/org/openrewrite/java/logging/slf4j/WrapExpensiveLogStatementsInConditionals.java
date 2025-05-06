@@ -80,7 +80,7 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
                         UUID id = container.getId();
                         J.If if_ = ((J.If) JavaTemplate
                                 .builder("if(#{logger:any(org.slf4j.Logger)}.is#{}Enabled()) {}")
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.1.+"))
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.+"))
                                 .build()
                                 .apply(getCursor(), m.getCoordinates().replace(),
                                         m.getSelect(), StringUtils.capitalize(m.getSimpleName())))
