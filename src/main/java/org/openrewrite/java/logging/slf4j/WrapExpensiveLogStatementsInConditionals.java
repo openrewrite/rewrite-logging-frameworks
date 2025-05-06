@@ -87,7 +87,6 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
                                 .withThenPart(m.withPrefix(m.getPrefix().withWhitespace("\n" + m.getPrefix().getWhitespace().replace("\n", ""))))
                                 .withPrefix(m.getPrefix().withComments(emptyList()));
                         visitedBlocks.add(id);
-                        //return autoFormat(if_, ctx);
                         return if_;
                     }
                 }
@@ -130,7 +129,6 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
                 for (Statement statement : b.getStatements()) {
                     acc.push(statement);
                 }
-                //return autoFormat(b.withStatements(acc.pull()), ctx);
                 return b.withStatements(acc.pull());
             }
             return b;
