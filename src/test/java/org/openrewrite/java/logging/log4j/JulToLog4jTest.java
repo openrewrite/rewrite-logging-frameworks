@@ -40,7 +40,8 @@ class JulToLog4jTest implements RewriteTest {
           // language=java
           java(
             """
-              import java.util.logging.Level;import java.util.logging.Logger;
+              import java.util.logging.Level;
+              import java.util.logging.Logger;
 
               class Test {
                   void method(Logger logger) {

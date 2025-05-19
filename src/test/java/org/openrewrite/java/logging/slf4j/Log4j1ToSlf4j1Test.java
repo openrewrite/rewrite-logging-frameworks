@@ -46,11 +46,9 @@ class Log4j1ToSlf4j1Test implements RewriteTest {
           java(
             """
               import org.apache.log4j.Logger;
-              import org.apache.log4j.LogManager;
 
               class Test {
                   Logger logger0 = Logger.getLogger(Test.class);
-                  Logger logger1 = LogManager.getLogger(Test.class);
               }
               """,
             """
@@ -59,7 +57,6 @@ class Log4j1ToSlf4j1Test implements RewriteTest {
 
               class Test {
                   Logger logger0 = LoggerFactory.getLogger(Test.class);
-                  Logger logger1 = LoggerFactory.getLogger(Test.class);
               }
               """
           )
@@ -73,22 +70,53 @@ class Log4j1ToSlf4j1Test implements RewriteTest {
           java(
             """
               import org.apache.log4j.Logger;
-              import org.apache.log4j.LogManager;
 
-              class Test {
-                  private static final Logger logger0 = Logger.getLogger(Test.class);
-                  private static final Logger logger1 = LogManager.getLogger(Test.class);
-                  private static final Logger logger2 = LogManager.getLogger("foobar");
+              class A {
+                  private static final Logger logger = Logger.getLogger(A.class);
               }
               """,
             """
               import org.slf4j.Logger;
               import org.slf4j.LoggerFactory;
 
-              class Test {
-                  private static final Logger logger0 = LoggerFactory.getLogger(Test.class);
-                  private static final Logger logger1 = LoggerFactory.getLogger(Test.class);
-                  private static final Logger logger2 = LoggerFactory.getLogger("foobar");
+              class A {
+                  private static final Logger logger = LoggerFactory.getLogger(A.class);
+              }
+              """
+          ),
+          java(
+            """
+              import org.apache.log4j.Logger;
+              import org.apache.log4j.LogManager;
+
+              class B {
+                  private static final Logger logger = LogManager.getLogger(B.class);
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class B {
+                  private static final Logger logger = LoggerFactory.getLogger(B.class);
+              }
+              """
+          ),
+          java(
+            """
+              import org.apache.log4j.Logger;
+              import org.apache.log4j.LogManager;
+
+              class C {
+                  private static final Logger logger = LogManager.getLogger("C");
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class C {
+                  private static final Logger logger = LoggerFactory.getLogger("C");
               }
               """
           )
