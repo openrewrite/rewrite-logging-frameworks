@@ -143,6 +143,7 @@ recipeList:
   - org.openrewrite.java.logging.slf4j.Slf4jLogShouldBeConstant
   - org.openrewrite.java.logging.slf4j.CompleteExceptionLogging
   - org.openrewrite.java.logging.CatchBlockLogLevel
+  - org.openrewrite.java.logging.ChangeLoggersToPrivate
   - org.openrewrite.java.logging.slf4j.WrapExpensiveLogStatementsInConditionals
 ---
 type: specs.openrewrite.org/v1beta/recipe
