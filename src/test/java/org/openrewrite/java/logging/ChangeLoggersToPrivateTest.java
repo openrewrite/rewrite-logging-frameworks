@@ -36,21 +36,21 @@ class ChangeLoggersToPrivateTest implements RewriteTest {
           //language=java
           java(
             """
-            import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
 
-            class Test {
-                public static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
-            }
-            """,
+              class Test {
+                  public static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
+              }
+              """,
             """
-            import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
 
-            class Test {
-                private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
-            }
-            """
+              class Test {
+                  private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
+              }
+              """
           )
         );
     }
@@ -61,21 +61,21 @@ class ChangeLoggersToPrivateTest implements RewriteTest {
           //language=java
           java(
             """
-            import org.apache.logging.log4j.Logger;
-            import org.apache.logging.log4j.LogManager;
+              import org.apache.logging.log4j.Logger;
+              import org.apache.logging.log4j.LogManager;
 
-            class Test {
-                public static final Logger LOGGER = LogManager.getLogger(Test.class);
-            }
-            """,
+              class Test {
+                  public static final Logger LOGGER = LogManager.getLogger(Test.class);
+              }
+              """,
             """
-            import org.apache.logging.log4j.Logger;
-            import org.apache.logging.log4j.LogManager;
+              import org.apache.logging.log4j.Logger;
+              import org.apache.logging.log4j.LogManager;
 
-            class Test {
-                private static final Logger LOGGER = LogManager.getLogger(Test.class);
-            }
-            """
+              class Test {
+                  private static final Logger LOGGER = LogManager.getLogger(Test.class);
+              }
+              """
           )
         );
     }
@@ -86,19 +86,19 @@ class ChangeLoggersToPrivateTest implements RewriteTest {
           //language=java
           java(
             """
-            import org.apache.log4j.Logger;
+              import org.apache.log4j.Logger;
 
-            class Test {
-                protected Logger log = Logger.getLogger(Test.class);
-            }
-            """,
+              class Test {
+                  protected Logger log = Logger.getLogger(Test.class);
+              }
+              """,
             """
-            import org.apache.log4j.Logger;
+              import org.apache.log4j.Logger;
 
-            class Test {
-                private Logger log = Logger.getLogger(Test.class);
-            }
-            """
+              class Test {
+                  private Logger log = Logger.getLogger(Test.class);
+              }
+              """
           )
         );
     }
@@ -109,19 +109,19 @@ class ChangeLoggersToPrivateTest implements RewriteTest {
           //language=java
           java(
             """
-            import java.util.logging.Logger;
+              import java.util.logging.Logger;
 
-            class Test {
-                static final Logger LOG = Logger.getLogger(Test.class.getName());
-            }
-            """,
+              class Test {
+                  static final Logger LOG = Logger.getLogger(Test.class.getName());
+              }
+              """,
             """
-            import java.util.logging.Logger;
+              import java.util.logging.Logger;
 
-            class Test {
-                private static final Logger LOG = Logger.getLogger(Test.class.getName());
-            }
-            """
+              class Test {
+                  private static final Logger LOG = Logger.getLogger(Test.class.getName());
+              }
+              """
           )
         );
     }
@@ -132,13 +132,13 @@ class ChangeLoggersToPrivateTest implements RewriteTest {
           //language=java
           java(
             """
-            import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
 
-            class Test {
-                private final Logger logger = LoggerFactory.getLogger(Test.class);
-            }
-            """
+              class Test {
+                  private final Logger logger = LoggerFactory.getLogger(Test.class);
+              }
+              """
           )
         );
     }
@@ -149,11 +149,11 @@ class ChangeLoggersToPrivateTest implements RewriteTest {
           //language=java
           java(
             """
-            class Test {
-                public String name = "test";
-                protected int count = 0;
-            }
-            """
+              class Test {
+                  public String name = "test";
+                  protected int count = 0;
+              }
+              """
           )
         );
     }
@@ -164,13 +164,13 @@ class ChangeLoggersToPrivateTest implements RewriteTest {
           //language=java
           java(
             """
-            import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
 
-            interface Constants {
-                Logger logger = LoggerFactory.getLogger(Constants.class);
-            }
-            """
+              interface Constants {
+                  Logger logger = LoggerFactory.getLogger(Constants.class);
+              }
+              """
           )
         );
     }
@@ -181,16 +181,16 @@ class ChangeLoggersToPrivateTest implements RewriteTest {
           //language=java
           java(
             """
-            import org.slf4j.Logger;
-            import org.slf4j.LoggerFactory;
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
 
-            class Test {
-                public void doSomething() {
-                    Logger localLog = LoggerFactory.getLogger(Test.class);
-                    localLog.info("Hello");
-                }
-            }
-            """
+              class Test {
+                  public void doSomething() {
+                      Logger localLog = LoggerFactory.getLogger(Test.class);
+                      localLog.info("Hello");
+                  }
+              }
+              """
           )
         );
     }

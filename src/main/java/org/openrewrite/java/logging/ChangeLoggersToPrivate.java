@@ -17,7 +17,9 @@ package org.openrewrite.java.logging;
 
 import lombok.EqualsAndHashCode;
 import lombok.Value;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
@@ -28,6 +30,7 @@ import org.openrewrite.marker.Markers;
 
 import java.util.*;
 
+import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toSet;
 
 @Value
@@ -40,12 +43,12 @@ public class ChangeLoggersToPrivate extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Change logger fields to private";
+        return "Change logger fields to `private`";
     }
 
     @Override
     public String getDescription() {
-        return "Ensures that logger fields are declared as 'private' to encapsulate logging mechanics within the class.";
+        return "Ensures that logger fields are declared as `private` to encapsulate logging mechanics within the class.";
     }
 
     @Override
@@ -53,57 +56,50 @@ public class ChangeLoggersToPrivate extends Recipe {
         return Preconditions.check(usesAnyLogger(), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
+                J.VariableDeclarations mv = super.visitVariableDeclarations(multiVariable, ctx);
+                if (mv.getTypeExpression() == null ||
+                        !isLoggerType(mv.getTypeExpression().getType()) ||
+                        mv.hasModifier(J.Modifier.Type.Private)) {
+                    return mv;
+                }
+
                 Cursor parent = getCursor().getParentTreeCursor();
                 if (!(parent.getValue() instanceof J.Block)) {
-                    return multiVariable;
+                    return mv;
                 }
 
                 parent = parent.getParentTreeCursor();
                 if (!(parent.getValue() instanceof J.ClassDeclaration)) {
-                    return multiVariable;
+                    return mv;
                 }
 
                 J.ClassDeclaration classDeclaration = parent.getValue();
                 if (classDeclaration.getKind() == J.ClassDeclaration.Kind.Type.Interface) {
-                    return multiVariable;
+                    return mv;
                 }
 
-                if (multiVariable.getTypeExpression() == null || !isLoggerType(multiVariable.getTypeExpression().getType())) {
-                    return multiVariable;
-                }
-
-                boolean isPrivate = multiVariable.getModifiers().stream()
-                        .anyMatch(mod -> mod.getType() == J.Modifier.Type.Private);
-                if (isPrivate) {
-                    return multiVariable;
-                }
-
-                List<J.Modifier> newModifiers = new ArrayList<>();
-                newModifiers.add(
-                        new J.Modifier(
-                                Tree.randomId(),
-                                Space.EMPTY,
-                                Markers.EMPTY,
-                                null,
-                                J.Modifier.Type.Private,
-                                Collections.emptyList()
-                        )
-                );
-
-                for (J.Modifier existingModifier : multiVariable.getModifiers()) {
-                    if (existingModifier.getType() != J.Modifier.Type.Public &&
-                            existingModifier.getType() != J.Modifier.Type.Protected &&
-                            existingModifier.getType() != J.Modifier.Type.Private) {
-                        newModifiers.add(existingModifier.withPrefix(Space.SINGLE_SPACE));
+                List<J.Modifier> mapped = ListUtils.map(mv.getModifiers(), mod -> {
+                    if (mod.getType() == J.Modifier.Type.Public ||
+                            mod.getType() == J.Modifier.Type.Protected ||
+                            mod.getType() == J.Modifier.Type.Private) {
+                        return mod.withType(J.Modifier.Type.Private);
                     }
+                    return mod;
+                });
+                if (mapped == mv.getModifiers()) {
+                    mapped.add(0, new J.Modifier(
+                            Tree.randomId(),
+                            Space.EMPTY,
+                            Markers.EMPTY,
+                            null,
+                            J.Modifier.Type.Private,
+                            emptyList()
+                    ));
                 }
-
-                multiVariable = multiVariable.withModifiers(newModifiers)
-                        .withTypeExpression(multiVariable.getTypeExpression().withPrefix(Space.SINGLE_SPACE));
-                return autoFormat(multiVariable, ctx, getCursor().getParent());
+                return autoFormat(mv.withModifiers(mapped), mv.getTypeExpression(), ctx, getCursor().getParentTreeCursor());
             }
 
-            private boolean isLoggerType(JavaType type) {
+            private boolean isLoggerType(@Nullable JavaType type) {
                 JavaType.FullyQualified fqnType = TypeUtils.asFullyQualified(type);
                 if (fqnType != null) {
                     return LOGGER_TYPES.contains(fqnType.getFullyQualifiedName());
