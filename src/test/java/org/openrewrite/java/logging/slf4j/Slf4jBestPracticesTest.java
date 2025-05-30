@@ -63,7 +63,7 @@ class Slf4jBestPracticesTest implements RewriteTest {
               import org.slf4j.Logger;
               import org.slf4j.LoggerFactory;
               class Test {
-                  Logger logger = LoggerFactory.getLogger(Test.class);
+                  private Logger logger = LoggerFactory.getLogger(Test.class);
                   void test() {
                       Object obj1 = new Object();
                       Object obj2 = new Object();
@@ -105,7 +105,7 @@ class Slf4jBestPracticesTest implements RewriteTest {
               import org.slf4j.Logger;
               import org.slf4j.LoggerFactory;
               class Test {
-                  Logger logger = LoggerFactory.getLogger(Test.class);
+                  private Logger logger = LoggerFactory.getLogger(Test.class);
                   void test() {
                       try {
                         throw new IllegalStateException("oops");

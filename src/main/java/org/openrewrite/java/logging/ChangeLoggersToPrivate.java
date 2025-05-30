@@ -87,14 +87,14 @@ public class ChangeLoggersToPrivate extends Recipe {
                     return mod;
                 });
                 if (mapped == mv.getModifiers()) {
-                    mapped.add(0, new J.Modifier(
+                    mapped = ListUtils.insert(mapped, new J.Modifier(
                             Tree.randomId(),
                             Space.EMPTY,
                             Markers.EMPTY,
                             null,
                             J.Modifier.Type.Private,
                             emptyList()
-                    ));
+                    ), 0);
                 }
                 return autoFormat(mv.withModifiers(mapped), mv.getTypeExpression(), ctx, getCursor().getParentTreeCursor());
             }
