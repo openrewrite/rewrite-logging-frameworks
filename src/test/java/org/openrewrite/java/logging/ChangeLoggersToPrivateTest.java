@@ -16,6 +16,7 @@
 package org.openrewrite.java.logging;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -28,6 +29,7 @@ class ChangeLoggersToPrivateTest implements RewriteTest {
         spec.recipe(new ChangeLoggersToPrivate());
     }
 
+    @DocumentExample
     @Test
     void changePublicSlf4jLoggerPrivate() {
         rewriteRun(

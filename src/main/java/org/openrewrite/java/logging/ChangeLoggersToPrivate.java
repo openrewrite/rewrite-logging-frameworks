@@ -17,32 +17,26 @@ package org.openrewrite.java.logging;
 
 import lombok.EqualsAndHashCode;
 import lombok.Value;
-import org.openrewrite.Cursor;
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Recipe;
-import org.openrewrite.Tree;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.Markers;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.*;
+
+import static java.util.stream.Collectors.toSet;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
 public class ChangeLoggersToPrivate extends Recipe {
 
-    private static final Set<String> LOGGER_TYPES = Stream.of(LoggingFramework.values())
+    private static final Set<String> LOGGER_TYPES = Arrays.stream(LoggingFramework.values())
             .map(LoggingFramework::getLoggerType)
-            .collect(Collectors.toSet());
+            .collect(toSet());
 
     @Override
     public String getDisplayName() {
@@ -56,7 +50,7 @@ public class ChangeLoggersToPrivate extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(usesAnyLogger(), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
                 Cursor parent = getCursor().getParentTreeCursor();
@@ -116,6 +110,15 @@ public class ChangeLoggersToPrivate extends Recipe {
                 }
                 return false;
             }
-        };
+        });
+    }
+
+    private static TreeVisitor<?, ExecutionContext> usesAnyLogger() {
+        UsesType[] usesTypes = new UsesType[LOGGER_TYPES.size()];
+        int i = 0;
+        for (String fqn : LOGGER_TYPES) {
+            usesTypes[i++] = new UsesType<>(fqn, true);
+        }
+        return Preconditions.or(usesTypes);
     }
 }
