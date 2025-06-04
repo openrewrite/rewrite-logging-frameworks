@@ -68,8 +68,8 @@ class Log4jLayoutToLogbackTest implements RewriteTest {
               class TrivialLayout extends LayoutBase<ILoggingEvent> {
 
                   @Override
-                  public String doLayout(ILoggingEvent iLoggingEvent) {
-                      return iLoggingEvent.getMessage();
+                  public String doLayout(ILoggingEvent event) {
+                      return event.getMessage();
                   }
               }
               """
@@ -115,8 +115,8 @@ class Log4jLayoutToLogbackTest implements RewriteTest {
                   }
 
                   @Override
-                  public String doLayout(ILoggingEvent iLoggingEvent) {
-                      return iLoggingEvent.getMessage();
+                  public String doLayout(ILoggingEvent loggingEvent) {
+                      return loggingEvent.getMessage();
                   }
               }
               """

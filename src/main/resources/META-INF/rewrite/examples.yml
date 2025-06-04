@@ -583,8 +583,8 @@ examples:
 
       class TrivialAppender extends AppenderBase<ILoggingEvent> {
           @Override
-          protected void append(ILoggingEvent iLoggingEvent) {
-              String s = this.layout.doLayout(iLoggingEvent);
+          protected void append(ILoggingEvent event) {
+              String s = this.layout.doLayout(event);
               System.out.println(s);
           }
       }
@@ -623,8 +623,8 @@ examples:
       class TrivialLayout extends LayoutBase<ILoggingEvent> {
 
           @Override
-          public String doLayout(ILoggingEvent iLoggingEvent) {
-              return iLoggingEvent.getMessage();
+          public String doLayout(ILoggingEvent event) {
+              return event.getMessage();
           }
       }
     language: java
