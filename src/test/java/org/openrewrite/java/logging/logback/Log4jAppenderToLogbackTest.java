@@ -45,8 +45,8 @@ class Log4jAppenderToLogbackTest implements RewriteTest {
 
               class TrivialAppender extends AppenderSkeleton {
                   @Override
-                  protected void append(LoggingEvent loggingEvent) {
-                      String s = this.layout.format(loggingEvent);
+                  protected void append(LoggingEvent event) {
+                      String s = this.layout.format(event);
                       System.out.println(s);
                   }
 

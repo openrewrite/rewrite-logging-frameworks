@@ -51,8 +51,8 @@ class Log4jLayoutToLogbackTest implements RewriteTest {
                   }
 
                   @Override
-                  public String format(LoggingEvent loggingEvent) {
-                      return loggingEvent.getRenderedMessage();
+                  public String format(LoggingEvent event) {
+                      return event.getRenderedMessage();
                   }
 
                   @Override
@@ -93,8 +93,8 @@ class Log4jLayoutToLogbackTest implements RewriteTest {
                   }
 
                   @Override
-                  public String format(LoggingEvent loggingEvent) {
-                      return loggingEvent.getRenderedMessage();
+                  public String format(LoggingEvent event) {
+                      return event.getRenderedMessage();
                   }
 
                   @Override
@@ -115,8 +115,8 @@ class Log4jLayoutToLogbackTest implements RewriteTest {
                   }
 
                   @Override
-                  public String doLayout(ILoggingEvent loggingEvent) {
-                      return loggingEvent.getMessage();
+                  public String doLayout(ILoggingEvent event) {
+                      return event.getMessage();
                   }
               }
               """

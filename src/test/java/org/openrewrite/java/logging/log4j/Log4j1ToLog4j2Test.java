@@ -208,7 +208,7 @@ class Log4j1ToLog4j2Test implements RewriteTest {
               import org.apache.logging.log4j.Logger;
 
               class Test {
-                  Logger logger = LogManager.getLogger(Test.class);
+                  Logger category = LogManager.getLogger(Test.class);
               }
               """
           )
