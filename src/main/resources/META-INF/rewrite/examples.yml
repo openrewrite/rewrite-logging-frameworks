@@ -562,8 +562,8 @@ examples:
 
       class TrivialAppender extends AppenderSkeleton {
           @Override
-          protected void append(LoggingEvent loggingEvent) {
-              String s = this.layout.format(loggingEvent);
+          protected void append(LoggingEvent event) {
+              String s = this.layout.format(event);
               System.out.println(s);
           }
 
@@ -607,8 +607,8 @@ examples:
           }
 
           @Override
-          public String format(LoggingEvent loggingEvent) {
-              return loggingEvent.getRenderedMessage();
+          public String format(LoggingEvent event) {
+              return event.getRenderedMessage();
           }
 
           @Override
