@@ -81,6 +81,16 @@ public class MatchIsLogLevelEnabledWithLogStatements extends Recipe {
                                 reference.accumulateAndGet(LogLevel.extractUsedLogLevel(mi), maxBy(nullsFirst(comparing(LogLevel::ordinal))));
                                 return mi;
                             }
+
+                            @Override
+                            public J.Try.Catch visitCatch(J.Try.Catch catch_, AtomicReference<@Nullable LogLevel> logLevelAtomicReference) {
+                                return catch_;
+                            }
+
+                            @Override
+                            public J.MultiCatch visitMultiCatch(J.MultiCatch multiCatch, AtomicReference<@Nullable LogLevel> logLevelAtomicReference) {
+                                return multiCatch;
+                            }
                         }.reduce(statement, new AtomicReference<>(null)).get();
                     }
                 }

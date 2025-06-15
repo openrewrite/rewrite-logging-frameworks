@@ -132,6 +132,28 @@ class MatchIsLogLevelEnabledWithLogStatementsTest implements RewriteTest {
         }
 
         @Test
+        void noChangeForNestedTryCatch() {
+            rewriteRun(
+              java(
+                """
+                  class Test {
+                      void composed(org.slf4j.Logger logger) {
+                          if (logger.isDebugEnabled()) {
+                              try {
+                                  logger.debug("message");
+                              } catch (Exception e) {
+                                  // Fault handling for debug logging should not raise conditional logging
+                                  logger.warn("warning", e);
+                              }
+                          }
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
         void noMatchingLoggingStatements() {
             rewriteRun(
               java(
