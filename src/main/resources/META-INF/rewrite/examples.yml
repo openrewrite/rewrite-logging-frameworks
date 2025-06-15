@@ -886,6 +886,29 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.slf4j.MatchIsLogLevelEnabledWithLogStatements
+examples:
+- description: ''
+  sources:
+  - before: |
+      class Test {
+          void test(org.slf4j.Logger logger) {
+              if (logger.isDebugEnabled()) {
+                  logger.info("message");
+              }
+          }
+      }
+    after: |
+      class Test {
+          void test(org.slf4j.Logger logger) {
+              if (logger.isInfoEnabled()) {
+                  logger.info("message");
+              }
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.slf4j.Slf4jBestPractices
 examples:
 - description: ''
