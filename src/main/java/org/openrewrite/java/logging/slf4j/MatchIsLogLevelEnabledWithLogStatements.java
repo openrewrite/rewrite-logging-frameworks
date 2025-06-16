@@ -60,13 +60,13 @@ public class MatchIsLogLevelEnabledWithLogStatements extends Recipe {
                     public J.If visitIf(J.If iff, ExecutionContext ctx) {
                         J.If if_ = super.visitIf(iff, ctx);
                         if (if_.getIfCondition().getTree() instanceof J.MethodInvocation && if_.getElsePart() == null) {
-                            J.MethodInvocation enabledMethodInvocation = (J.MethodInvocation) if_.getIfCondition().getTree();
-                            LogLevel enabledLogLevel = LogLevel.extractEnabledLogLevel(enabledMethodInvocation);
-                            if (enabledLogLevel != null) {
-                                LogLevel maxLogLevel = findMaxUsedLogLevel(if_.getThenPart());
-                                if (maxLogLevel != null && enabledLogLevel != maxLogLevel) {
+                            J.MethodInvocation mi = (J.MethodInvocation) if_.getIfCondition().getTree();
+                            LogLevel conditionLogLevel = LogLevel.extractEnabledLogLevel(mi);
+                            if (conditionLogLevel != null) {
+                                LogLevel maxUsedLogLevel = findMaxUsedLogLevel(if_.getThenPart());
+                                if (maxUsedLogLevel != null && conditionLogLevel != maxUsedLogLevel) {
                                     return if_.withIfCondition(if_.getIfCondition()
-                                            .withTree(maxLogLevel.toEnabledInvocation(enabledMethodInvocation)));
+                                            .withTree(maxUsedLogLevel.toEnabledInvocation(mi)));
                                 }
                             }
                         }
@@ -105,8 +105,8 @@ public class MatchIsLogLevelEnabledWithLogStatements extends Recipe {
         error;
 
         public static @Nullable LogLevel extractEnabledLogLevel(J.MethodInvocation methodInvocation) {
-            String methodName = methodInvocation.getSimpleName();
             if (ENABLED_MATCHER.matches(methodInvocation)) {
+                String methodName = methodInvocation.getSimpleName();
                 String logLevel = methodName.substring(2, methodName.length() - 7);
                 for (LogLevel level : values()) {
                     if (level.name().equalsIgnoreCase(logLevel)) {
