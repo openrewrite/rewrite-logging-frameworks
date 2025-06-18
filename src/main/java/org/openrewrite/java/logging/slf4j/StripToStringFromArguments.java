@@ -56,21 +56,21 @@ public class StripToStringFromArguments extends Recipe {
                 ),
                 new JavaIsoVisitor<ExecutionContext>() {
                     @Override
-                    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation mi, ExecutionContext ctx) {
-                        mi = super.visitMethodInvocation(mi, ctx);
+                    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation m, ExecutionContext ctx) {
+                        m = super.visitMethodInvocation(m, ctx);
 
-                        if (!(TRACE_MATCHER.matches(mi) ||
-                              DEBUG_MATCHER.matches(mi) ||
-                              INFO_MATCHER.matches(mi) ||
-                              WARN_MATCHER.matches(mi) ||
-                              ERROR_MATCHER.matches(mi))) {
-                            return mi;
+                        if (!(TRACE_MATCHER.matches(m) ||
+                              DEBUG_MATCHER.matches(m) ||
+                              INFO_MATCHER.matches(m) ||
+                              WARN_MATCHER.matches(m) ||
+                              ERROR_MATCHER.matches(m))) {
+                            return m;
                         }
 
-                        int firstFormatArgIndex = TypeUtils.isOfClassType(mi.getArguments().get(0).getType(), "org.slf4j.Marker") ? 2 : 1;
+                        int firstFormatArgIndex = TypeUtils.isOfClassType(m.getArguments().get(0).getType(), "org.slf4j.Marker") ? 2 : 1;
 
-                        return mi.withArguments(
-                                ListUtils.map(mi.getArguments(), (index, arg) -> {
+                        return m.withArguments(
+                                ListUtils.map(m.getArguments(), (index, arg) -> {
                                     if (index < firstFormatArgIndex) {
                                         return arg;
                                     }
