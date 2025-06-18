@@ -24,61 +24,68 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static org.openrewrite.java.Assertions.java;
 
 class StripToStringFromArgumentsTest implements RewriteTest {
+    private static Stream<Arguments> stripToStringFromLogMethodArguments() {
+        record TestCase(String originalArgs, String expectedArgs) {
+        }
+        List<TestCase> cases = List.of(
+                new TestCase(
+                        "",
+                        ""),
+                new TestCase(
+                        ", o1.toString()",
+                        ", o1"),
+                new TestCase(
+                        ", o1.toString(), o2.toString()",
+                        ", o1, o2"),
+                new TestCase(
+                        ", o1.toString(), o2.toString(), o3.toString()",
+                        ", o1, o2, o3"),
+                new TestCase(
+                        ", o1.toString(), o2, o3.toString(), o1, o3, o1.toString(), o2",
+                        ", o1, o2, o3, o1, o3, o1, o2"),
+                new TestCase(
+                        ", exception.toString()",
+                        ", exception.toString()"),
+                new TestCase(
+                        ", o1, exception.toString()",
+                        ", o1, exception")
+        );
+
+        return Stream.of("trace", "debug", "info", "warn", "error")
+                .flatMap(method -> cases.stream().flatMap(testCase ->
+                        Stream.of(
+                                Arguments.of(method, "message" + testCase.originalArgs, "message" + testCase.expectedArgs),
+                                Arguments.of(method, "marker, message" + testCase.originalArgs, "marker, message" + testCase.expectedArgs)
+                        )
+                ));
+    }
+
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipe(new StripToStringFromArguments()).parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1.+"));
     }
 
-    private static List<Arguments> stripToStringFromLogMethodArguments() {
-        List<Arguments> arguments = new ArrayList<>();
-        for (String marker : List.of("", "marker, ")) {
-            for (String method : List.of("trace", "debug", "info", "warn", "error")) {
-                arguments.addAll(List.of(
-                  Arguments.of(method, marker,
-                    List.of("o1.toString()"),
-                    List.of("o1")),
-                  Arguments.of(method, marker,
-                    List.of("o1.toString()", "o2.toString()"),
-                    List.of("o1", "o2")),
-                  Arguments.of(method, marker,
-                    List.of("o1.toString()", "o2.toString()", "o3.toString()"),
-                    List.of("o1", "o2", "o3")),
-                  Arguments.of(method, marker,
-                    List.of("o1.toString()", "o2", "o3.toString()", "o1", "o3", "o1.toString()", "o2"),
-                    List.of("o1", "o2", "o3", "o1", "o3", "o1", "o2")),
-                  Arguments.of(method, marker,
-                    List.of("exception.toString()"),
-                    List.of("exception.toString()")),
-                  Arguments.of(method, marker,
-                    List.of("o1", "exception.toString()"),
-                    List.of("o1", "exception"))
-                ));
-            }
-        }
-        return arguments;
-    }
-
     @ParameterizedTest
     @MethodSource
-    void stripToStringFromLogMethodArguments(String method, String marker, List<String> arguments, List<String> expectedArguments) {
+    void stripToStringFromLogMethodArguments(String method, String arguments, String expectedArguments) {
         String testTemplate = """
-            import org.slf4j.Logger;
-            import org.slf4j.Marker;
+                  import org.slf4j.Logger;
+                  import org.slf4j.Marker;
 
-            class A {
-              void method(Logger log, Object o1, Object o2, Object o3, Exception exception, Marker marker) {
-                  log.%s(%s"Hello", %s);
-              }
-            }
-          """;
-        @Language("java") String before = String.format(testTemplate, method, marker, String.join(", ", arguments));
-        @Language("java") String after = String.format(testTemplate, method, marker, String.join(", ", expectedArguments));
+                  class A {
+                    void method(Logger log, Marker marker, String message, Object o1, Object o2, Object o3, Exception exception) {
+                        log.%s(%s);
+                    }
+                  }
+                """;
+        @Language("java") String before = String.format(testTemplate, method, arguments);
+        @Language("java") String after = String.format(testTemplate, method, expectedArguments);
 
         // Ideally we'd only call `rewriteRun(java(before, after));` but the only way to expect a no-change is to call `java(before)`
         if (before.equals(after)) {
