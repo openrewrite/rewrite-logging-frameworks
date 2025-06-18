@@ -36,7 +36,7 @@ public class StripToStringFromArguments extends Recipe {
                 new JavaIsoVisitor<ExecutionContext>() {
                     @Override
                     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation mi, ExecutionContext ctx) {
-                        final int firstFormatArgIndex = mi.getArguments().get(0).getType().toString() == "org.slf4j.Marker" ? 2 : 1;
+                        final int firstFormatArgIndex = TypeUtils.isOfClassType(mi.getArguments().get(0).getType(), "org.slf4j.Marker") ? 2 : 1;
                         final List<Expression> newArguments = new ArrayList<>(mi.getArguments().subList(0, firstFormatArgIndex));
                         for (int i = firstFormatArgIndex; i < mi.getArguments().size(); i++) {
                             final Expression arg = mi.getArguments().get(i);
