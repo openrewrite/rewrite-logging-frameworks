@@ -27,6 +27,12 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
 
 public class StripToStringFromArguments extends Recipe {
+    private static final MethodMatcher TRACE_MATCHER = new MethodMatcher("org.slf4j.Logger trace(..)");
+    private static final MethodMatcher DEBUG_MATCHER = new MethodMatcher("org.slf4j.Logger debug(..)");
+    private static final MethodMatcher INFO_MATCHER = new MethodMatcher("org.slf4j.Logger info(..)");
+    private static final MethodMatcher WARN_MATCHER = new MethodMatcher("org.slf4j.Logger warn(..)");
+    private static final MethodMatcher ERROR_MATCHER = new MethodMatcher("org.slf4j.Logger error(..)");
+
     private static final MethodMatcher TO_STRING_MATCHER = new MethodMatcher("java.lang.Object toString()");
 
     @Override
@@ -42,15 +48,25 @@ public class StripToStringFromArguments extends Recipe {
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(Preconditions.or(
-                        new UsesMethod<>("org.slf4j.Logger trace(..)"),
-                        new UsesMethod<>("org.slf4j.Logger debug(..)"),
-                        new UsesMethod<>("org.slf4j.Logger info(..)"),
-                        new UsesMethod<>("org.slf4j.Logger warn(..)"),
-                        new UsesMethod<>("org.slf4j.Logger error(..)")
+                        new UsesMethod<>(TRACE_MATCHER),
+                        new UsesMethod<>(DEBUG_MATCHER),
+                        new UsesMethod<>(INFO_MATCHER),
+                        new UsesMethod<>(WARN_MATCHER),
+                        new UsesMethod<>(ERROR_MATCHER)
                 ),
                 new JavaIsoVisitor<ExecutionContext>() {
                     @Override
                     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation mi, ExecutionContext ctx) {
+                        mi = super.visitMethodInvocation(mi, ctx);
+
+                        if (!(TRACE_MATCHER.matches(mi) ||
+                              DEBUG_MATCHER.matches(mi) ||
+                              INFO_MATCHER.matches(mi) ||
+                              WARN_MATCHER.matches(mi) ||
+                              ERROR_MATCHER.matches(mi))) {
+                            return mi;
+                        }
+
                         int firstFormatArgIndex = TypeUtils.isOfClassType(mi.getArguments().get(0).getType(), "org.slf4j.Marker") ? 2 : 1;
 
                         return mi.withArguments(
