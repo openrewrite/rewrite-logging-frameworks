@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.logging.slf4j;
 
+import org.intellij.lang.annotations.Language;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -53,7 +54,10 @@ class StripToStringFromArgumentsTest implements RewriteTest {
                     List.of("o1", "o2", "o3", "o1", "o3", "o1", "o2")),
                   Arguments.of(method, marker,
                     List.of("exception.toString()"),
-                    List.of("exception.toString()"))
+                    List.of("exception.toString()")),
+                  Arguments.of(method, marker,
+                    List.of("o1", "exception.toString()"),
+                    List.of("o1", "exception"))
                 ));
             }
         }
@@ -63,7 +67,6 @@ class StripToStringFromArgumentsTest implements RewriteTest {
     @ParameterizedTest
     @MethodSource
     void stripToStringFromLogMethodArguments(String method, String marker, List<String> arguments, List<String> expectedArguments) {
-        //language=java
         String testTemplate = """
             import org.slf4j.Logger;
             import org.slf4j.Marker;
@@ -74,8 +77,8 @@ class StripToStringFromArgumentsTest implements RewriteTest {
               }
             }
           """;
-        String before = String.format(testTemplate, method, marker, String.join(", ", arguments));
-        String after = String.format(testTemplate, method, marker, String.join(", ", expectedArguments));
+        @Language("java") String before = String.format(testTemplate, method, marker, String.join(", ", arguments));
+        @Language("java") String after = String.format(testTemplate, method, marker, String.join(", ", expectedArguments));
 
         // Ideally we'd only call `rewriteRun(java(before, after));` but the only way to expect a no-change is to call `java(before)`
         if (before.equals(after)) {
