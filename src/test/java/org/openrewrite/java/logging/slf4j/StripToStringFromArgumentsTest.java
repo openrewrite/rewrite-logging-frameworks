@@ -53,6 +53,9 @@ class StripToStringFromArgumentsTest implements RewriteTest {
                         ", exception.toString()",
                         ", exception.toString()"),
                 new TestCase(
+                        ", exception.toString(), o1",
+                        ", exception, o1"),
+                new TestCase(
                         ", o1, exception.toString()",
                         ", o1, exception")
         );
@@ -87,7 +90,7 @@ class StripToStringFromArgumentsTest implements RewriteTest {
         @Language("java") String before = String.format(testTemplate, method, arguments);
         @Language("java") String after = String.format(testTemplate, method, expectedArguments);
 
-        // Ideally we'd only call `rewriteRun(java(before, after));` but the only way to expect a no-change is to call `java(before)`
+        // Ideally we'd only call `rewriteRun(java(before, after));` but the only way to expect a no-change is to call `rewrite(java(before))`
         if (before.equals(after)) {
             rewriteRun(java(before));
         } else {

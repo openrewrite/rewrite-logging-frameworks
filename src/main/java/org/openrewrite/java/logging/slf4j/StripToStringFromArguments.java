@@ -33,7 +33,7 @@ public class StripToStringFromArguments extends Recipe {
     private static final MethodMatcher WARN_MATCHER = new MethodMatcher("org.slf4j.Logger warn(..)");
     private static final MethodMatcher ERROR_MATCHER = new MethodMatcher("org.slf4j.Logger error(..)");
 
-    private static final MethodMatcher TO_STRING_MATCHER = new MethodMatcher("java.lang.Object toString()");
+    private static final MethodMatcher TO_STRING_MATCHER = new MethodMatcher("*..* toString()");
 
     @Override
     public String getDisplayName() {
@@ -68,22 +68,23 @@ public class StripToStringFromArguments extends Recipe {
                         }
 
                         int firstFormatArgIndex = TypeUtils.isOfClassType(m.getArguments().get(0).getType(), "org.slf4j.Marker") ? 2 : 1;
+                        final int lastArgIndex = m.getArguments().size() - 1;
 
-                        return m.withArguments(
-                                ListUtils.map(m.getArguments(), (index, arg) -> {
-                                    if (index < firstFormatArgIndex) {
-                                        return arg;
-                                    }
-                                    if (arg instanceof J.MethodInvocation) {
-                                        J.MethodInvocation toStringInvocation = (J.MethodInvocation) arg;
-                                        if (TO_STRING_MATCHER.matches(toStringInvocation) &&
-                                            toStringInvocation.getSelect() != null &&
-                                            !TypeUtils.isAssignableTo("java.lang.Throwable", toStringInvocation.getSelect().getType())) {
-                                            return toStringInvocation.getSelect().withPrefix(toStringInvocation.getPrefix());
-                                        }
-                                    }
-                                    return arg;
-                                }));
+                        return m.withArguments(ListUtils.map(m.getArguments(), (index, arg) -> {
+                            if (index < firstFormatArgIndex) {
+                                return arg;
+                            }
+                            if (arg instanceof J.MethodInvocation) {
+                                J.MethodInvocation toStringInvocation = (J.MethodInvocation) arg;
+                                if (TO_STRING_MATCHER.matches(toStringInvocation.getMethodType()) &&
+                                    toStringInvocation.getSelect() != null &&
+                                    !(firstFormatArgIndex == lastArgIndex && TypeUtils.isAssignableTo("java.lang.Throwable", toStringInvocation.getSelect().getType()))) {
+                                    // Strip the `.toString()` call
+                                    return toStringInvocation.getSelect().withPrefix(toStringInvocation.getPrefix());
+                                }
+                            }
+                            return arg;
+                        }));
                     }
                 });
     }
