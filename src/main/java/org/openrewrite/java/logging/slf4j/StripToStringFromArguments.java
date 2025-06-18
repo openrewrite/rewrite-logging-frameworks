@@ -45,7 +45,6 @@ public class StripToStringFromArguments extends Recipe {
                                 J.MethodInvocation toStringInvocation = (J.MethodInvocation) arg;
                                 if (toStringInvocation.getSimpleName().equals("toString") &&
                                         toStringInvocation.getSelect() != null &&
-                                        toStringInvocation.getSelect().getType() != null &&
                                         !TypeUtils.isAssignableTo("java.lang.Throwable", toStringInvocation.getSelect().getType())) {
                                     toAdd = toStringInvocation.getSelect().withPrefix(toStringInvocation.getPrefix());
                                 }
