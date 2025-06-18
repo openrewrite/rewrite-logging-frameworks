@@ -19,15 +19,12 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class StripToStringFromArguments extends Recipe {
     private static final MethodMatcher TO_STRING_MATCHER = new MethodMatcher("java.lang.Object toString()");
@@ -55,21 +52,22 @@ public class StripToStringFromArguments extends Recipe {
                     @Override
                     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation mi, ExecutionContext ctx) {
                         int firstFormatArgIndex = TypeUtils.isOfClassType(mi.getArguments().get(0).getType(), "org.slf4j.Marker") ? 2 : 1;
-                        List<Expression> newArguments = new ArrayList<>(mi.getArguments().subList(0, firstFormatArgIndex));
-                        for (int i = firstFormatArgIndex; i < mi.getArguments().size(); i++) {
-                            Expression arg = mi.getArguments().get(i);
-                            Expression toAdd = arg;
-                            if (arg instanceof J.MethodInvocation) {
-                                J.MethodInvocation toStringInvocation = (J.MethodInvocation) arg;
-                                if (TO_STRING_MATCHER.matches(toStringInvocation) &&
-                                        toStringInvocation.getSelect() != null &&
-                                        !TypeUtils.isAssignableTo("java.lang.Throwable", toStringInvocation.getSelect().getType())) {
-                                    toAdd = toStringInvocation.getSelect().withPrefix(toStringInvocation.getPrefix());
-                                }
-                            }
-                            newArguments.add(toAdd);
-                        }
-                        return mi.withArguments(newArguments);
+
+                        return mi.withArguments(
+                                ListUtils.map(mi.getArguments(), (index, arg) -> {
+                                    if (index < firstFormatArgIndex) {
+                                        return arg;
+                                    }
+                                    if (arg instanceof J.MethodInvocation) {
+                                        J.MethodInvocation toStringInvocation = (J.MethodInvocation) arg;
+                                        if (TO_STRING_MATCHER.matches(toStringInvocation) &&
+                                            toStringInvocation.getSelect() != null &&
+                                            !TypeUtils.isAssignableTo("java.lang.Throwable", toStringInvocation.getSelect().getType())) {
+                                            return toStringInvocation.getSelect().withPrefix(toStringInvocation.getPrefix());
+                                        }
+                                    }
+                                    return arg;
+                                }));
                     }
                 });
     }
