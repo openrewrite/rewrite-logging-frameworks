@@ -98,6 +98,37 @@ class ParameterizedLoggingTest implements RewriteTest {
         );
     }
 
+    @SuppressWarnings("UnnecessaryToStringCall")
+    @Test
+    void noNeedToCallToStringOnParameterizedArgumentOfAnyType() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", true)),
+          //language=java
+          java(
+            """
+              import java.util.stream.Stream;
+              import org.slf4j.Logger;
+
+              class Test {
+                  static void method(Logger logger, Stream person) {
+                      logger.info("Hello " + person.toString() + ", your name has " + person.toString().length() + " characters. Just counting " + person.toString());
+                  }
+              }
+              """,
+            """
+              import java.util.stream.Stream;
+              import org.slf4j.Logger;
+
+              class Test {
+                  static void method(Logger logger, Stream person) {
+                      logger.info("Hello {}, your name has {} characters. Just counting {}", person, person.toString().length(), person);
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Test
     void doNotRemoveStringOnParameterizedArgument() {
         rewriteRun(
