@@ -146,6 +146,7 @@ recipeList:
   - org.openrewrite.java.logging.ChangeLoggersToPrivate
   - org.openrewrite.java.logging.slf4j.MatchIsLogLevelEnabledWithLogStatements
   - org.openrewrite.java.logging.slf4j.WrapExpensiveLogStatementsInConditionals
+  - org.openrewrite.java.logging.slf4j.StripToStringFromArguments
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.slf4j.CommonsLogging1ToSlf4j1
