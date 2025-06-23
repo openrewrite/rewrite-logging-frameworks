@@ -146,7 +146,7 @@ public class ParameterizedLogging extends Recipe {
 
     private static class RemoveToStringVisitor extends JavaVisitor<ExecutionContext> {
         private final JavaTemplate t = JavaTemplate.builder("#{any(java.lang.String)}").build();
-        private final MethodMatcher TO_STRING = new MethodMatcher("java.lang.Object toString()");
+        private final MethodMatcher TO_STRING = new MethodMatcher("*..* toString()");
 
         @Override
         public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
