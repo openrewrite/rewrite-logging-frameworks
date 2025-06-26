@@ -70,13 +70,13 @@ public class ConvertJulExiting extends Recipe {
                         modifiedArgs.add(originalArgs.get(2).getElement().withPrefix(Space.EMPTY));
                         modifiedTypes.add(originalTypes.get(2));
                     }
-                    JavaType.Method mt = m.getMethodType().withParameterTypes(modifiedTypes);
-                    JavaType.FullyQualified dt = mt.getDeclaringType()
-                            .withFullyQualifiedName("org.apache.logging.log4j.Logger");
+                    JavaType.Method mt = m.getMethodType()
+                            .withParameterTypes(modifiedTypes)
+                            .withDeclaringType(m.getMethodType().getDeclaringType()
+                                    .withFullyQualifiedName("org.apache.logging.log4j.Logger"));
                     return m.withMethodType(mt)
                             .withName(m.getName().withSimpleName("traceExit"))
-                            .withArguments(modifiedArgs)
-                            .withDeclaringType(dt);
+                            .withArguments(modifiedArgs);
                 }
                 return m;
             }
