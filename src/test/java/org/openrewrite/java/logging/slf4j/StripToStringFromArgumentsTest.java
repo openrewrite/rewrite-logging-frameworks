@@ -57,7 +57,7 @@ class StripToStringFromArgumentsTest implements RewriteTest {
                         ", exception, o1"),
                 new TestCase(
                         ", o1, exception.toString()",
-                        ", o1, exception")
+                        ", o1, exception.toString()")
         );
 
         return Stream.of("trace", "debug", "info", "warn", "error")
