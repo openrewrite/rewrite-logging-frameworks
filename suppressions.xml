@@ -1,39 +1,3 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
-    <suppress until="2025-02-05Z">
-        <notes><![CDATA[
-    file name: log4j-1.2.17.jar
-       sev: CRITICAL
-         reason: False positive. Reference only
-   ]]></notes>
-        <packageUrl regex="true">^pkg:maven/log4j/log4j@.*$</packageUrl>
-        <cve>CVE-2019-17571</cve>
-        <cve>CVE-2020-9493</cve>
-        <cve>CVE-2021-4104</cve>
-        <cve>CVE-2022-23302</cve>
-        <cve>CVE-2022-23305</cve>
-        <cve>CVE-2022-23307</cve>
-        <cve>CVE-2023-26464</cve>
-    </suppress>
-    <suppress until="2025-02-05Z">
-        <notes><![CDATA[
-        develocity and gradle
-        reason: using latest release of com.gradle.develocity and com.gradle.common-custom-user-data-gradle-plugin
-        ]]></notes>
-        <cve>CVE-2019-11402</cve>
-        <cve>CVE-2019-11403</cve>
-        <cve>CVE-2019-15052</cve>
-        <cve>CVE-2019-15052</cve>
-        <cve>CVE-2020-11979</cve>
-        <cve>CVE-2021-29427</cve>
-        <cve>CVE-2021-29428</cve>
-        <cve>CVE-2021-32751</cve>
-        <cve>CVE-2021-41589</cve>
-        <cve>CVE-2022-25364</cve>
-        <cve>CVE-2023-35947</cve>
-        <cve>CVE-2023-45161</cve>
-        <cve>CVE-2023-45163</cve>
-        <cve>CVE-2023-49238</cve>
-        <cve>CVE-2023-5964</cve>
-    </suppress>
 </suppressions>
