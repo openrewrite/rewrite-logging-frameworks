@@ -17,12 +17,16 @@ package org.openrewrite.java.logging.slf4j;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+
+import java.util.stream.Stream;
 
 import static org.openrewrite.java.Assertions.java;
 
@@ -581,141 +585,98 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
         );
     }
 
-    @Test
-    void dontWrapIfArgumentsAreAllGetters() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import org.slf4j.Logger;
-
-              class A {
-                  String method(Logger log) {
-                      log.info("{} {} {}", getClass(), log.getName(), getProperty());
-                  }
-
-                  String getProperty() {
-                      return "property";
-                  }
-              }
-              """
-          )
+    private static Stream<Arguments> wrapWhenExpensiveArgument() {
+        return Stream.of(
+          Arguments.of("notAGetter()"), // not a getter
+          Arguments.of("new A()"), // allocating a new object
+          Arguments.of("new A().getClass()"), // allocating a new object first
+          Arguments.of("\"foo\".getBytes()"), // allocating a string first
+          Arguments.of("input.getBytes(StandardCharsets.UTF_16)"), // getter with an argument
+          Arguments.of("getClass().getName()"), // getter on a method invocation expression
+          Arguments.of("optional.get()"), // not a getter
+          Arguments.of("A.getExpensive()"), // static getter likely to use external resources or allocate things
+          Arguments.of("getExpensive()") // static getter likely to use external resources or allocate things
         );
     }
 
-    @Test
-    void wrapIfArgumentsAreNotAllGetters() {
+    @MethodSource
+    @ParameterizedTest
+    void wrapWhenExpensiveArgument(String logArgument) {
+        //language=java
         rewriteRun(
-          //language=java
           java(
-            """
+            String.format("""
+              import java.nio.charset.StandardCharsets;
+              import java.util.Optional;
               import org.slf4j.Logger;
 
               class A {
-                  String method(Logger log) {
-                      log.info("{} {} {}", getClass(), log.getName(), notAGetter());
+                  void method(Logger log, String input, Optional<String> optional) {
+                      log.info("{}", %s);
                   }
 
                   String notAGetter() {
                       return "property";
                   }
+
+                  static String getExpensive() {
+                      return "expensive";
+                  }
               }
-              """,
-            """
+              """, logArgument),
+            String.format("""
+              import java.nio.charset.StandardCharsets;
+              import java.util.Optional;
               import org.slf4j.Logger;
 
               class A {
-                  String method(Logger log) {
+                  void method(Logger log, String input, Optional<String> optional) {
                       if (log.isInfoEnabled()) {
-                          log.info("{} {} {}", getClass(), log.getName(), notAGetter());
+                          log.info("{}", %s);
                       }
                   }
 
                   String notAGetter() {
                       return "property";
                   }
+
+                  static String getExpensive() {
+                      return "expensive";
+                  }
               }
-              """
+              """, logArgument)
           )
         );
     }
 
-    @Test
-    void wrapIfArgumentsAreGettersWithArgs() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import org.slf4j.Logger;
-              import java.nio.charset.StandardCharsets;
-
-              class A {
-                  String method(Logger log) {
-                      String message = "foo";
-                      log.info("{} {}", getClass(), message.getBytes(StandardCharsets.UTF_16));
-                  }
-              }
-              """,
-            """
-              import org.slf4j.Logger;
-              import java.nio.charset.StandardCharsets;
-
-              class A {
-                  String method(Logger log) {
-                      String message = "foo";
-                      if (log.isInfoEnabled()) {
-                          log.info("{} {}", getClass(), message.getBytes(StandardCharsets.UTF_16));
-                      }
-                  }
-              }
-              """
-          )
+    private static Stream<Arguments> dontWrapWhenCheapArgument() {
+        // We don't allocate stuff or very unlikely:
+        return Stream.of(
+          Arguments.of("input"), // identifier alone
+          Arguments.of("getClass()"), // a getter
+          Arguments.of("log.getName()"), // a getter
+          Arguments.of("34 + 78"), // literal
+          Arguments.of("8344"), // literal
+          Arguments.of("\"like, literally!\"") // literal
+          // add boolean expression composed of variables/contants only (and a negative test of it too)
         );
     }
 
-    @Test
-    void wrapIfArgumentsAreGettersFromExpression() {
+    @MethodSource
+    @ParameterizedTest
+    void dontWrapWhenCheapArgument(String logArgument) {
+        //language=java
         rewriteRun(
-          //language=java
           java(
-            """
-              import java.util.Optional;
+            String.format("""
               import org.slf4j.Logger;
 
               class A {
-                  String method(Logger log, Optional<String> optional) {
-                      log.info("{}", A.getMaybeExpensive());
-                      log.info("{}", "foo".getBytes());
-                      log.info("{}", new A().getClass());
-                      log.info("{}", optional.get());
-                      log.info("{}", getClass().getName());
-                  }
-
-                  static String getMaybeExpensive() {
-                    return "string";
+                  void method(Logger log, String input) {
+                      log.info("{}", %s);
                   }
               }
-              """,
-            """
-              import java.util.Optional;
-              import org.slf4j.Logger;
-
-              class A {
-                  String method(Logger log, Optional<String> optional) {
-                      if (log.isInfoEnabled()) {
-                          log.info("{}", A.getMaybeExpensive());
-                          log.info("{}", "foo".getBytes());
-                          log.info("{}", new A().getClass());
-                          log.info("{}", optional.get());
-                          log.info("{}", getClass().getName());
-                      }
-                  }
-
-                  static String getMaybeExpensive() {
-                    return "string";
-                  }
-              }
-              """
+              """, logArgument)
           )
         );
     }

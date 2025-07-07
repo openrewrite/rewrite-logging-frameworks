@@ -29,6 +29,7 @@ import org.openrewrite.marker.Markers;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
 import static org.openrewrite.Preconditions.or;
@@ -72,24 +73,25 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
         @Override
         public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation m = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
-            if ((infoMatcher.matches(m) || debugMatcher.matches(m) || traceMatcher.matches(m)) &&
-                    !isInIfStatementWithLogLevelCheck(getCursor(), m)) {
-                List<Expression> arguments = ListUtils.filter(m.getArguments(), a -> a instanceof J.MethodInvocation);
-                if (m.getSelect() != null && !arguments.isEmpty()) {
-                    J container = getCursor().getParentTreeCursor().getValue();
-                    if (container instanceof J.Block) {
-                        UUID id = container.getId();
-                        J.If if_ = ((J.If) JavaTemplate
-                                .builder("if(#{logger:any(org.slf4j.Logger)}.is#{}Enabled()) {}")
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.+"))
-                                .build()
-                                .apply(getCursor(), m.getCoordinates().replace(),
-                                        m.getSelect(), StringUtils.capitalize(m.getSimpleName())))
-                                .withThenPart(m.withPrefix(m.getPrefix().withWhitespace("\n" + m.getPrefix().getWhitespace().replace("\n", ""))))
-                                .withPrefix(m.getPrefix().withComments(emptyList()));
-                        visitedBlocks.add(id);
-                        return if_;
-                    }
+            if (
+                    m.getSelect() != null
+                    && (infoMatcher.matches(m) || debugMatcher.matches(m) || traceMatcher.matches(m))
+                    && !isInIfStatementWithLogLevelCheck(getCursor(), m)
+                    && isAnyArgumentExpensive(m)
+            ) {
+                J container = getCursor().getParentTreeCursor().getValue();
+                if (container instanceof J.Block) {
+                    UUID id = container.getId();
+                    J.If if_ = ((J.If) JavaTemplate
+                            .builder("if(#{logger:any(org.slf4j.Logger)}.is#{}Enabled()) {}")
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.+"))
+                            .build()
+                            .apply(getCursor(), m.getCoordinates().replace(),
+                                    m.getSelect(), StringUtils.capitalize(m.getSimpleName())))
+                            .withThenPart(m.withPrefix(m.getPrefix().withWhitespace("\n" + m.getPrefix().getWhitespace().replace("\n", ""))))
+                            .withPrefix(m.getPrefix().withComments(emptyList()));
+                    visitedBlocks.add(id);
+                    return if_;
                 }
             }
             return m;
@@ -113,6 +115,21 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
             return (infoMatcher.matches(m) && sideEffects.stream().allMatch(e -> e instanceof J.MethodInvocation && isInfoEnabledMatcher.matches((J.MethodInvocation) e))) ||
                     (debugMatcher.matches(m) && sideEffects.stream().allMatch(e -> e instanceof J.MethodInvocation && isDebugEnabledMatcher.matches((J.MethodInvocation) e))) ||
                     (traceMatcher.matches(m) && sideEffects.stream().allMatch(e -> e instanceof J.MethodInvocation && isTraceEnabledMatcher.matches((J.MethodInvocation) e)));
+        }
+
+        private boolean isAnyArgumentExpensive(J.MethodInvocation m) {
+            return !m
+                    .getArguments()
+                    .stream()
+                    .allMatch(
+                            arg ->
+                                    (arg instanceof J.MethodInvocation && isSimpleGetter(arg))
+                                    || arg instanceof J.Literal
+                            );
+        }
+
+        private boolean isSimpleGetter(Expression arg) {
+            return false;
         }
     }
 
