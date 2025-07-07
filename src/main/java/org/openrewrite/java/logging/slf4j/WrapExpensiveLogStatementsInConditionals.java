@@ -123,9 +123,8 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
                     .stream()
                     .allMatch(
                             arg ->
-                                    (arg instanceof J.MethodInvocation && isSimpleGetter(arg))
-                                    || arg instanceof J.Literal
-                            );
+                                    (arg instanceof J.MethodInvocation && isSimpleGetter(arg)) ||
+                                    arg instanceof J.Literal
         }
 
         private boolean isSimpleGetter(Expression arg) {
