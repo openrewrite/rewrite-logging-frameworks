@@ -664,7 +664,9 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
       "\"one\" + 1", // compile time literal
       "true && false", // boolean literal
       "true && isSomething()", // boolean literal and boolean getter
-      "true && boolVariable || isSomething()" // boolean literal and boolean variable
+      "true && boolVariable || isSomething()", // boolean literal and boolean variable
+      "field", // field identifier
+      "this.field", // field access
     })
     @ParameterizedTest
     void dontWrapWhenCheapArgument(String logArgument) {
@@ -675,6 +677,8 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
               import org.slf4j.Logger;
 
               class A {
+                  String field;
+
                   void method(Logger log, String input, boolean boolVariable) {
                       log.info("{}", %s);
                   }
