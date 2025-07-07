@@ -74,8 +74,8 @@ class StripToStringFromArgumentsTest implements RewriteTest {
         spec.recipe(new StripToStringFromArguments()).parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1.+"));
     }
 
-    @ParameterizedTest
     @MethodSource
+    @ParameterizedTest
     void stripToStringFromLogMethodArguments(String method, String arguments, String expectedArguments) {
         String testTemplate = """
                   import org.slf4j.Logger;

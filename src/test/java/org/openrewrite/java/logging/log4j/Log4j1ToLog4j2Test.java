@@ -215,8 +215,8 @@ class Log4j1ToLog4j2Test implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/147")
+    @Test
     void matchUnknownTypes() {
         //language=java
         rewriteRun(

@@ -25,8 +25,8 @@ import org.openrewrite.Recipe;
 import java.util.Arrays;
 import java.util.List;
 
-@Value
 @EqualsAndHashCode(callSuper = false)
+@Value
 public class SystemPrintToLogging extends Recipe {
     @Option(displayName = "Add logger",
             description = "Add a logger field to the class if it isn't already present.",

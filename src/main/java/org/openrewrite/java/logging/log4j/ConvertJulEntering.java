@@ -38,8 +38,8 @@ import static org.openrewrite.Tree.randomId;
 /**
  * This recipe rewrites JUL's {@link java.util.logging.Logger#entering} method.
  */
-@Value
 @EqualsAndHashCode(callSuper = false)
+@Value
 public class ConvertJulEntering extends Recipe {
 
     private static final MethodMatcher METHOD_MATCHER = new MethodMatcher("java.util.logging.Logger entering(String, String, ..)", false);

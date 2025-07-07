@@ -35,8 +35,8 @@ import java.util.Set;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toSet;
 
-@Value
 @EqualsAndHashCode(callSuper = false)
+@Value
 public class ChangeLoggersToPrivate extends Recipe {
 
     private static final Set<String> LOGGER_TYPES = Arrays.stream(LoggingFramework.values())

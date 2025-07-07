@@ -116,8 +116,8 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
         }
     }
 
-    @Value
     @EqualsAndHashCode(callSuper = false)
+    @Value
     private static class MergeLogStatementsInCheck extends JavaIsoVisitor<ExecutionContext> {
 
         Set<UUID> blockIds;

@@ -156,8 +156,8 @@ class AddLoggerTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/137")
+    @Test
     void addLoggerInEnum() {
         rewriteRun(
           spec -> spec.recipe(new MaybeAddLoggerToClass("Test")),

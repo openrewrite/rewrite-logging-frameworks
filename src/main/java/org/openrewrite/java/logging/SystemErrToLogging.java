@@ -33,8 +33,8 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-@Value
 @EqualsAndHashCode(callSuper = false)
+@Value
 public class SystemErrToLogging extends Recipe {
     private static final MethodMatcher systemErrPrint = new MethodMatcher("java.io.PrintStream print*(String)");
     private static final MethodMatcher printStackTrace = new MethodMatcher("java.lang.Throwable printStackTrace(..)");

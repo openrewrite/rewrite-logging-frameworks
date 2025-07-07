@@ -157,8 +157,8 @@ class ParameterizedLoggingTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/36")
+    @Test
     void handleEscapedCharacters() {
         rewriteRun(
           spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
@@ -194,8 +194,8 @@ class ParameterizedLoggingTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/30")
+    @Test
     void escapeMessageStrings() {
         rewriteRun(
           spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
@@ -259,8 +259,8 @@ class ParameterizedLoggingTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/38")
+    @Test
     void indexOutOfBoundsExceptionOnParseMethodArguments() {
         rewriteRun(
           spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger warn(..)", false)),
@@ -363,8 +363,8 @@ class ParameterizedLoggingTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/35")
+    @Test
     void alreadyParameterizedBinaryExpressionArguments() {
         rewriteRun(
           spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger debug(..)", false)),
@@ -383,8 +383,8 @@ class ParameterizedLoggingTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/26")
+    @Test
     void argumentsContainingBinaryExpressions() {
         rewriteRun(
           spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger debug(..)", false)),
@@ -435,8 +435,8 @@ class ParameterizedLoggingTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/131")
+    @Test
     void throwableSingleParameter() {
         rewriteRun(
           spec -> spec.recipe(new ParameterizedLogging("org.apache.logging.log4j.Logger error(..)", false)),
@@ -628,8 +628,8 @@ class ParameterizedLoggingTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/159")
+    @Test
     void concatenationWithMarker() {
         rewriteRun(
           spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),

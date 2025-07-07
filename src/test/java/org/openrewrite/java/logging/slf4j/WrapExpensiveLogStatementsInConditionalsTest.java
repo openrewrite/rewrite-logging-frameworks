@@ -73,12 +73,12 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
         );
     }
 
-    @ParameterizedTest
     @CsvSource(textBlock = """
       info, Info
       debug, Debug
       trace, Trace
       """)
+    @ParameterizedTest
     void allLogMethods(String method, String check) {
         //language=java
         rewriteRun(

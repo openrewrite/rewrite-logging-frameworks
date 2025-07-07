@@ -32,8 +32,8 @@ import java.util.List;
 /**
  * This recipe rewrites JUL's {@link java.util.logging.Logger#entering} method.
  */
-@Value
 @EqualsAndHashCode(callSuper = false)
+@Value
 public class ConvertJulExiting extends Recipe {
 
     private static final MethodMatcher METHOD_MATCHER = new MethodMatcher("java.util.logging.Logger exiting(String, String, ..)", false);

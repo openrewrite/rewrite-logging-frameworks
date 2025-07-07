@@ -26,8 +26,8 @@ import org.openrewrite.xml.tree.Xml;
 
 import java.util.List;
 
-@Value
 @EqualsAndHashCode(callSuper = false)
+@Value
 public class ConfigureLoggerLevel extends Recipe {
 
     @Override

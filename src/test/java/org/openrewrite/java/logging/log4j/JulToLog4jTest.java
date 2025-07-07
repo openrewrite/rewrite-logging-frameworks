@@ -33,8 +33,8 @@ class JulToLog4jTest implements RewriteTest {
             .classpathFromResources(new InMemoryExecutionContext(), "log4j-api-2.+", "lombok-1.18.+"));
     }
 
-    @Test
     @DocumentExample
+    @Test
     void simpleLoggerCalls() {
         rewriteRun(
           // language=java

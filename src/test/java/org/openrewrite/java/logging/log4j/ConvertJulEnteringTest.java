@@ -34,8 +34,8 @@ class ConvertJulEnteringTest implements RewriteTest {
             .classpathFromResources(new InMemoryExecutionContext(), "log4j-api-2.+"));
     }
 
-    @Test
     @DocumentExample
+    @Test
     void enteringToTraceEntry() {
         rewriteRun(
           // language=java

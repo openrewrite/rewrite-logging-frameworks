@@ -150,8 +150,8 @@ class Log4j1ToSlf4j1Test implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/47")
+    @Test
     void migrateMDC() {
         //language=java
         rewriteRun(

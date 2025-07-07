@@ -35,8 +35,8 @@ import org.openrewrite.staticanalysis.kotlin.KotlinFileChecker;
 
 import java.util.*;
 
-@Value
 @EqualsAndHashCode(callSuper = false)
+@Value
 public class ParameterizedLogging extends Recipe {
     @Option(displayName = "Method pattern",
             description = "A method used to find matching statements to parameterize.",

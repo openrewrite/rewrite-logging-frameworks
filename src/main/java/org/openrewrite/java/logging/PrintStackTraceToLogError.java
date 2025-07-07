@@ -32,8 +32,8 @@ import org.openrewrite.marker.Markers;
 import java.util.Collections;
 import java.util.Set;
 
-@Value
 @EqualsAndHashCode(callSuper = false)
+@Value
 public class PrintStackTraceToLogError extends Recipe {
     @Option(displayName = "Add logger",
             description = "Add a logger field to the class if it isn't already present.",

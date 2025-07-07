@@ -34,8 +34,8 @@ class ConvertJulExitingTest implements RewriteTest {
             .classpathFromResources(new InMemoryExecutionContext(), "log4j-api-2.+"));
     }
 
-    @Test
     @DocumentExample
+    @Test
     void exitingToTraceExit() {
         rewriteRun(
           // language=java

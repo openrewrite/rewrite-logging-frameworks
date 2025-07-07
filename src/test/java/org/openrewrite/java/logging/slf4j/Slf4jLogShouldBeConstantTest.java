@@ -177,8 +177,8 @@ class Slf4jLogShouldBeConstantTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/89")
+    @Test
     void toStringWithoutSelect() {
         //language=java
         rewriteRun(

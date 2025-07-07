@@ -163,8 +163,8 @@ class SystemErrToLoggingTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/114")
+    @Test
     void supportLombokLogAnnotations() {
         rewriteRun(
           spec -> spec.recipe(new SystemErrToLogging(null, null, null))

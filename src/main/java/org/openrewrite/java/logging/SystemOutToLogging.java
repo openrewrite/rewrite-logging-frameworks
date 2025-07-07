@@ -29,8 +29,8 @@ import org.openrewrite.marker.Markers;
 import java.util.Collections;
 import java.util.Set;
 
-@Value
 @EqualsAndHashCode(callSuper = false)
+@Value
 public class SystemOutToLogging extends Recipe {
     private static final MethodMatcher systemOutPrint = new MethodMatcher("java.io.PrintStream print*(String)");
 

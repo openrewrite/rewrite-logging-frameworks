@@ -97,8 +97,8 @@ class SystemOutToLoggingTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/114")
+    @Test
     void supportLombokLogAnnotations() {
         rewriteRun(
           spec -> spec.recipe(new SystemOutToLogging(null, null, null, "info"))
@@ -131,8 +131,8 @@ class SystemOutToLoggingTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/125")
+    @Test
     void doNotDeleteFile() {
         rewriteRun(
           spec -> spec

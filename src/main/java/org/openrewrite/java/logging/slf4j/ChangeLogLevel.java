@@ -29,8 +29,8 @@ import org.openrewrite.java.tree.J;
 
 import java.util.List;
 
-@Value
 @EqualsAndHashCode(callSuper = false)
+@Value
 public class ChangeLogLevel extends Recipe {
 
     @Override

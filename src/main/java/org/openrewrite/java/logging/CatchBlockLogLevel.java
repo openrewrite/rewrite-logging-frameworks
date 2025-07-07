@@ -27,8 +27,8 @@ import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-@Value
 @EqualsAndHashCode(callSuper = false)
+@Value
 public class CatchBlockLogLevel extends Recipe {
 
     @Override
