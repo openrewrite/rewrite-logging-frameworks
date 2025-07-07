@@ -17,16 +17,13 @@ package org.openrewrite.java.logging.slf4j;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
-
-import java.util.stream.Stream;
 
 import static org.openrewrite.java.Assertions.java;
 
@@ -585,24 +582,20 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
         );
     }
 
-    private static Stream<Arguments> wrapWhenExpensiveArgument() {
-        return Stream.of(
-          Arguments.of("notAGetter()"), // not a getter
-          Arguments.of("new A()"), // allocating a new object
-          Arguments.of("new A().getClass()"), // allocating a new object first
-          Arguments.of("\"foo\".getBytes()"), // allocating a string first
-          Arguments.of("input.getBytes(StandardCharsets.UTF_16)"), // getter with an argument
-          Arguments.of("getClass().getName()"), // getter on a method invocation expression
-          Arguments.of("optional.get()"), // not a getter
-          Arguments.of("A.getExpensive()"), // static getter likely to use external resources or allocate things
-          Arguments.of("getExpensive()"), // static getter likely to use external resources or allocate things
-          Arguments.of("342 + input"), // allocating a new string
-          Arguments.of("\"foo\" + getClass()"), // allocating a new string
-          Arguments.of("true && isSomething(1)")
-        );
-    }
-
-    @MethodSource
+    @ValueSource(strings = {
+      "notAGetter()", // not a getter
+      "new A()", // allocating a new object
+      "new A().getClass()", // allocating a new object first
+      "\"foo\".getBytes()", // allocating a string first
+      "input.getBytes(StandardCharsets.UTF_16)", // getter with an argument
+      "getClass().getName()", // getter on a method invocation expression
+      "optional.get()", // not a getter
+      "A.getExpensive()", // static getter likely to use external resources or allocate things
+      "getExpensive()", // static getter likely to use external resources or allocate things
+      "342 + input", // allocating a new string
+      "\"foo\" + getClass()", // allocating a new string
+      "true && isSomething(1)"
+    })
     @ParameterizedTest
     void wrapWhenExpensiveArgument(String logArgument) {
         //language=java
@@ -660,24 +653,19 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
         );
     }
 
-    private static Stream<Arguments> dontWrapWhenCheapArgument() {
-        // We don't allocate stuff or very unlikely:
-        return Stream.of(
-          Arguments.of("input"), // identifier alone
-          Arguments.of("getClass()"), // a getter
-          Arguments.of("log.getName()"), // a getter
-          Arguments.of("34 + 78"), // literal
-          Arguments.of("8344"), // literal
-          Arguments.of("\"like, literally!\""), // literal
-          Arguments.of("\"one\" + \"two\" + \"three\""), // compile time literal
-          Arguments.of("\"one\" + 1"), // compile time literal
-          Arguments.of("true && false"), // boolean literal
-          Arguments.of("true && isSomething()"), // boolean literal and boolean getter
-          Arguments.of("true && boolVariable || isSomething()") // boolean literal and boolean variable
-        );
-    }
-
-    @MethodSource
+    @ValueSource(strings = {
+      "input", // identifier alone
+      "getClass()", // a getter
+      "log.getName()", // a getter
+      "34 + 78", // literal
+      "8344", // literal
+      "\"like, literally!\"", // literal
+      "\"one\" + \"two\" + \"three\"", // compile time literal
+      "\"one\" + 1", // compile time literal
+      "true && false", // boolean literal
+      "true && isSomething()", // boolean literal and boolean getter
+      "true && boolVariable || isSomething()" // boolean literal and boolean variable
+    })
     @ParameterizedTest
     void dontWrapWhenCheapArgument(String logArgument) {
         //language=java
