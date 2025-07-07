@@ -580,4 +580,143 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void dontWrapIfArgumentsAreAllGetters() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  String method(Logger log) {
+                      log.info("{} {} {}", getClass(), log.getName(), getProperty());
+                  }
+
+                  String getProperty() {
+                      return "property";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void wrapIfArgumentsAreNotAllGetters() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  String method(Logger log) {
+                      log.info("{} {} {}", getClass(), log.getName(), notAGetter());
+                  }
+
+                  String notAGetter() {
+                      return "property";
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  String method(Logger log) {
+                      if (log.isInfoEnabled()) {
+                          log.info("{} {} {}", getClass(), log.getName(), notAGetter());
+                      }
+                  }
+
+                  String notAGetter() {
+                      return "property";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void wrapIfArgumentsAreGettersWithArgs() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              import java.nio.charset.StandardCharsets;
+
+              class A {
+                  String method(Logger log) {
+                      String message = "foo";
+                      log.info("{} {}", getClass(), message.getBytes(StandardCharsets.UTF_16));
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import java.nio.charset.StandardCharsets;
+
+              class A {
+                  String method(Logger log) {
+                      String message = "foo";
+                      if (log.isInfoEnabled()) {
+                          log.info("{} {}", getClass(), message.getBytes(StandardCharsets.UTF_16));
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void wrapIfArgumentsAreGettersFromExpression() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.util.Optional;
+              import org.slf4j.Logger;
+
+              class A {
+                  String method(Logger log, Optional<String> optional) {
+                      log.info("{}", A.getMaybeExpensive());
+                      log.info("{}", "foo".getBytes());
+                      log.info("{}", new A().getClass());
+                      log.info("{}", optional.get());
+                      log.info("{}", getClass().getName());
+                  }
+
+                  static String getMaybeExpensive() {
+                    return "string";
+                  }
+              }
+              """,
+            """
+              import java.util.Optional;
+              import org.slf4j.Logger;
+
+              class A {
+                  String method(Logger log, Optional<String> optional) {
+                      if (log.isInfoEnabled()) {
+                          log.info("{}", A.getMaybeExpensive());
+                          log.info("{}", "foo".getBytes());
+                          log.info("{}", new A().getClass());
+                          log.info("{}", optional.get());
+                          log.info("{}", getClass().getName());
+                      }
+                  }
+
+                  static String getMaybeExpensive() {
+                    return "string";
+                  }
+              }
+              """
+          )
+        );
+    }
 }
