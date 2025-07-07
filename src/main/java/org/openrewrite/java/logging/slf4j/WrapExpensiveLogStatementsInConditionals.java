@@ -163,8 +163,7 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
             if (expression instanceof J.MethodInvocation) {
                 J.MethodInvocation mi = (J.MethodInvocation) expression;
                 if (isSimpleGetter(mi) && mi.getMethodType() != null) {
-                    JavaType returnType = mi.getMethodType().getReturnType();
-                    if (returnType == JavaType.Primitive.Boolean || (returnType instanceof JavaType.FullyQualified && "java.lang.Boolean".equals(((JavaType.FullyQualified) returnType).getFullyQualifiedName()))) {
+                    if (isTypeBoolean(mi.getMethodType().getReturnType())) {
                         return true;
                     }
                 }
@@ -172,12 +171,12 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
             return false;
         }
         private static boolean isBooleanIdentifier(J expression) {
-            if (expression instanceof J.Identifier) {
-                J.Identifier identifier = (J.Identifier) expression;
-                JavaType type = identifier.getType();
-                return type != null && (type == JavaType.Primitive.Boolean || (type instanceof JavaType.FullyQualified && "java.lang.Boolean".equals(((JavaType.FullyQualified) type).getFullyQualifiedName())));
-            }
-            return false;
+            return expression instanceof J.Identifier && isTypeBoolean(((J.Identifier) expression).getType());
+        }
+
+        private static boolean isTypeBoolean(JavaType type) {
+            return type == JavaType.Primitive.Boolean ||
+                   (type instanceof JavaType.FullyQualified && "java.lang.Boolean".equals(((JavaType.FullyQualified) type).getFullyQualifiedName()));
         }
 
     }
