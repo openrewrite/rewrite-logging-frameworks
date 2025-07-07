@@ -19,7 +19,6 @@ import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
-import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.StringUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
@@ -29,7 +28,6 @@ import org.openrewrite.marker.Markers;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
 import static org.openrewrite.Preconditions.or;
@@ -118,18 +116,70 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
         }
 
         private boolean isAnyArgumentExpensive(J.MethodInvocation m) {
-            return !m
+            return !areAllArgumentsCheap(m);
+        }
+
+        private static boolean areAllArgumentsCheap(J.MethodInvocation m) {
+            return m
                     .getArguments()
                     .stream()
                     .allMatch(
                             arg ->
-                                    (arg instanceof J.MethodInvocation && isSimpleGetter(arg)) ||
-                                    arg instanceof J.Literal
+                                    (arg instanceof J.MethodInvocation && isSimpleGetter((J.MethodInvocation) arg)) ||
+                                    arg instanceof J.Literal ||
+                                    arg instanceof J.Identifier ||
+                                    (arg instanceof J.Binary && isOnlyLiterals((J.Binary) arg))
+                    );
         }
 
-        private boolean isSimpleGetter(Expression arg) {
+        private static boolean isSimpleGetter(J.MethodInvocation mi) {
+            return (
+                           (mi.getSimpleName().startsWith("get") && mi.getSimpleName().length() > 3) ||
+                           (mi.getSimpleName().startsWith("is") && mi.getSimpleName().length() > 2)
+                   ) &&
+                   mi.getMethodType().getParameterNames().isEmpty() &&
+                   (
+                           (mi.getSelect() == null || mi.getSelect() instanceof J.Identifier) &&
+                           !mi.getMethodType().hasFlags(Flag.Static)
+                   );
+        }
+
+        private static boolean isOnlyLiterals(J.Binary binary) {
+            return isLiteralOrBinary(binary.getLeft()) &&
+                   isLiteralOrBinary(binary.getRight());
+        }
+
+        private static boolean isLiteralOrBinary(J expression) {
+            if (expression instanceof J.Literal || isSimpleBooleanGetter(expression) || isBooleanIdentifier(expression)) {
+                return true;
+            } else if (expression instanceof J.Binary) {
+                return isOnlyLiterals((J.Binary) expression);
+            } else {
+                return false;
+            }
+        }
+
+        private static boolean isSimpleBooleanGetter(J expression) {
+            if (expression instanceof J.MethodInvocation) {
+                J.MethodInvocation mi = (J.MethodInvocation) expression;
+                if (isSimpleGetter(mi) && mi.getMethodType() != null) {
+                    JavaType returnType = mi.getMethodType().getReturnType();
+                    if (returnType == JavaType.Primitive.Boolean || (returnType instanceof JavaType.FullyQualified && "java.lang.Boolean".equals(((JavaType.FullyQualified) returnType).getFullyQualifiedName()))) {
+                        return true;
+                    }
+                }
+            }
             return false;
         }
+        private static boolean isBooleanIdentifier(J expression) {
+            if (expression instanceof J.Identifier) {
+                J.Identifier identifier = (J.Identifier) expression;
+                JavaType type = identifier.getType();
+                return type != null && (type == JavaType.Primitive.Boolean || (type instanceof JavaType.FullyQualified && "java.lang.Boolean".equals(((JavaType.FullyQualified) type).getFullyQualifiedName())));
+            }
+            return false;
+        }
+
     }
 
     @EqualsAndHashCode(callSuper = false)

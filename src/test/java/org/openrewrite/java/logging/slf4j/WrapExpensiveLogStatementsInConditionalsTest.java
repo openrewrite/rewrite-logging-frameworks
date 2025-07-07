@@ -595,7 +595,10 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
           Arguments.of("getClass().getName()"), // getter on a method invocation expression
           Arguments.of("optional.get()"), // not a getter
           Arguments.of("A.getExpensive()"), // static getter likely to use external resources or allocate things
-          Arguments.of("getExpensive()") // static getter likely to use external resources or allocate things
+          Arguments.of("getExpensive()"), // static getter likely to use external resources or allocate things
+          Arguments.of("342 + input"), // allocating a new string
+          Arguments.of("\"foo\" + getClass()"), // allocating a new string
+          Arguments.of("true && isSomething(1)")
         );
     }
 
@@ -611,7 +614,7 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
               import org.slf4j.Logger;
 
               class A {
-                  void method(Logger log, String input, Optional<String> optional) {
+                  void method(Logger log, String input, Optional<String> optional, boolean boolVariable) {
                       log.info("{}", %s);
                   }
 
@@ -622,6 +625,10 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
                   static String getExpensive() {
                       return "expensive";
                   }
+
+                  boolean isSomething(int i) {
+                      return true;
+                  }
               }
               """, logArgument),
             String.format("""
@@ -630,7 +637,7 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
               import org.slf4j.Logger;
 
               class A {
-                  void method(Logger log, String input, Optional<String> optional) {
+                  void method(Logger log, String input, Optional<String> optional, boolean boolVariable) {
                       if (log.isInfoEnabled()) {
                           log.info("{}", %s);
                       }
@@ -642,6 +649,10 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
 
                   static String getExpensive() {
                       return "expensive";
+                  }
+
+                  boolean isSomething(int i) {
+                      return true;
                   }
               }
               """, logArgument)
@@ -657,8 +668,12 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
           Arguments.of("log.getName()"), // a getter
           Arguments.of("34 + 78"), // literal
           Arguments.of("8344"), // literal
-          Arguments.of("\"like, literally!\"") // literal
-          // add boolean expression composed of variables/contants only (and a negative test of it too)
+          Arguments.of("\"like, literally!\""), // literal
+          Arguments.of("\"one\" + \"two\" + \"three\""), // compile time literal
+          Arguments.of("\"one\" + 1"), // compile time literal
+          Arguments.of("true && false"), // boolean literal
+          Arguments.of("true && isSomething()"), // boolean literal and boolean getter
+          Arguments.of("true && boolVariable || isSomething()") // boolean literal and boolean variable
         );
     }
 
@@ -672,8 +687,12 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
               import org.slf4j.Logger;
 
               class A {
-                  void method(Logger log, String input) {
+                  void method(Logger log, String input, boolean boolVariable) {
                       log.info("{}", %s);
+                  }
+
+                  boolean isSomething() {
+                      return true;
                   }
               }
               """, logArgument)
