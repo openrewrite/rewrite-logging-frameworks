@@ -73,9 +73,9 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
             J.MethodInvocation m = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
             if (
                     m.getSelect() != null &&
-                    (infoMatcher.matches(m) || debugMatcher.matches(m) || traceMatcher.matches(m)) &&
-                    !isInIfStatementWithLogLevelCheck(getCursor(), m) &&
-                    isAnyArgumentExpensive(m)
+                            (infoMatcher.matches(m) || debugMatcher.matches(m) || traceMatcher.matches(m)) &&
+                            !isInIfStatementWithLogLevelCheck(getCursor(), m) &&
+                            isAnyArgumentExpensive(m)
             ) {
                 J container = getCursor().getParentTreeCursor().getValue();
                 if (container instanceof J.Block) {
@@ -126,27 +126,28 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
                     .allMatch(
                             arg ->
                                     (arg instanceof J.MethodInvocation && isSimpleGetter((J.MethodInvocation) arg)) ||
-                                    arg instanceof J.Literal ||
-                                    arg instanceof J.Identifier ||
-                                    (arg instanceof J.Binary && isOnlyLiterals((J.Binary) arg))
+                                            arg instanceof J.Literal ||
+                                            arg instanceof J.Identifier ||
+                                            (arg instanceof J.Binary && isOnlyLiterals((J.Binary) arg))
                     );
         }
 
         private static boolean isSimpleGetter(J.MethodInvocation mi) {
             return (
-                           (mi.getSimpleName().startsWith("get") && mi.getSimpleName().length() > 3) ||
-                           (mi.getSimpleName().startsWith("is") && mi.getSimpleName().length() > 2)
-                   ) &&
-                   mi.getMethodType().getParameterNames().isEmpty() &&
-                   (
-                           (mi.getSelect() == null || mi.getSelect() instanceof J.Identifier) &&
-                           !mi.getMethodType().hasFlags(Flag.Static)
-                   );
+                    (mi.getSimpleName().startsWith("get") && mi.getSimpleName().length() > 3) ||
+                            (mi.getSimpleName().startsWith("is") && mi.getSimpleName().length() > 2)
+            ) &&
+                    mi.getMethodType() != null &&
+                    mi.getMethodType().getParameterNames().isEmpty() &&
+                    (
+                            (mi.getSelect() == null || mi.getSelect() instanceof J.Identifier) &&
+                                    !mi.getMethodType().hasFlags(Flag.Static)
+                    );
         }
 
         private static boolean isOnlyLiterals(J.Binary binary) {
             return isLiteralOrBinary(binary.getLeft()) &&
-                   isLiteralOrBinary(binary.getRight());
+                    isLiteralOrBinary(binary.getRight());
         }
 
         private static boolean isLiteralOrBinary(J expression) {
@@ -170,15 +171,14 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
             }
             return false;
         }
+
         private static boolean isBooleanIdentifier(J expression) {
             return expression instanceof J.Identifier && isTypeBoolean(((J.Identifier) expression).getType());
         }
 
-        private static boolean isTypeBoolean(JavaType type) {
-            return type == JavaType.Primitive.Boolean ||
-                   (type instanceof JavaType.FullyQualified && "java.lang.Boolean".equals(((JavaType.FullyQualified) type).getFullyQualifiedName()));
+        private static boolean isTypeBoolean(@Nullable JavaType type) {
+            return type == JavaType.Primitive.Boolean || TypeUtils.isAssignableTo("java.lang.Boolean", type);
         }
-
     }
 
     @EqualsAndHashCode(callSuper = false)
