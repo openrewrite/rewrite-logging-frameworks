@@ -74,10 +74,10 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
         public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation m = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
             if (
-                    m.getSelect() != null
-                    && (infoMatcher.matches(m) || debugMatcher.matches(m) || traceMatcher.matches(m))
-                    && !isInIfStatementWithLogLevelCheck(getCursor(), m)
-                    && isAnyArgumentExpensive(m)
+                    m.getSelect() != null &&
+                    (infoMatcher.matches(m) || debugMatcher.matches(m) || traceMatcher.matches(m)) &&
+                    !isInIfStatementWithLogLevelCheck(getCursor(), m) &&
+                    isAnyArgumentExpensive(m)
             ) {
                 J container = getCursor().getParentTreeCursor().getValue();
                 if (container instanceof J.Block) {
