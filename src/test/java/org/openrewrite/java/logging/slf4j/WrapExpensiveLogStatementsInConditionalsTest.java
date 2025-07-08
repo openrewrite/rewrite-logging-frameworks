@@ -18,6 +18,7 @@ package org.openrewrite.java.logging.slf4j;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
@@ -577,6 +578,115 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
                   }
               }
               """
+          )
+        );
+    }
+
+    @ValueSource(strings = {
+      "notAGetter()", // not a getter
+      "new A()", // allocating a new object
+      "new A().getClass()", // allocating a new object first
+      "input.getBytes(StandardCharsets.UTF_16)", // getter with an argument
+      "getClass().getName()", // getter on a method invocation expression
+      "optional.get()", // not a getter
+      "A.getExpensive()", // static getter likely to use external resources or allocate things
+      "getExpensive()", // static getter likely to use external resources or allocate things
+      "342 + input", // allocating a new string
+      "\"foo\" + getClass()", // allocating a new string
+      "true && isSomething(1)" // boolean getter with an argument
+    })
+    @ParameterizedTest
+    void wrapWhenExpensiveArgument(String logArgument) {
+        //language=java
+        rewriteRun(
+          java(
+            String.format("""
+              import java.nio.charset.StandardCharsets;
+              import java.util.Optional;
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger log, String input, Optional<String> optional, boolean boolVariable) {
+                      log.info("{}", %s);
+                  }
+
+                  String notAGetter() {
+                      return "property";
+                  }
+
+                  static String getExpensive() {
+                      return "expensive";
+                  }
+
+                  boolean isSomething(int i) {
+                      return true;
+                  }
+              }
+              """, logArgument),
+            String.format("""
+              import java.nio.charset.StandardCharsets;
+              import java.util.Optional;
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger log, String input, Optional<String> optional, boolean boolVariable) {
+                      if (log.isInfoEnabled()) {
+                          log.info("{}", %s);
+                      }
+                  }
+
+                  String notAGetter() {
+                      return "property";
+                  }
+
+                  static String getExpensive() {
+                      return "expensive";
+                  }
+
+                  boolean isSomething(int i) {
+                      return true;
+                  }
+              }
+              """, logArgument)
+          )
+        );
+    }
+
+    @ValueSource(strings = {
+      "input", // identifier alone
+      "getClass()", // a getter
+      "log.getName()", // a getter
+      "34 + 78", // literal
+      "8344", // literal
+      "\"like, literally!\"", // literal
+      "\"one\" + \"two\" + \"three\"", // compile time literal
+      "\"one\" + 1", // compile time literal
+      "true && false", // boolean literal
+      "true && isSomething()", // boolean literal and boolean getter
+      "true && boolVariable || isSomething()", // boolean literal and boolean variable
+      "field", // field identifier
+      "this.field", // field access
+    })
+    @ParameterizedTest
+    void dontWrapWhenCheapArgument(String logArgument) {
+        //language=java
+        rewriteRun(
+          java(
+            String.format("""
+              import org.slf4j.Logger;
+
+              class A {
+                  String field;
+
+                  void method(Logger log, String input, boolean boolVariable) {
+                      log.info("{}", %s);
+                  }
+
+                  boolean isSomething() {
+                      return true;
+                  }
+              }
+              """, logArgument)
           )
         );
     }
