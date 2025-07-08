@@ -71,12 +71,10 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
         @Override
         public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation m = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
-            if (
-                    m.getSelect() != null &&
-                            (infoMatcher.matches(m) || debugMatcher.matches(m) || traceMatcher.matches(m)) &&
-                            !isInIfStatementWithLogLevelCheck(getCursor(), m) &&
-                            isAnyArgumentExpensive(m)
-            ) {
+            if (m.getSelect() != null &&
+                    (infoMatcher.matches(m) || debugMatcher.matches(m) || traceMatcher.matches(m)) &&
+                    !isInIfStatementWithLogLevelCheck(getCursor(), m) &&
+                    isAnyArgumentExpensive(m)) {
                 J container = getCursor().getParentTreeCursor().getValue();
                 if (container instanceof J.Block) {
                     UUID id = container.getId();
@@ -116,59 +114,42 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
         }
 
         private boolean isAnyArgumentExpensive(J.MethodInvocation m) {
-            return !areAllArgumentsCheap(m);
-        }
-
-        private static boolean areAllArgumentsCheap(J.MethodInvocation m) {
             return m
                     .getArguments()
                     .stream()
-                    .allMatch(
-                            arg ->
-                                    (arg instanceof J.MethodInvocation && isSimpleGetter((J.MethodInvocation) arg)) ||
-                                            arg instanceof J.Literal ||
-                                            arg instanceof J.Identifier ||
-                                            arg instanceof J.FieldAccess ||
-                                            (arg instanceof J.Binary && isOnlyLiterals((J.Binary) arg))
+                    .anyMatch(arg ->
+                            !(arg instanceof J.MethodInvocation && isSimpleGetter((J.MethodInvocation) arg) ||
+                                    arg instanceof J.Literal ||
+                                    arg instanceof J.Identifier ||
+                                    arg instanceof J.FieldAccess ||
+                                    arg instanceof J.Binary && isOnlyLiterals((J.Binary) arg))
                     );
         }
 
         private static boolean isSimpleGetter(J.MethodInvocation mi) {
-            return (
-                    (mi.getSimpleName().startsWith("get") && mi.getSimpleName().length() > 3) ||
-                            (mi.getSimpleName().startsWith("is") && mi.getSimpleName().length() > 2)
-            ) &&
+            return ((mi.getSimpleName().startsWith("get") && mi.getSimpleName().length() > 3) ||
+                    (mi.getSimpleName().startsWith("is") && mi.getSimpleName().length() > 2)) &&
                     mi.getMethodType() != null &&
                     mi.getMethodType().getParameterNames().isEmpty() &&
-                    (
-                            (mi.getSelect() == null || mi.getSelect() instanceof J.Identifier) &&
-                                    !mi.getMethodType().hasFlags(Flag.Static)
-                    );
+                    ((mi.getSelect() == null || mi.getSelect() instanceof J.Identifier) &&
+                            !mi.getMethodType().hasFlags(Flag.Static));
         }
 
         private static boolean isOnlyLiterals(J.Binary binary) {
-            return isLiteralOrBinary(binary.getLeft()) &&
-                    isLiteralOrBinary(binary.getRight());
+            return isLiteralOrBinary(binary.getLeft()) && isLiteralOrBinary(binary.getRight());
         }
 
         private static boolean isLiteralOrBinary(J expression) {
-            if (expression instanceof J.Literal || isSimpleBooleanGetter(expression) || isBooleanIdentifier(expression)) {
-                return true;
-            } else if (expression instanceof J.Binary) {
-                return isOnlyLiterals((J.Binary) expression);
-            } else {
-                return false;
-            }
+            return expression instanceof J.Literal ||
+                    isSimpleBooleanGetter(expression) ||
+                    isBooleanIdentifier(expression) ||
+                    expression instanceof J.Binary && isOnlyLiterals((J.Binary) expression);
         }
 
         private static boolean isSimpleBooleanGetter(J expression) {
             if (expression instanceof J.MethodInvocation) {
                 J.MethodInvocation mi = (J.MethodInvocation) expression;
-                if (isSimpleGetter(mi) && mi.getMethodType() != null) {
-                    if (isTypeBoolean(mi.getMethodType().getReturnType())) {
-                        return true;
-                    }
-                }
+                return isSimpleGetter(mi) && mi.getMethodType() != null && isTypeBoolean(mi.getMethodType().getReturnType());
             }
             return false;
         }
