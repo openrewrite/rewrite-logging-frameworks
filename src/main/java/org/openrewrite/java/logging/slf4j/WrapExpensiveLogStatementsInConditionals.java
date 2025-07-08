@@ -128,6 +128,7 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
                                     (arg instanceof J.MethodInvocation && isSimpleGetter((J.MethodInvocation) arg)) ||
                                             arg instanceof J.Literal ||
                                             arg instanceof J.Identifier ||
+                                            arg instanceof J.FieldAccess ||
                                             (arg instanceof J.Binary && isOnlyLiterals((J.Binary) arg))
                     );
         }

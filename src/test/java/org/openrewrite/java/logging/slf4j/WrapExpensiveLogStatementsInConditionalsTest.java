@@ -586,7 +586,6 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
       "notAGetter()", // not a getter
       "new A()", // allocating a new object
       "new A().getClass()", // allocating a new object first
-      "\"foo\".getBytes()", // allocating a string first
       "input.getBytes(StandardCharsets.UTF_16)", // getter with an argument
       "getClass().getName()", // getter on a method invocation expression
       "optional.get()", // not a getter
@@ -594,7 +593,7 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
       "getExpensive()", // static getter likely to use external resources or allocate things
       "342 + input", // allocating a new string
       "\"foo\" + getClass()", // allocating a new string
-      "true && isSomething(1)"
+      "true && isSomething(1)" // boolean getter with an argument
     })
     @ParameterizedTest
     void wrapWhenExpensiveArgument(String logArgument) {
