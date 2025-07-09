@@ -103,7 +103,7 @@ public class SystemErrToLogging extends Recipe {
                     } else if (stat instanceof J.MethodInvocation) {
                         J.MethodInvocation m = (J.MethodInvocation) stat;
                         if (systemErrPrint.matches((Expression) stat)) {
-                            if (m.getSelect() != null && m.getSelect() instanceof J.FieldAccess) {
+                            if (m.getSelect() instanceof J.FieldAccess) {
                                 JavaType.Variable field = ((J.FieldAccess) m.getSelect()).getName().getFieldType();
                                 if (field != null && "err".equals(field.getName()) && TypeUtils.isOfClassType(field.getOwner(), "java.lang.System")) {
                                     Expression exceptionPrintStackTrace = null;
@@ -132,7 +132,7 @@ public class SystemErrToLogging extends Recipe {
                 J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
                 if (systemErrPrint.matches((Expression) method)) {
                     if (getCursor().getParentOrThrow().getValue() instanceof J.Lambda) {
-                        if (m.getSelect() != null && m.getSelect() instanceof J.FieldAccess) {
+                        if (m.getSelect() instanceof J.FieldAccess) {
                             JavaType.Variable field = ((J.FieldAccess) m.getSelect()).getName().getFieldType();
                             if (field != null && "err".equals(field.getName()) && TypeUtils.isOfClassType(field.getOwner(), "java.lang.System")) {
                                 Cursor printCursor = new Cursor(getCursor().getParent(), m);

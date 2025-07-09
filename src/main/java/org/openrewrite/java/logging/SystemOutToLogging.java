@@ -82,7 +82,7 @@ public class SystemOutToLogging extends Recipe {
                 J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
                 Cursor cursor = updateCursor(m);
                 if (systemOutPrint.matches((Expression) method)) {
-                    if (m.getSelect() != null && m.getSelect() instanceof J.FieldAccess) {
+                    if (m.getSelect() instanceof J.FieldAccess) {
                         JavaType.Variable field = ((J.FieldAccess) m.getSelect()).getName().getFieldType();
                         if (field != null && "out".equals(field.getName()) && TypeUtils.isOfClassType(field.getOwner(), "java.lang.System")) {
                             return logInsteadOfPrint(cursor, ctx);
