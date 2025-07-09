@@ -582,6 +582,7 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
         );
     }
 
+    @ParameterizedTest
     @ValueSource(strings = {
       "notAGetter()", // not a getter
       "new A()", // allocating a new object
@@ -595,7 +596,6 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
       "\"foo\" + getClass()", // allocating a new string
       "true && isSomething(1)" // boolean getter with an argument
     })
-    @ParameterizedTest
     void wrapWhenExpensiveArgument(String logArgument) {
         //language=java
         rewriteRun(
@@ -652,6 +652,7 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
         );
     }
 
+    @ParameterizedTest
     @ValueSource(strings = {
       "input", // identifier alone
       "getClass()", // a getter
@@ -667,7 +668,6 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
       "field", // field identifier
       "this.field", // field access
     })
-    @ParameterizedTest
     void dontWrapWhenCheapArgument(String logArgument) {
         //language=java
         rewriteRun(
