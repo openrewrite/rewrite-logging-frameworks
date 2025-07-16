@@ -27,7 +27,7 @@ class ConfigureLoggerLevelTest implements RewriteTest {
     @Test
     void editExistingLogger() {
         rewriteRun(
-          spec -> spec.recipe(new ConfigureLoggerLevel("org.springframework", ConfigureLoggerLevel.LogLevel.off)),
+          spec -> spec.recipe(new ConfigureLoggerLevel("org.springframework", ConfigureLoggerLevel.LogLevel.off, null)),
           xml(//language=xml
             """
               <configuration>
@@ -67,7 +67,7 @@ class ConfigureLoggerLevelTest implements RewriteTest {
     @Test
     void addNewLogger() {
         rewriteRun(
-            spec -> spec.recipe(new ConfigureLoggerLevel("com.example.MyClass", ConfigureLoggerLevel.LogLevel.off)),
+            spec -> spec.recipe(new ConfigureLoggerLevel("com.example.MyClass", ConfigureLoggerLevel.LogLevel.off, null)),
           xml(//language=xml
             """
               <configuration>
@@ -102,6 +102,47 @@ class ConfigureLoggerLevelTest implements RewriteTest {
               </configuration>
               """,
             spec -> spec.path("logback.xml"))
+        );
+    }
+
+    @Test
+    void logbackSpring() {
+        rewriteRun(
+          spec -> spec.recipe(new ConfigureLoggerLevel("com.example.MyClass", ConfigureLoggerLevel.LogLevel.off, "**/logback-spring.xml")),
+          xml(//language=xml
+            """
+              <configuration>
+                  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+                      <layout class="ch.qos.logback.classic.PatternLayout">
+                          <Pattern>
+                              %d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n
+                          </Pattern>
+                      </layout>
+                  </appender>
+
+                  <logger name="org.springframework" level="error" additivity="false">
+                      <appender-ref ref="STDOUT" />
+                  </logger>
+              </configuration>
+              """,
+            //language=xml
+            """
+              <configuration>
+                  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+                      <layout class="ch.qos.logback.classic.PatternLayout">
+                          <Pattern>
+                              %d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n
+                          </Pattern>
+                      </layout>
+                  </appender>
+
+                  <logger name="org.springframework" level="error" additivity="false">
+                      <appender-ref ref="STDOUT" />
+                  </logger>
+                  <logger name="com.example.MyClass" level="off"/>
+              </configuration>
+              """,
+            spec -> spec.path("logback-spring.xml"))
         );
     }
 }
