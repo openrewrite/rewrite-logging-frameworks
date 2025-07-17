@@ -1125,15 +1125,6 @@ class ParameterizedLoggingTest implements RewriteTest {
                       logger.info(String.format("User %s has %d items (%.2f%% of total)", name, count, percentage));
                   }
               }
-              """,
-            """
-              import org.slf4j.Logger;
-
-              class Test {
-                  static void method(Logger logger, String name, int count, double percentage) {
-                      logger.info("User {} has {} items ({}% of total)", name, count, percentage);
-                  }
-              }
               """
           )
         );
@@ -1250,6 +1241,54 @@ class ParameterizedLoggingTest implements RewriteTest {
               class Test {
                   static void method(Logger logger, Object obj) {
                       logger.info("Object is: {}", obj);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotConvertStringFormatWithPrecision() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  static void method(Logger logger, double value) {
+                      logger.info(String.format("Value is %.2f", value));
+                      logger.info("Value is %.4f".formatted(value));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void convertStringFormatWithoutPrecision() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  static void method(Logger logger, String name, int count) {
+                      logger.info(String.format("User %s has %d items", name, count));
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  static void method(Logger logger, String name, int count) {
+                      logger.info("User {} has {} items", name, count);
                   }
               }
               """

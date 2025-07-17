@@ -198,6 +198,11 @@ public class ParameterizedLogging extends Recipe {
                     return logMethod;
                 }
 
+                // Check if format string contains precision specifiers
+                if (containsPrecisionSpecifier(format)) {
+                    return logMethod;
+                }
+
                 // Get format arguments (skip the format string itself)
                 List<Expression> formatArgs = formatCall.getArguments().subList(1, formatCall.getArguments().size());
                 return buildParameterizedLogMethod(logMethod, format, formatArgs, logMsgIndex, ctx);
@@ -213,7 +218,17 @@ public class ParameterizedLogging extends Recipe {
                     return logMethod;
                 }
 
+                // Check if format string contains precision specifiers
+                if (containsPrecisionSpecifier(format)) {
+                    return logMethod;
+                }
+
                 return buildParameterizedLogMethod(logMethod, format, formattedCall.getArguments(), logMsgIndex, ctx);
+            }
+
+            private boolean containsPrecisionSpecifier(String format) {
+                // Check for format specifiers with precision (e.g., %.2f, %.4g)
+                return format.matches(".*%[\\-#+ 0,(]*\\d*\\.\\d+[hlL]?[eEfFgGaA].*");
             }
 
             private J.MethodInvocation buildParameterizedLogMethod(J.MethodInvocation logMethod, String format,
