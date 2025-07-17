@@ -520,6 +520,7 @@ examples:
   parameters:
   - org.springframework
   - ConfigureLoggerLevel.LogLevel.off
+  - 'null'
   sources:
   - before: |
       <configuration>
