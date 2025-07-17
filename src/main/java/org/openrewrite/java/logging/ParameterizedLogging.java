@@ -81,12 +81,35 @@ public class ParameterizedLogging extends Recipe {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
-                if (matcher.matches(m) && !m.getArguments().isEmpty() && !(m.getArguments().get(0) instanceof J.Empty) && m.getArguments().size() <= 2) {
+                if (matcher.matches(m) && !m.getArguments().isEmpty() && !(m.getArguments().get(0) instanceof J.Empty)) {
                     final int logMsgIndex = isMarker(m.getArguments().get(0)) ? 1 : 0;
+                    // Only process if we have at most 2 arguments after accounting for marker
+                    if (m.getArguments().size() - logMsgIndex > 2) {
+                        return m;
+                    }
                     Expression logMsg = m.getArguments().get(logMsgIndex);
                     if (logMsg instanceof J.Binary) {
                         StringBuilder messageBuilder = new StringBuilder();
                         List<Expression> newArgList = new ArrayList<>();
+                        List<Expression> concatenationArgs = new ArrayList<>();
+                        List<Expression> regularArgs = new ArrayList<>();
+                        Expression possibleThrowable = null;
+                        
+                        // First, process all arguments
+                        for (int i = 0; i < m.getArguments().size(); i++) {
+                            Expression arg = m.getArguments().get(i);
+                            if (i == logMsgIndex && arg instanceof J.Binary) {
+                                MessageAndArguments literalAndArgs = concatenationToLiteral(arg, new MessageAndArguments("", new ArrayList<>()));
+                                concatenationArgs.addAll(literalAndArgs.arguments);
+                            } else if (i == m.getArguments().size() - 1 && 
+                                       TypeUtils.isAssignableTo("java.lang.Throwable", arg.getType())) {
+                                possibleThrowable = arg;
+                            } else {
+                                regularArgs.add(arg);
+                            }
+                        }
+                        
+                        // Build the message template
                         ListUtils.map(m.getArguments(), (index, message) -> {
                             if (index > 0) {
                                 messageBuilder.append(", ");
@@ -97,13 +120,19 @@ public class ParameterizedLogging extends Recipe {
                                 messageBuilder.append(literalAndArgs.message);
                                 messageBuilder.append("\"");
                                 literalAndArgs.arguments.forEach(arg -> messageBuilder.append(", #{any()}"));
-                                newArgList.addAll(literalAndArgs.arguments);
                             } else {
                                 messageBuilder.append("#{any()}");
-                                newArgList.add(message);
                             }
                             return message;
                         });
+                        
+                        // Assemble arguments in correct order: regular args, concatenation args, throwable (if any)
+                        newArgList.addAll(regularArgs);
+                        newArgList.addAll(concatenationArgs);
+                        if (possibleThrowable != null) {
+                            newArgList.add(possibleThrowable);
+                        }
+                        
                         m = JavaTemplate.builder(escapeDollarSign(messageBuilder.toString()))
                                 .build()
                                 .apply(new Cursor(getCursor().getParent(), m), m.getCoordinates().replaceArguments(), newArgList.toArray());

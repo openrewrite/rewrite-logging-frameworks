@@ -864,6 +864,95 @@ class ParameterizedLoggingTest implements RewriteTest {
         );
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/236")
+    @Test
+    void preserveArgumentOrderWhenMixingConcatenationAndParameters() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  static void method(Logger logger, String esHost, String[] indexPrefix) {
+                      logger.info("Some logging {} with string concatenation: " + String.join(",", indexPrefix), esHost);
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  static void method(Logger logger, String esHost, String[] indexPrefix) {
+                      logger.info("Some logging {} with string concatenation: {}", esHost, String.join(",", indexPrefix));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/236")
+    @Test
+    void preserveArgumentOrderWithMarkerAndMixedConcatenation() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.Marker;
+
+              class Test {
+                  static void method(Logger logger, Marker marker, String param1, String param2) {
+                      logger.info(marker, "Message with {} and concat: " + param2, param1);
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.Marker;
+
+              class Test {
+                  static void method(Logger logger, Marker marker, String param1, String param2) {
+                      logger.info(marker, "Message with {} and concat: {}", param1, param2);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/236")
+    @Test
+    void preserveArgumentOrderWithMultipleConcatenations() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  static void method(Logger logger, String existing, String part1, String part2) {
+                      logger.info("Existing param {} with concat: " + part1 + " and " + part2, existing);
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  static void method(Logger logger, String existing, String part1, String part2) {
+                      logger.info("Existing param {} with concat: {} and {}", existing, part1, part2);
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Test
     void returnsAnonymousClassThatUsesLoggerInMethodImplementation() {
         rewriteRun(
