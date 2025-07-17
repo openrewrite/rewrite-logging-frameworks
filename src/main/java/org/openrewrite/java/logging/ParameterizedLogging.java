@@ -75,6 +75,8 @@ public class ParameterizedLogging extends Recipe {
                 Preconditions.not(new KotlinFileChecker<>()),
                 Preconditions.not(new GroovyFileChecker<>()));
         return Preconditions.check(preconditions, new JavaIsoVisitor<ExecutionContext>() {
+            private final MethodMatcher STRING_FORMAT = new MethodMatcher("java.lang.String format(..)");
+            private final MethodMatcher FORMATTED = new MethodMatcher("java.lang.String formatted(..)");
             private final MethodMatcher matcher = new MethodMatcher(methodPattern, true);
             private final RemoveToStringVisitor removeToStringVisitor = new RemoveToStringVisitor();
 
@@ -88,6 +90,17 @@ public class ParameterizedLogging extends Recipe {
                         return m;
                     }
                     Expression logMsg = m.getArguments().get(logMsgIndex);
+
+                    // Handle String.format() calls
+                    if (logMsg instanceof J.MethodInvocation) {
+                        J.MethodInvocation formatCall = (J.MethodInvocation) logMsg;
+                        if (STRING_FORMAT.matches(formatCall)) {
+                            return handleStringFormat(m, formatCall, logMsgIndex, ctx);
+                        } else if (FORMATTED.matches(formatCall)) {
+                            return handleFormattedMethod(m, formatCall, logMsgIndex, ctx);
+                        }
+                    }
+
                     if (logMsg instanceof J.Binary) {
                         StringBuilder messageBuilder = new StringBuilder();
                         List<Expression> newArgList = new ArrayList<>();
@@ -169,6 +182,125 @@ public class ParameterizedLogging extends Recipe {
                 JavaType expressionType = expression.getType();
                 return TypeUtils.isAssignableTo("org.slf4j.Marker", expressionType) ||
                        TypeUtils.isAssignableTo("org.apache.logging.log4j.Marker", expressionType);
+            }
+
+            private J.MethodInvocation handleStringFormat(J.MethodInvocation logMethod, J.MethodInvocation formatCall, int logMsgIndex, ExecutionContext ctx) {
+                if (formatCall.getArguments().isEmpty()) {
+                    return logMethod;
+                }
+
+                Expression formatString = formatCall.getArguments().get(0);
+                if (!(formatString instanceof J.Literal) || !TypeUtils.isString(formatString.getType())) {
+                    return logMethod;
+                }
+
+                J.Literal formatLiteral = (J.Literal) formatString;
+                String format = (String) formatLiteral.getValue();
+                if (format == null) {
+                    return logMethod;
+                }
+
+                // Convert String.format placeholders to SLF4J placeholders
+                String slf4jFormat = convertFormatToSlf4j(format);
+
+                // Build template string and arguments list
+                StringBuilder messageBuilder = new StringBuilder();
+                List<Expression> newArgList = new ArrayList<>();
+
+                // Add marker if present
+                if (logMsgIndex == 1) {
+                    messageBuilder.append("#{any()}, ");
+                    newArgList.add(logMethod.getArguments().get(0));
+                }
+
+                // Add converted format string
+                messageBuilder.append("\"").append(slf4jFormat).append("\"");
+
+                // Add format arguments (skip the format string itself)
+                for (int i = 1; i < formatCall.getArguments().size(); i++) {
+                    messageBuilder.append(", #{any()}");
+                    newArgList.add(formatCall.getArguments().get(i));
+                }
+
+                // Add any remaining arguments from the original log method (e.g., throwable)
+                for (int i = logMsgIndex + 1; i < logMethod.getArguments().size(); i++) {
+                    messageBuilder.append(", #{any()}");
+                    newArgList.add(logMethod.getArguments().get(i));
+                }
+
+                J.MethodInvocation result = JavaTemplate.builder(escapeDollarSign(messageBuilder.toString()))
+                        .build()
+                        .apply(new Cursor(getCursor().getParent(), logMethod), logMethod.getCoordinates().replaceArguments(), newArgList.toArray());
+
+                if (Boolean.TRUE.equals(removeToString)) {
+                    result = result.withArguments(ListUtils.map(result.getArguments(), arg -> (Expression) removeToStringVisitor.visitNonNull(arg, ctx, getCursor())));
+                }
+
+                return result;
+            }
+
+            private J.MethodInvocation handleFormattedMethod(J.MethodInvocation logMethod, J.MethodInvocation formattedCall, int logMsgIndex, ExecutionContext ctx) {
+                Expression select = formattedCall.getSelect();
+                if (!(select instanceof J.Literal) || !TypeUtils.isString(select.getType())) {
+                    return logMethod;
+                }
+
+                J.Literal formatLiteral = (J.Literal) select;
+                String format = (String) formatLiteral.getValue();
+                if (format == null) {
+                    return logMethod;
+                }
+
+                // Convert String.format placeholders to SLF4J placeholders
+                String slf4jFormat = convertFormatToSlf4j(format);
+
+                // Build template string and arguments list
+                StringBuilder messageBuilder = new StringBuilder();
+                List<Expression> newArgList = new ArrayList<>();
+
+                // Add marker if present
+                if (logMsgIndex == 1) {
+                    messageBuilder.append("#{any()}, ");
+                    newArgList.add(logMethod.getArguments().get(0));
+                }
+
+                // Add converted format string
+                messageBuilder.append("\"").append(slf4jFormat).append("\"");
+
+                // Add format arguments
+                for (Expression arg : formattedCall.getArguments()) {
+                    messageBuilder.append(", #{any()}");
+                    newArgList.add(arg);
+                }
+
+                // Add any remaining arguments from the original log method (e.g., throwable)
+                for (int i = logMsgIndex + 1; i < logMethod.getArguments().size(); i++) {
+                    messageBuilder.append(", #{any()}");
+                    newArgList.add(logMethod.getArguments().get(i));
+                }
+
+                J.MethodInvocation result = JavaTemplate.builder(escapeDollarSign(messageBuilder.toString()))
+                        .build()
+                        .apply(new Cursor(getCursor().getParent(), logMethod), logMethod.getCoordinates().replaceArguments(), newArgList.toArray());
+
+                if (Boolean.TRUE.equals(removeToString)) {
+                    result = result.withArguments(ListUtils.map(result.getArguments(), arg -> (Expression) removeToStringVisitor.visitNonNull(arg, ctx, getCursor())));
+                }
+
+                return result;
+            }
+
+            private String convertFormatToSlf4j(String format) {
+                // First replace %% with a placeholder to preserve literal %
+                String result = format.replace("%%", "\u0001");
+
+                // Replace format specifiers with {}
+                result = result.replaceAll("%[\\-#+ 0,(]*\\d*(\\.\\d+)?[hlL]?[diouxXeEfFgGaAcspn]", "{}");
+
+                // Restore literal % symbols
+                result = result.replace("\u0001", "%");
+
+                return result;
             }
         });
     }

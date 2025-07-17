@@ -1080,4 +1080,180 @@ class ParameterizedLoggingTest implements RewriteTest {
             )
         );
     }
+
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/149")
+    @Test
+    void stringFormatToParameterized() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger debug(..)", false)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  static void method(Logger logger, String annotation, String subtype) {
+                      logger.debug(String.format("Could not parse the FileAnnotation %s into %s", annotation, subtype));
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  static void method(Logger logger, String annotation, String subtype) {
+                      logger.debug("Could not parse the FileAnnotation {} into {}", annotation, subtype);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/149")
+    @Test
+    void stringFormatWithMultipleFormats() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  static void method(Logger logger, String name, int count, double percentage) {
+                      logger.info(String.format("User %s has %d items (%.2f%% of total)", name, count, percentage));
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  static void method(Logger logger, String name, int count, double percentage) {
+                      logger.info("User {} has {} items ({}% of total)", name, count, percentage);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/149")
+    @Test
+    void formattedToParameterized() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger debug(..)", false)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  static void method(Logger logger, String annotation, String subtype) {
+                      logger.debug("Could not parse the FileAnnotation %s into %s".formatted(annotation, subtype));
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  static void method(Logger logger, String annotation, String subtype) {
+                      logger.debug("Could not parse the FileAnnotation {} into {}", annotation, subtype);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/149")
+    @Test
+    void stringFormatWithThrowable() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger error(..)", false)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  static void method(Logger logger, String operation, Exception ex) {
+                      logger.error(String.format("Failed to complete %s", operation), ex);
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  static void method(Logger logger, String operation, Exception ex) {
+                      logger.error("Failed to complete {}", operation, ex);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/149")
+    @Test
+    void stringFormatWithMarker() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.Marker;
+
+              class Test {
+                  static void method(Logger logger, Marker marker, String user, String action) {
+                      logger.info(marker, String.format("User %s performed action %s", user, action));
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.Marker;
+
+              class Test {
+                  static void method(Logger logger, Marker marker, String user, String action) {
+                      logger.info(marker, "User {} performed action {}", user, action);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/149")
+    @Test
+    void formattedWithRemoveToString() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", true)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  static void method(Logger logger, Object obj) {
+                      logger.info("Object is: %s".formatted(obj.toString()));
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  static void method(Logger logger, Object obj) {
+                      logger.info("Object is: {}", obj);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
