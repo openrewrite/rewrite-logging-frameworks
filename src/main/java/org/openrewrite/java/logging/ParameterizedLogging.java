@@ -194,49 +194,18 @@ public class ParameterizedLogging extends Recipe {
                     return logMethod;
                 }
 
-                J.Literal formatLiteral = (J.Literal) formatString;
-                String format = (String) formatLiteral.getValue();
+                String format = (String) ((J.Literal) formatString).getValue();
                 if (format == null) {
                     return logMethod;
                 }
 
-                // Convert String.format placeholders to SLF4J placeholders
-                String slf4jFormat = convertFormatToSlf4j(format);
-
-                // Build template string and arguments list
-                StringBuilder messageBuilder = new StringBuilder();
-                List<Expression> newArgList = new ArrayList<>();
-
-                // Add marker if present
-                if (logMsgIndex == 1) {
-                    messageBuilder.append("#{any()}, ");
-                    newArgList.add(logMethod.getArguments().get(0));
-                }
-
-                // Add converted format string
-                messageBuilder.append("\"").append(slf4jFormat).append("\"");
-
-                // Add format arguments (skip the format string itself)
+                // Get format arguments (skip the format string itself)
+                List<Expression> formatArgs = new ArrayList<>();
                 for (int i = 1; i < formatCall.getArguments().size(); i++) {
-                    messageBuilder.append(", #{any()}");
-                    newArgList.add(formatCall.getArguments().get(i));
+                    formatArgs.add(formatCall.getArguments().get(i));
                 }
 
-                // Add any remaining arguments from the original log method (e.g., throwable)
-                for (int i = logMsgIndex + 1; i < logMethod.getArguments().size(); i++) {
-                    messageBuilder.append(", #{any()}");
-                    newArgList.add(logMethod.getArguments().get(i));
-                }
-
-                J.MethodInvocation result = JavaTemplate.builder(escapeDollarSign(messageBuilder.toString()))
-                        .build()
-                        .apply(new Cursor(getCursor().getParent(), logMethod), logMethod.getCoordinates().replaceArguments(), newArgList.toArray());
-
-                if (Boolean.TRUE.equals(removeToString)) {
-                    result = result.withArguments(ListUtils.map(result.getArguments(), arg -> (Expression) removeToStringVisitor.visitNonNull(arg, ctx, getCursor())));
-                }
-
-                return result;
+                return buildParameterizedLogMethod(logMethod, format, formatArgs, logMsgIndex, ctx);
             }
 
             private J.MethodInvocation handleFormattedMethod(J.MethodInvocation logMethod, J.MethodInvocation formattedCall, int logMsgIndex, ExecutionContext ctx) {
@@ -245,12 +214,16 @@ public class ParameterizedLogging extends Recipe {
                     return logMethod;
                 }
 
-                J.Literal formatLiteral = (J.Literal) select;
-                String format = (String) formatLiteral.getValue();
+                String format = (String) ((J.Literal) select).getValue();
                 if (format == null) {
                     return logMethod;
                 }
 
+                return buildParameterizedLogMethod(logMethod, format, formattedCall.getArguments(), logMsgIndex, ctx);
+            }
+
+            private J.MethodInvocation buildParameterizedLogMethod(J.MethodInvocation logMethod, String format, 
+                    List<Expression> formatArgs, int logMsgIndex, ExecutionContext ctx) {
                 // Convert String.format placeholders to SLF4J placeholders
                 String slf4jFormat = convertFormatToSlf4j(format);
 
@@ -268,7 +241,7 @@ public class ParameterizedLogging extends Recipe {
                 messageBuilder.append("\"").append(slf4jFormat).append("\"");
 
                 // Add format arguments
-                for (Expression arg : formattedCall.getArguments()) {
+                for (Expression arg : formatArgs) {
                     messageBuilder.append(", #{any()}");
                     newArgList.add(arg);
                 }
