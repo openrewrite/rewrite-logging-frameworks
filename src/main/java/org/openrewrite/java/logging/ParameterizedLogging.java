@@ -94,21 +94,21 @@ public class ParameterizedLogging extends Recipe {
                         List<Expression> concatenationArgs = new ArrayList<>();
                         List<Expression> regularArgs = new ArrayList<>();
                         Expression possibleThrowable = null;
-                        
+
                         // First, process all arguments
-                        for (int i = 0; i < m.getArguments().size(); i++) {
-                            Expression arg = m.getArguments().get(i);
-                            if (i == logMsgIndex && arg instanceof J.Binary) {
+                        for (int index = 0; index < m.getArguments().size(); index++) {
+                            Expression arg = m.getArguments().get(index);
+                            if (index == logMsgIndex && arg instanceof J.Binary) {
                                 MessageAndArguments literalAndArgs = concatenationToLiteral(arg, new MessageAndArguments("", new ArrayList<>()));
                                 concatenationArgs.addAll(literalAndArgs.arguments);
-                            } else if (i == m.getArguments().size() - 1 && 
-                                       TypeUtils.isAssignableTo("java.lang.Throwable", arg.getType())) {
+                            } else if (index == m.getArguments().size() - 1 &&
+                                    TypeUtils.isAssignableTo("java.lang.Throwable", arg.getType())) {
                                 possibleThrowable = arg;
                             } else {
                                 regularArgs.add(arg);
                             }
                         }
-                        
+
                         // Build the message template
                         ListUtils.map(m.getArguments(), (index, message) -> {
                             if (index > 0) {
@@ -125,14 +125,14 @@ public class ParameterizedLogging extends Recipe {
                             }
                             return message;
                         });
-                        
+
                         // Assemble arguments in correct order: regular args, concatenation args, throwable (if any)
                         newArgList.addAll(regularArgs);
                         newArgList.addAll(concatenationArgs);
                         if (possibleThrowable != null) {
                             newArgList.add(possibleThrowable);
                         }
-                        
+
                         m = JavaTemplate.builder(escapeDollarSign(messageBuilder.toString()))
                                 .build()
                                 .apply(new Cursor(getCursor().getParent(), m), m.getCoordinates().replaceArguments(), newArgList.toArray());
