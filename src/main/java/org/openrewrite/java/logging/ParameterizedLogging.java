@@ -75,6 +75,8 @@ public class ParameterizedLogging extends Recipe {
                 Preconditions.not(new KotlinFileChecker<>()),
                 Preconditions.not(new GroovyFileChecker<>()));
         return Preconditions.check(preconditions, new JavaIsoVisitor<ExecutionContext>() {
+            private final MethodMatcher STRING_FORMAT = new MethodMatcher("java.lang.String format(..)");
+            private final MethodMatcher FORMATTED = new MethodMatcher("java.lang.String formatted(..)");
             private final MethodMatcher matcher = new MethodMatcher(methodPattern, true);
             private final RemoveToStringVisitor removeToStringVisitor = new RemoveToStringVisitor();
 
@@ -88,54 +90,19 @@ public class ParameterizedLogging extends Recipe {
                         return m;
                     }
                     Expression logMsg = m.getArguments().get(logMsgIndex);
+
+                    // Handle String.format() calls
+                    if (logMsg instanceof J.MethodInvocation) {
+                        J.MethodInvocation formatCall = (J.MethodInvocation) logMsg;
+                        if (STRING_FORMAT.matches(formatCall)) {
+                            return handleStringFormat(m, formatCall, logMsgIndex, ctx);
+                        } else if (FORMATTED.matches(formatCall)) {
+                            return handleFormattedMethod(m, formatCall, logMsgIndex, ctx);
+                        }
+                    }
+
                     if (logMsg instanceof J.Binary) {
-                        StringBuilder messageBuilder = new StringBuilder();
-                        List<Expression> newArgList = new ArrayList<>();
-                        List<Expression> concatenationArgs = new ArrayList<>();
-                        List<Expression> regularArgs = new ArrayList<>();
-                        Expression possibleThrowable = null;
-
-                        // First, process all arguments
-                        for (int index = 0; index < m.getArguments().size(); index++) {
-                            Expression arg = m.getArguments().get(index);
-                            if (index == logMsgIndex && arg instanceof J.Binary) {
-                                MessageAndArguments literalAndArgs = concatenationToLiteral(arg, new MessageAndArguments("", new ArrayList<>()));
-                                concatenationArgs.addAll(literalAndArgs.arguments);
-                            } else if (index == m.getArguments().size() - 1 &&
-                                    TypeUtils.isAssignableTo("java.lang.Throwable", arg.getType())) {
-                                possibleThrowable = arg;
-                            } else {
-                                regularArgs.add(arg);
-                            }
-                        }
-
-                        // Build the message template
-                        ListUtils.map(m.getArguments(), (index, message) -> {
-                            if (index > 0) {
-                                messageBuilder.append(", ");
-                            }
-                            if (index == logMsgIndex && message instanceof J.Binary) {
-                                messageBuilder.append("\"");
-                                MessageAndArguments literalAndArgs = concatenationToLiteral(message, new MessageAndArguments("", new ArrayList<>()));
-                                messageBuilder.append(literalAndArgs.message);
-                                messageBuilder.append("\"");
-                                literalAndArgs.arguments.forEach(arg -> messageBuilder.append(", #{any()}"));
-                            } else {
-                                messageBuilder.append("#{any()}");
-                            }
-                            return message;
-                        });
-
-                        // Assemble arguments in correct order: regular args, concatenation args, throwable (if any)
-                        newArgList.addAll(regularArgs);
-                        newArgList.addAll(concatenationArgs);
-                        if (possibleThrowable != null) {
-                            newArgList.add(possibleThrowable);
-                        }
-
-                        m = JavaTemplate.builder(escapeDollarSign(messageBuilder.toString()))
-                                .build()
-                                .apply(new Cursor(getCursor().getParent(), m), m.getCoordinates().replaceArguments(), newArgList.toArray());
+                        m = handleStringConcat(m, logMsgIndex);
                     } else if (logMsg instanceof J.Identifier && TypeUtils.isAssignableTo("java.lang.Throwable", logMsg.getType())) {
                         return m;
                     } else if (!TypeUtils.isString(logMsg.getType()) && logMsg.getType() instanceof JavaType.Class &&
@@ -168,7 +135,152 @@ public class ParameterizedLogging extends Recipe {
             private boolean isMarker(Expression expression) {
                 JavaType expressionType = expression.getType();
                 return TypeUtils.isAssignableTo("org.slf4j.Marker", expressionType) ||
-                       TypeUtils.isAssignableTo("org.apache.logging.log4j.Marker", expressionType);
+                        TypeUtils.isAssignableTo("org.apache.logging.log4j.Marker", expressionType);
+            }
+
+            private J.MethodInvocation handleStringConcat(J.MethodInvocation m, int logMsgIndex) {
+                StringBuilder messageBuilder = new StringBuilder();
+                List<Expression> newArgList = new ArrayList<>();
+                List<Expression> concatenationArgs = new ArrayList<>();
+                List<Expression> regularArgs = new ArrayList<>();
+                Expression possibleThrowable = null;
+
+                // First, process all arguments
+                for (int index = 0; index < m.getArguments().size(); index++) {
+                    Expression arg = m.getArguments().get(index);
+                    if (index == logMsgIndex && arg instanceof J.Binary) {
+                        MessageAndArguments literalAndArgs = concatenationToLiteral(arg, new MessageAndArguments("", new ArrayList<>()));
+                        concatenationArgs.addAll(literalAndArgs.arguments);
+                    } else if (index == m.getArguments().size() - 1 &&
+                            TypeUtils.isAssignableTo("java.lang.Throwable", arg.getType())) {
+                        possibleThrowable = arg;
+                    } else {
+                        regularArgs.add(arg);
+                    }
+                }
+
+                // Build the message template
+                ListUtils.map(m.getArguments(), (index, message) -> {
+                    if (index > 0) {
+                        messageBuilder.append(", ");
+                    }
+                    if (index == logMsgIndex && message instanceof J.Binary) {
+                        messageBuilder.append("\"");
+                        MessageAndArguments literalAndArgs = concatenationToLiteral(message, new MessageAndArguments("", new ArrayList<>()));
+                        messageBuilder.append(literalAndArgs.message);
+                        messageBuilder.append("\"");
+                        literalAndArgs.arguments.forEach(arg -> messageBuilder.append(", #{any()}"));
+                    } else {
+                        messageBuilder.append("#{any()}");
+                    }
+                    return message;
+                });
+
+                // Assemble arguments in correct order: regular args, concatenation args, throwable (if any)
+                newArgList.addAll(regularArgs);
+                newArgList.addAll(concatenationArgs);
+                if (possibleThrowable != null) {
+                    newArgList.add(possibleThrowable);
+                }
+
+                return JavaTemplate.builder(escapeDollarSign(messageBuilder.toString()))
+                        .build()
+                        .apply(new Cursor(getCursor().getParent(), m), m.getCoordinates().replaceArguments(), newArgList.toArray());
+            }
+
+            private J.MethodInvocation handleStringFormat(J.MethodInvocation logMethod, J.MethodInvocation formatCall, int logMsgIndex, ExecutionContext ctx) {
+                Expression formatString = formatCall.getArguments().get(0);
+                if (!(formatString instanceof J.Literal)) {
+                    return logMethod;
+                }
+                String format = (String) ((J.Literal) formatString).getValue();
+                if (format == null) {
+                    return logMethod;
+                }
+
+                // Check if format string contains precision or positional specifiers
+                if (containsPrecisionSpecifier(format) || containsPositionalSpecifier(format)) {
+                    return logMethod;
+                }
+
+                // Get format arguments (skip the format string itself)
+                List<Expression> formatArgs = formatCall.getArguments().subList(1, formatCall.getArguments().size());
+                return buildParameterizedLogMethod(logMethod, format, formatArgs, logMsgIndex, ctx);
+            }
+
+            private J.MethodInvocation handleFormattedMethod(J.MethodInvocation logMethod, J.MethodInvocation formattedCall, int logMsgIndex, ExecutionContext ctx) {
+                Expression select = formattedCall.getSelect();
+                if (!(select instanceof J.Literal)) {
+                    return logMethod;
+                }
+                String format = (String) ((J.Literal) select).getValue();
+                if (format == null) {
+                    return logMethod;
+                }
+
+                // Check if format string contains precision or positional specifiers
+                if (containsPrecisionSpecifier(format) || containsPositionalSpecifier(format)) {
+                    return logMethod;
+                }
+
+                return buildParameterizedLogMethod(logMethod, format, formattedCall.getArguments(), logMsgIndex, ctx);
+            }
+
+            private boolean containsPrecisionSpecifier(String format) {
+                // Check for format specifiers with precision (e.g., %.2f, %.4g)
+                return format.matches(".*%[\\-#+ 0,(]*\\d*\\.\\d+[hlL]?[eEfFgGaA].*");
+            }
+
+            private boolean containsPositionalSpecifier(String format) {
+                // Check for positional format specifiers (e.g., %1$s, %2$d)
+                return format.matches(".*%\\d+\\$.*");
+            }
+
+            private J.MethodInvocation buildParameterizedLogMethod(J.MethodInvocation logMethod, String format,
+                                                                   List<Expression> formatArgs, int logMsgIndex, ExecutionContext ctx) {
+                // Convert String.format placeholders to SLF4J placeholders
+                String slf4jFormat = format
+                        // First replace %% with a placeholder to preserve literal %
+                        .replace("%%", "\u0001")
+                        // Replace format specifiers with {}
+                        .replaceAll("%[\\-#+ 0,(]*\\d*(\\.\\d+)?[hlL]?[diouxXeEfFgGaAcspn]", "{}")
+                        // Restore literal % symbols
+                        .replace("\u0001", "%");
+
+                // Build template string and arguments list
+                StringBuilder messageBuilder = new StringBuilder();
+                List<Expression> newArgList = new ArrayList<>();
+
+                // Add marker if present
+                if (logMsgIndex == 1) {
+                    messageBuilder.append("#{any()}, ");
+                    newArgList.add(logMethod.getArguments().get(0));
+                }
+
+                // Add converted format string
+                messageBuilder.append("\"").append(slf4jFormat).append("\"");
+
+                // Add format arguments
+                for (Expression arg : formatArgs) {
+                    messageBuilder.append(", #{any()}");
+                    newArgList.add(arg);
+                }
+
+                // Add any remaining arguments from the original log method (e.g., throwable)
+                for (int i = logMsgIndex + 1; i < logMethod.getArguments().size(); i++) {
+                    messageBuilder.append(", #{any()}");
+                    newArgList.add(logMethod.getArguments().get(i));
+                }
+
+                J.MethodInvocation result = JavaTemplate.builder(escapeDollarSign(messageBuilder.toString()))
+                        .build()
+                        .apply(new Cursor(getCursor().getParent(), logMethod), logMethod.getCoordinates().replaceArguments(), newArgList.toArray());
+
+                if (Boolean.TRUE.equals(removeToString)) {
+                    result = result.withArguments(ListUtils.map(result.getArguments(), arg -> (Expression) removeToStringVisitor.visitNonNull(arg, ctx, getCursor())));
+                }
+
+                return result;
             }
         });
     }
