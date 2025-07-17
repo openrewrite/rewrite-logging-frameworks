@@ -198,8 +198,8 @@ public class ParameterizedLogging extends Recipe {
                     return logMethod;
                 }
 
-                // Check if format string contains precision specifiers
-                if (containsPrecisionSpecifier(format)) {
+                // Check if format string contains precision or positional specifiers
+                if (containsPrecisionSpecifier(format) || containsPositionalSpecifier(format)) {
                     return logMethod;
                 }
 
@@ -218,8 +218,8 @@ public class ParameterizedLogging extends Recipe {
                     return logMethod;
                 }
 
-                // Check if format string contains precision specifiers
-                if (containsPrecisionSpecifier(format)) {
+                // Check if format string contains precision or positional specifiers
+                if (containsPrecisionSpecifier(format) || containsPositionalSpecifier(format)) {
                     return logMethod;
                 }
 
@@ -229,6 +229,11 @@ public class ParameterizedLogging extends Recipe {
             private boolean containsPrecisionSpecifier(String format) {
                 // Check for format specifiers with precision (e.g., %.2f, %.4g)
                 return format.matches(".*%[\\-#+ 0,(]*\\d*\\.\\d+[hlL]?[eEfFgGaA].*");
+            }
+
+            private boolean containsPositionalSpecifier(String format) {
+                // Check for positional format specifiers (e.g., %1$s, %2$d)
+                return format.matches(".*%\\d+\\$.*");
             }
 
             private J.MethodInvocation buildParameterizedLogMethod(J.MethodInvocation logMethod, String format,

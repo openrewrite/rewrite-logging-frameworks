@@ -1269,7 +1269,29 @@ class ParameterizedLoggingTest implements RewriteTest {
     }
 
     @Test
-    void convertStringFormatWithoutPrecision() {
+    void doNotConvertStringFormatWithPositionalSpecifiers() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  static void method(Logger logger, String name) {
+                      logger.info(String.format("User %1$s has logged in. Welcome %1$s!", name));
+                  }
+                  static void method(Logger logger, int count, String type) {
+                      logger.info("Found %1$d items of type %2$s. Processing %1$d items now.".formatted(count, type));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void convertStringFormatWithoutPrecisionNorPosition() {
         rewriteRun(
           spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
           //language=java
