@@ -49,15 +49,6 @@ class Slf4jLogShouldBeConstantTest implements RewriteTest {
                       log.info(String.format("The first argument is '%d', and the second argument is '%.2f'.", 1, 2.3333));
                   }
               }
-              """,
-            """
-              import org.slf4j.Logger;
-              class A {
-                  Logger log;
-                  void method() {
-                      log.info("The first argument is '{}', and the second argument is '{}'.", 1, 2.3333);
-                  }
-              }
               """
           )
         );
@@ -372,4 +363,57 @@ class Slf4jLogShouldBeConstantTest implements RewriteTest {
         );
     }
 
+    @Test
+    void noChangeWithWidth() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+              class A {
+                  Logger log;
+                  void method() {
+                      log.info(String.format("%10s", "test"));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void noChangeWithLeftAlignment() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+              class A {
+                  Logger log;
+                  void method() {
+                      log.info(String.format("%-10s", "test"));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void noChangeWithPrecision() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+              class A {
+                  Logger log;
+                  void method() {
+                      log.info(String.format("%.2f", 1.2345));
+                  }
+              }
+              """
+          )
+        );
+    }
 }
