@@ -139,8 +139,8 @@ tags:
   - slf4j
 recipeList:
   - org.openrewrite.java.logging.slf4j.LoggersNamedForEnclosingClass
-  - org.openrewrite.java.logging.slf4j.ParameterizedLogging
   - org.openrewrite.java.logging.slf4j.Slf4jLogShouldBeConstant
+  - org.openrewrite.java.logging.slf4j.ParameterizedLogging
   - org.openrewrite.java.logging.slf4j.CompleteExceptionLogging
   - org.openrewrite.java.logging.CatchBlockLogLevel
   - org.openrewrite.java.logging.ChangeLoggersToPrivate
