@@ -88,6 +88,57 @@ public class JulParameterizedArguments extends Recipe {
             return new J.Literal(randomId(), Space.EMPTY, Markers.EMPTY, string, String.format("\"%s\"", string), null, JavaType.Primitive.String);
         }
 
+        /**
+         * Create a list of expression representing each element of an array
+         *
+         * @param arrayExpression Either a J.NewArray or a J.Identifier of an array
+         * @param indiceCount     size of the array
+         * @return A List of expression representing each item of the array. If the passed arrayExpression isn't of type J.NewArray or J.Identifier, the arrayExpression is returned alone in a list.
+         */
+        private static List<Expression> splitArrayToExpressions(Expression arrayExpression, int indiceCount) {
+            if (arrayExpression instanceof J.NewArray) {
+                final List<Expression> initializer = ((J.NewArray) arrayExpression).getInitializer();
+                if (initializer == null || initializer.isEmpty()) {
+                    return Collections.emptyList();
+                }
+                return initializer;
+            }
+            if (arrayExpression instanceof J.Identifier && arrayExpression.getType() instanceof JavaType.Array) {
+                List<Expression> arrayAccessExpr = new ArrayList<>(indiceCount);
+                for (int i = 0; i < indiceCount; i++) {
+                    arrayAccessExpr.add(
+                            new J.ArrayAccess(randomId(), Space.EMPTY, Markers.EMPTY, arrayExpression.withPrefix(Space.EMPTY),
+                                    new J.ArrayDimension(randomId(), Space.EMPTY, Markers.EMPTY,
+                                            new JRightPadded<>(
+                                                    new J.Literal(
+                                                            randomId(), Space.EMPTY, Markers.EMPTY, i, String.valueOf(i), null, JavaType.Primitive.Int
+                                                    ), Space.EMPTY, Markers.EMPTY
+                                            )
+                                    ), arrayExpression.getType()
+                            )
+                    );
+                }
+                return arrayAccessExpr;
+            }
+            return Collections.singletonList(arrayExpression);
+        }
+
+        private static String createTemplateString(String newName, List<Expression> targetArguments) {
+            List<String> targetArgumentsStrings = new ArrayList<>();
+            targetArguments.forEach(targetArgument -> targetArgumentsStrings.add("#{any()}"));
+            return newName + '(' + String.join(",", targetArgumentsStrings) + ')';
+        }
+
+        private static List<Integer> originalLoggedArgumentIndices(String strFormat) {
+            // A string format like "Hello {0} {1} {1}" should be transformed to 0, 1, 1
+            Matcher matcher = Pattern.compile("\\{(\\d+)}").matcher(strFormat);
+            List<Integer> loggedArgumentIndices = new ArrayList<>(2);
+            while (matcher.find()) {
+                loggedArgumentIndices.add(Integer.valueOf(matcher.group(1)));
+            }
+            return loggedArgumentIndices;
+        }
+
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             if (METHOD_MATCHER_ARRAY.matches(method) || METHOD_MATCHER_PARAM.matches(method)) {
@@ -101,18 +152,18 @@ public class JulParameterizedArguments extends Recipe {
                     return method;
                 }
                 String newName = getMethodIdentifier(levelArgument);
-                if(newName == null) {
+                if (newName == null) {
                     return method;
                 }
                 maybeRemoveImport("java.util.logging.Level");
 
                 String originalFormatString = Objects.requireNonNull((String) ((J.Literal) messageArgument).getValue());
                 List<Integer> originalIndices = originalLoggedArgumentIndices(originalFormatString);
-                List<Expression> originalParameters = originalParameters(originalArguments.get(2));
+                List<Expression> stringFormatArguments = splitArrayToExpressions(originalArguments.get(2), originalIndices.size());
 
                 List<Expression> targetArguments = new ArrayList<>(2);
                 targetArguments.add(buildStringLiteral(originalFormatString.replaceAll("\\{\\d*}", "{}")));
-                originalIndices.forEach(i -> targetArguments.add(originalParameters.get(i)));
+                originalIndices.forEach(i -> targetArguments.add(stringFormatArguments.get(i)));
                 return JavaTemplate.builder(createTemplateString(newName, targetArguments))
                         .contextSensitive()
                         .javaParser(JavaParser.fromJavaVersion()
@@ -121,33 +172,6 @@ public class JulParameterizedArguments extends Recipe {
                         .apply(getCursor(), method.getCoordinates().replaceMethod(), targetArguments.toArray());
             }
             return super.visitMethodInvocation(method, ctx);
-        }
-
-        private List<Integer> originalLoggedArgumentIndices(String strFormat) {
-            // A string format like "Hello {0} {1} {1}" should be transformed to 0, 1, 1
-            Matcher matcher = Pattern.compile("\\{(\\d+)}").matcher(strFormat);
-            List<Integer> loggedArgumentIndices = new ArrayList<>(2);
-            while (matcher.find()) {
-                loggedArgumentIndices.add(Integer.valueOf(matcher.group(1)));
-            }
-            return loggedArgumentIndices;
-        }
-
-        private static List<Expression> originalParameters(Expression logParameters) {
-            if (logParameters instanceof J.NewArray) {
-                final List<Expression> initializer = ((J.NewArray) logParameters).getInitializer();
-                if (initializer == null || initializer.isEmpty()) {
-                    return Collections.emptyList();
-                }
-                return initializer;
-            }
-            return Collections.singletonList(logParameters);
-        }
-
-        private static String createTemplateString(String newName, List<Expression> targetArguments) {
-            List<String> targetArgumentsStrings = new ArrayList<>();
-            targetArguments.forEach(targetArgument -> targetArgumentsStrings.add("#{any()}"));
-            return newName + '(' + String.join(",", targetArgumentsStrings) + ')';
         }
     }
 }
