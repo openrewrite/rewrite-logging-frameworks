@@ -1,0 +1,251 @@
+/*
+ * Copyright 2025 the original author or authors.
+ * <p>
+ * Licensed under the Moderne Source Available License (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * https://docs.moderne.io/licensing/moderne-source-available-license
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.openrewrite.java.logging.slf4j;
+
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.openrewrite.test.RecipeSpec;
+import org.openrewrite.test.RewriteTest;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.openrewrite.gradle.Assertions.buildGradle;
+import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
+import static org.openrewrite.java.Assertions.*;
+import static org.openrewrite.maven.Assertions.pomXml;
+
+class JBossLoggingToSlf4jTest implements RewriteTest {
+    @Nested
+    class DependenciesTest implements RewriteTest {
+        @Override
+        public void defaults(RecipeSpec spec) {
+            spec.recipeFromResources("org.openrewrite.java.logging.slf4j.JBossLoggingToSlf4jUpdateDependencies");
+        }
+
+        @Test
+        void stillUsingJBossLoggingKeepsTheDependencyUsingMaven() {
+            rewriteRun(
+              mavenProject(
+                "project",
+                srcMainJava(
+                  //language=java
+                  java(
+                    """
+                      import org.jboss.logging.Logger;
+
+                      public class A {
+                          private static final Logger LOGGER = Logger.getLogger(A.class);
+                      }
+                      """
+                  )
+                ),
+                //language=xml
+                pomXml(
+                  """
+                    <project>
+                        <groupId>org.example</groupId>
+                        <artifactId>example-lib</artifactId>
+                        <version>1</version>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.jboss.logging</groupId>
+                                <artifactId>jboss-logging</artifactId>
+                                <version>3.6.1.Final</version>
+                            </dependency>
+                            <dependency>
+                                <groupId>org.jboss.logmanager</groupId>
+                                <artifactId>jboss-logmanager</artifactId>
+                                <version>3.1.2.Final</version>
+                            </dependency>
+                        </dependencies>
+                    </project>
+                    """,
+                  sourceSpecs -> sourceSpecs.after(after -> {
+                      Matcher matcher = Pattern.compile("<version>(2.*)</version>").matcher(after);
+                      assertTrue(matcher.find());
+                      String version = matcher.group(1);
+                      return """
+                        <project>
+                            <groupId>org.example</groupId>
+                            <artifactId>example-lib</artifactId>
+                            <version>1</version>
+                            <dependencies>
+                                <dependency>
+                                    <groupId>org.jboss.logging</groupId>
+                                    <artifactId>jboss-logging</artifactId>
+                                    <version>3.6.1.Final</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>org.jboss.logmanager</groupId>
+                                    <artifactId>jboss-logmanager</artifactId>
+                                    <version>3.1.2.Final</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>org.jboss.slf4j</groupId>
+                                    <artifactId>slf4j-jboss-logmanager</artifactId>
+                                    <version>%1$s</version>
+                                </dependency>
+                            </dependencies>
+                        </project>
+                        """.formatted(version);
+                  })
+                )
+              )
+            );
+        }
+
+        @Test
+        void noMoreJBossLoggingUsagesRemovesTheDependencyUsingMaven() {
+            rewriteRun(
+              mavenProject(
+                "project",
+                srcMainJava(
+                  //language=java
+                  java(
+                    """
+                      public class A {
+                      }
+                      """
+                  )
+                ),
+                //language=xml
+                pomXml(
+                  """
+                    <project>
+                        <groupId>org.example</groupId>
+                        <artifactId>example-lib</artifactId>
+                        <version>1</version>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.jboss.logging</groupId>
+                                <artifactId>jboss-logging</artifactId>
+                                <version>3.6.1.Final</version>
+                            </dependency>
+                            <dependency>
+                                <groupId>org.jboss.logmanager</groupId>
+                                <artifactId>jboss-logmanager</artifactId>
+                                <version>3.1.2.Final</version>
+                            </dependency>
+                        </dependencies>
+                    </project>
+                    """,
+                  """
+                    <project>
+                        <groupId>org.example</groupId>
+                        <artifactId>example-lib</artifactId>
+                        <version>1</version>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.jboss.logmanager</groupId>
+                                <artifactId>jboss-logmanager</artifactId>
+                                <version>3.1.2.Final</version>
+                            </dependency>
+                            <dependency>
+                                <groupId>org.jboss.slf4j</groupId>
+                                <artifactId>slf4j-jboss-logmanager</artifactId>
+                                <version>2.0.1.Final</version>
+                            </dependency>
+                        </dependencies>
+                    </project>
+                    """
+                )
+              )
+            );
+        }
+
+        @Test
+        void stillUsingJBossLoggingKeepsTheDependencyUsingGradle() {
+            rewriteRun(
+              spec -> spec.beforeRecipe(withToolingApi()),
+              mavenProject(
+                "project",
+                srcMainJava(
+                  //language=java
+                  java(
+                    """
+                      import org.jboss.logging.Logger;
+
+                      public class A {
+                          private static final Logger LOGGER = Logger.getLogger(A.class);
+                      }
+                      """
+                  )
+                ),
+                //language=gradle
+                buildGradle(
+                  """
+                    plugins { id "java" }
+                    repositories { mavenCentral() }
+                    dependencies {
+                        implementation "org.jboss.logmanager:jboss-logmanager:3.1.2.Final"
+                        implementation "org.jboss.logging:jboss-logging:3.6.1.Final"
+                    }
+                    """,
+                  """
+                    plugins { id "java" }
+                    repositories { mavenCentral() }
+                    dependencies {
+                        implementation "org.jboss.logmanager:jboss-logmanager:3.1.2.Final"
+                        implementation "org.jboss.slf4j:slf4j-jboss-logmanager:2.0.1.Final"
+                        implementation "org.jboss.logging:jboss-logging:3.6.1.Final"
+                    }
+                    """
+                )
+              )
+            );
+        }
+
+        @Test
+        void noMoreJBossLoggingUsagesRemovesTheDependencyUsingGradle() {
+            rewriteRun(
+              spec -> spec.beforeRecipe(withToolingApi()),
+              mavenProject(
+                "project",
+                srcMainJava(
+                  //language=java
+                  java(
+                    """
+                      public class A {
+                      }
+                      """
+                  )
+                ),
+                //language=gradle
+                buildGradle(
+                  """
+                    plugins { id "java" }
+                    repositories { mavenCentral() }
+                    dependencies {
+                        implementation "org.jboss.logmanager:jboss-logmanager:3.1.2.Final"
+                        implementation "org.jboss.logging:jboss-logging:3.6.1.Final"
+                    }
+                    """,
+                  """
+                    plugins { id "java" }
+                    repositories { mavenCentral() }
+                    dependencies {
+                        implementation "org.jboss.logmanager:jboss-logmanager:3.1.2.Final"
+                        implementation "org.jboss.slf4j:slf4j-jboss-logmanager:2.0.1.Final"
+                    }
+                    """
+                )
+              )
+            );
+        }
+    }
+}
