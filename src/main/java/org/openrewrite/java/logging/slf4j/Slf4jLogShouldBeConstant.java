@@ -31,13 +31,15 @@ import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.*;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Slf4jLogShouldBeConstant extends Recipe {
 
     private static final String SLF4J_FORMAT_SPECIFIER = "{}";
     private static final Pattern SLF4J_FORMAT_SPECIFIER_PATTERN = Pattern.compile("\\{}");
-    private static final Pattern FORMAT_SPECIFIER_PATTERN = Pattern.compile("%[\\d.]*[dfscbBhHn%]");
+    private static final Pattern FORMAT_SPECIFIER_PATTERN = Pattern.compile("%[-#+ 0,(\\d+]*[\\d.]*[dfscbBhHn%]");
+    private static final Pattern SIMPLE_FORMAT_SPECIFIER_PATTERN = Pattern.compile("%[dfscbBhHn%]");
 
     // A regular expression that matches index specifiers like '%2$s', '%1$s', etc.
     private static final Pattern INDEXED_FORMAT_SPECIFIER_PATTERN = Pattern.compile("%(\\d+\\$)[a-zA-Z]");
@@ -78,7 +80,7 @@ public class Slf4jLogShouldBeConstant extends Recipe {
                             }
 
                             String strFormat = Objects.requireNonNull(((J.Literal) stringFormat.getArguments().get(0)).getValue()).toString();
-                            if (containsIndexFormatSpecifier(strFormat) || containsCombinedFormatSpecifiers(strFormat)) {
+                            if (containsIndexFormatSpecifier(strFormat) || containsCombinedFormatSpecifiers(strFormat) || containsComplexFormatSpecifiers(strFormat)) {
                                 return method;
                             }
                             String updatedStrFormat = replaceFormatSpecifier(strFormat, SLF4J_FORMAT_SPECIFIER);
@@ -132,5 +134,19 @@ public class Slf4jLogShouldBeConstant extends Recipe {
             return false;
         }
         return INDEXED_FORMAT_SPECIFIER_PATTERN.matcher(str).find();
+    }
+
+    private static boolean containsComplexFormatSpecifiers(String str) {
+        if (StringUtils.isNullOrEmpty(str)) {
+            return false;
+        }
+        Matcher matcher = FORMAT_SPECIFIER_PATTERN.matcher(str);
+        while (matcher.find()) {
+            String specifier = matcher.group();
+            if (!SIMPLE_FORMAT_SPECIFIER_PATTERN.matcher(specifier).matches()) {
+                return true;
+            }
+        }
+        return false;
     }
 }
