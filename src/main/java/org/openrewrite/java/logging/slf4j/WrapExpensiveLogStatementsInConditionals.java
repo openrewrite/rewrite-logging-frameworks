@@ -228,7 +228,8 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
                         statements.add(if_.getThenPart());
                     }
                     return;
-                } else if (if_.getThenPart() instanceof J.Block) {
+                }
+                if (if_.getThenPart() instanceof J.Block) {
                     if (!((J.Block) if_.getThenPart()).getStatements().isEmpty() &&
                             ((J.Block) if_.getThenPart()).getStatements().stream().allMatch(
                                     s -> s instanceof J.MethodInvocation && isInIfStatementWithOnlyLogLevelCheck(if_, (J.MethodInvocation) s))) {
@@ -264,7 +265,8 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
                         isInIfStatementWithOnlyLogLevelCheck(if_, (J.MethodInvocation) if_.getThenPart())) {
                     J.MethodInvocation mi = (J.MethodInvocation) if_.getThenPart();
                     return AccumulatorKind.fromMethodInvocation(mi);
-                } else if (if_.getThenPart() instanceof J.Block &&
+                }
+                if (if_.getThenPart() instanceof J.Block &&
                         !((J.Block) if_.getThenPart()).getStatements().isEmpty() &&
                         ((J.Block) if_.getThenPart()).getStatements().stream().allMatch(
                                 s -> s instanceof J.MethodInvocation && isInIfStatementWithOnlyLogLevelCheck(if_, (J.MethodInvocation) s))) {

@@ -100,7 +100,8 @@ public class SystemErrToLogging extends Recipe {
                 return ListUtils.map(statements, (i, stat) -> {
                     if (skip.get() == i) {
                         return null;
-                    } else if (stat instanceof J.MethodInvocation) {
+                    }
+                    if (stat instanceof J.MethodInvocation) {
                         J.MethodInvocation m = (J.MethodInvocation) stat;
                         if (systemErrPrint.matches((Expression) stat)) {
                             if (m.getSelect() instanceof J.FieldAccess) {

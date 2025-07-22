@@ -92,7 +92,8 @@ public class Log4jLayoutToLogback extends Recipe {
                             J.MethodDeclaration method = (J.MethodDeclaration) statement;
                             if ("ignoresThrowable".equals(method.getSimpleName())) {
                                 return null;
-                            } else if ("activateOptions".equals(method.getSimpleName())) {
+                            }
+                            if ("activateOptions".equals(method.getSimpleName())) {
                                 if (method.getBody() != null && method.getBody().getStatements().isEmpty()) {
                                     return null;
                                 }

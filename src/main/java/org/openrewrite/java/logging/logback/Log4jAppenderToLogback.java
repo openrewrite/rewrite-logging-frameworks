@@ -80,7 +80,8 @@ public class Log4jAppenderToLogback extends Recipe {
                             J.MethodDeclaration method = (J.MethodDeclaration) statement;
                             if ("requiresLayout".equals(method.getSimpleName())) {
                                 return null;
-                            } else if ("close".equals(method.getSimpleName())) {
+                            }
+                            if ("close".equals(method.getSimpleName())) {
                                 if (method.getBody() != null && method.getBody().getStatements().isEmpty()) {
                                     return null;
                                 }

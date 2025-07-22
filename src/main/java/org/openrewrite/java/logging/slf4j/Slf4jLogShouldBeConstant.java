@@ -94,7 +94,8 @@ public class Slf4jLogShouldBeConstant extends Recipe {
                             });
                             List<Expression> originalArgsWithoutMessage = args.subList(1, args.size());
                             return method.withArguments(ListUtils.concatAll(stringFormatWithArgs, originalArgsWithoutMessage));
-                        } else if (STRING_VALUE_OF.matches(args.get(0))) {
+                        }
+                        if (STRING_VALUE_OF.matches(args.get(0))) {
                             Expression valueOf = ((J.MethodInvocation) args.get(0)).getArguments().get(0);
                             if (TypeUtils.isAssignableTo(JavaType.ShallowClass.build("java.lang.Throwable"), valueOf.getType())) {
                                 J.MethodInvocation m = JavaTemplate.builder("\"Exception\", #{any()}").contextSensitive().build()
