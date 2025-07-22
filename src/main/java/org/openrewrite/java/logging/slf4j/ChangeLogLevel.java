@@ -91,10 +91,9 @@ public class ChangeLogLevel extends Recipe {
                 if (!StringUtils.isBlank(startsWith) && !lit.getValue().toString().startsWith(startsWith)) {
                     return m;
                 }
-                m = (J.MethodInvocation) new ChangeMethodName(methodPattern, to.name().toLowerCase(), true, null)
+                return (J.MethodInvocation) new ChangeMethodName(methodPattern, to.name().toLowerCase(), true, null)
                         .getVisitor()
                         .visitNonNull(m, ctx);
-                return m;
             }
         });
     }

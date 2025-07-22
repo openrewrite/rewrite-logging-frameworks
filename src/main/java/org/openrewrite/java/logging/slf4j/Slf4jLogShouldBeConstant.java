@@ -100,16 +100,14 @@ public class Slf4jLogShouldBeConstant extends Recipe {
                             if (TypeUtils.isAssignableTo(JavaType.ShallowClass.build("java.lang.Throwable"), valueOf.getType())) {
                                 J.MethodInvocation m = JavaTemplate.builder("\"Exception\", #{any()}").contextSensitive().build()
                                         .apply(getCursor(), method.getCoordinates().replaceArguments(), valueOf);
-                                m = m.withSelect(method.getSelect());
-                                return m;
+                                return m.withSelect(method.getSelect());
                             }
                         } else if (OBJECT_TO_STRING.matches(args.get(0))) {
                             Expression toString = ((J.MethodInvocation) args.get(0)).getSelect();
                             if (toString != null) {
                                 J.MethodInvocation m = JavaTemplate.builder("\"{}\", #{any()}").contextSensitive().build()
                                         .apply(getCursor(), method.getCoordinates().replaceArguments(), toString);
-                                m = m.withSelect(method.getSelect());
-                                return m;
+                                return m.withSelect(method.getSelect());
                             }
                         }
                     }
