@@ -959,14 +959,6 @@ examples:
               log.info(String.format("The first argument is '%d', and the second argument is '%.2f'.", 1, 2.3333));
           }
       }
-    after: |
-      import org.slf4j.Logger;
-      class A {
-          Logger log;
-          void method() {
-              log.info("The first argument is '{}', and the second argument is '{}'.", 1, 2.3333);
-          }
-      }
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
