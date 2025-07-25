@@ -178,6 +178,11 @@ public class ParameterizedLogging extends Recipe {
         private final MethodMatcher TO_STRING = new MethodMatcher("*..* toString()");
 
         @Override
+        public @Nullable J postVisit(@NonNull J tree, ExecutionContext executionContext) {
+            return super.postVisit(tree, executionContext);
+        }
+
+        @Override
         public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             if (getCursor().getNearestMessage("DO_NOT_REMOVE", Boolean.FALSE)) {
                 return method;
