@@ -108,7 +108,7 @@ public class JulParameterizedArguments extends Recipe {
 
                 String originalFormatString = Objects.requireNonNull((String) ((J.Literal) messageArgument).getValue());
                 List<Integer> originalIndices = originalLoggedArgumentIndices(originalFormatString);
-                List<Expression> originalParameters = originalParameters(originalArguments.get(2));
+                List<Expression> originalParameters = originalParameters(originalArguments.get(2), originalIndices.size());
 
                 List<Expression> targetArguments = new ArrayList<>(2);
                 targetArguments.add(buildStringLiteral(originalFormatString.replaceAll("\\{\\d*}", "{}")));
@@ -133,13 +133,29 @@ public class JulParameterizedArguments extends Recipe {
             return loggedArgumentIndices;
         }
 
-        private static List<Expression> originalParameters(Expression logParameters) {
+        private static List<Expression> originalParameters(Expression logParameters, int indiceCount) {
             if (logParameters instanceof J.NewArray) {
                 final List<Expression> initializer = ((J.NewArray) logParameters).getInitializer();
                 if (initializer == null || initializer.isEmpty()) {
                     return Collections.emptyList();
                 }
                 return initializer;
+            } else if (logParameters instanceof J.Identifier && logParameters.getType() instanceof JavaType.Array) {
+                List<Expression> arrayAccessParams = new ArrayList<>(indiceCount);
+                for (int i = 0; i < indiceCount; i++) {
+                    arrayAccessParams.add(
+                            new J.ArrayAccess(randomId(), Space.EMPTY, Markers.EMPTY, logParameters.withPrefix(Space.EMPTY),
+                                    new J.ArrayDimension(randomId(), Space.EMPTY, Markers.EMPTY,
+                                            new JRightPadded<>(
+                                                    new J.Literal(
+                                                            randomId(), Space.EMPTY, Markers.EMPTY, i, String.valueOf(i), null, JavaType.Primitive.Int
+                                                    ), Space.EMPTY, Markers.EMPTY
+                                            )
+                                    ), logParameters.getType()
+                            )
+                    );
+                }
+                return arrayAccessParams;
             }
             return Collections.singletonList(logParameters);
         }
