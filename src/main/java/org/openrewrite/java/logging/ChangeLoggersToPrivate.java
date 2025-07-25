@@ -34,6 +34,7 @@ import java.util.Set;
 
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toSet;
+import static org.openrewrite.java.tree.J.Modifier.Type.Abstract;
 
 @EqualsAndHashCode(callSuper = false)
 @Value
@@ -76,7 +77,8 @@ public class ChangeLoggersToPrivate extends Recipe {
                 }
 
                 J.ClassDeclaration classDeclaration = parent.getValue();
-                if (classDeclaration.getKind() == J.ClassDeclaration.Kind.Type.Interface) {
+                if (classDeclaration.getKind() == J.ClassDeclaration.Kind.Type.Interface ||
+                        classDeclaration.hasModifier(Abstract)) {
                     return mv;
                 }
 

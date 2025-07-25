@@ -176,6 +176,23 @@ class ChangeLoggersToPrivateTest implements RewriteTest {
     }
 
     @Test
+    void loggerInAbstractClassShouldNotChange() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              abstract class Constants {
+                  Logger logger = LoggerFactory.getLogger(Constants.class);
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void localVariableLoggerShouldNotChange() {
         rewriteRun(
           //language=java
