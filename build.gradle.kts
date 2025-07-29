@@ -48,6 +48,7 @@ dependencies {
     }
     testRuntimeOnly("log4j:log4j:1.+") // Necessary to match for now; explore alternatives for Refaster classpath in the future
     testRuntimeOnly("ch.qos.logback:logback-classic:1.3.+")
+    testRuntimeOnly("org.jboss.logging:jboss-logging:3.+")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.+")
     testImplementation("org.junit.jupiter:junit-jupiter-params:5.+")
