@@ -210,6 +210,12 @@ tags:
   - slf4j
 recipeList:
   - org.openrewrite.java.logging.slf4j.JBossLoggingToSlf4jUpdateDependencies
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.jboss.logging.Logger fatal(..)
+      newMethodName: error
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.jboss.logging.Logger
+      newFullyQualifiedTypeName: org.slf4j.Logger
 
 ---
 type: specs.openrewrite.org/v1beta/recipe

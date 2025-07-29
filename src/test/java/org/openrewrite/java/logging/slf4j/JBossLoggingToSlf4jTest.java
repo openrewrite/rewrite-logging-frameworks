@@ -17,6 +17,7 @@ package org.openrewrite.java.logging.slf4j;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -30,6 +31,61 @@ import static org.openrewrite.java.Assertions.*;
 import static org.openrewrite.maven.Assertions.pomXml;
 
 class JBossLoggingToSlf4jTest implements RewriteTest {
+    @Override
+    public void defaults(RecipeSpec spec) {
+        spec.recipeFromResources("org.openrewrite.java.logging.slf4j.JBossLoggingToSlf4j");
+    }
+
+    @DocumentExample
+    @Test
+    void simpleLogInvocationMapping() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.jboss.logging.Logger;
+
+              class A {
+                  void doLog(Logger logger, String msg, Throwable t) {
+                      logger.trace(msg);
+                      logger.trace(msg, t);
+                      logger.debug(msg);
+                      logger.debug(msg, t);
+                      logger.info(msg);
+                      logger.info(msg, t);
+                      logger.warn(msg);
+                      logger.warn(msg, t);
+                      logger.error(msg);
+                      logger.error(msg, t);
+                      logger.fatal(msg);
+                      logger.fatal(msg, t);
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void doLog(Logger logger, String msg, Throwable t) {
+                      logger.trace(msg);
+                      logger.trace(msg, t);
+                      logger.debug(msg);
+                      logger.debug(msg, t);
+                      logger.info(msg);
+                      logger.info(msg, t);
+                      logger.warn(msg);
+                      logger.warn(msg, t);
+                      logger.error(msg);
+                      logger.error(msg, t);
+                      logger.error(msg);
+                      logger.error(msg, t);
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Nested
     class DependenciesTest implements RewriteTest {
         @Override
