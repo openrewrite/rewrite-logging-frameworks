@@ -35,6 +35,7 @@ dependencies {
         exclude("com.github.spotbugs", "spotbugs-annotations").because("https://github.com/apache/logging-log4j2/issues/3754")
     }
     implementation("org.slf4j:slf4j-api:2.+")
+    implementation("org.jboss.logging:jboss-logging:3.+")
 
     annotationProcessor("org.openrewrite:rewrite-templating:$rewriteVersion")
     implementation("org.openrewrite:rewrite-templating:$rewriteVersion")
