@@ -21,7 +21,6 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.search.UsesType;
@@ -35,9 +34,9 @@ import java.util.List;
 import static java.util.Objects.requireNonNull;
 
 public class LoggerLevelArgumentToMethod extends Recipe {
-    private static final MethodMatcher LOG_MATCHER = new MethodMatcher("org.jboss.logging.Logger log(..)", true);
-    private static final MethodMatcher LOGF_MATCHER = new MethodMatcher("org.jboss.logging.Logger logf(..)", true);
-    private static final MethodMatcher LOGV_MATCHER = new MethodMatcher("org.jboss.logging.Logger logv(..)", true);
+    private static final MethodMatcher LOG_MATCHER = new MethodMatcher("org.jboss.logging.Logger log(*,*,..)", true);
+    private static final MethodMatcher LOGF_MATCHER = new MethodMatcher("org.jboss.logging.Logger logf(*,*,..)", true);
+    private static final MethodMatcher LOGV_MATCHER = new MethodMatcher("org.jboss.logging.Logger logv(*,*,..)", true);
 
     @Override
     public String getDisplayName() {
@@ -51,62 +50,6 @@ public class LoggerLevelArgumentToMethod extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        JavaVisitor<ExecutionContext> javaVisitor = new JavaIsoVisitor<ExecutionContext>() {
-
-            @Override
-            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation mi, ExecutionContext ctx) {
-                J.MethodInvocation m = super.visitMethodInvocation(mi, ctx);
-                if (!(LOG_MATCHER.matches(m) || LOGF_MATCHER.matches(m) || LOGV_MATCHER.matches(m))) {
-                    return m;
-                }
-                List<Expression> args = m.getArguments();
-                Expression firstArgument = requireNonNull(args.get(0));
-                Expression secondArgument = requireNonNull(args.get(1));
-
-                String formatted = "";
-                if (LOGF_MATCHER.matches(m) || LOGV_MATCHER.matches(m)) {
-                    if (TypeUtils.isAssignableTo("java.lang.String", firstArgument.getType())) {
-                        // `logger.logf(String fqcn ...)` and `logger.logv(String fqcn ...)` don't have a logger.level() equivalent.
-                        return m;
-                    }
-                    formatted = m.getSimpleName().substring(m.getSimpleName().length() - 1);
-                }
-
-                String logLevelName;
-                List<Expression> updatedArguments;
-                if (TypeUtils.isAssignableTo("org.jboss.logging.Logger.Level", firstArgument.getType())) {
-                    // void log,logf,logv(Logger.Level level, **);
-                    logLevelName = extractLogLevelName(firstArgument) + formatted;
-                    updatedArguments = ListUtils.concat(
-                            (Expression) secondArgument.withPrefix(firstArgument.getPrefix()),
-                            args.subList(2, args.size()));
-                } else if (TypeUtils.isAssignableTo("java.lang.String", firstArgument.getType()) &&
-                           TypeUtils.isAssignableTo("org.jboss.logging.Logger.Level", secondArgument.getType())) {
-                    // void log(String loggerFqcn, Logger.Level level, Object message, Object[] params, Throwable t);
-                    logLevelName = extractLogLevelName(secondArgument);
-                    updatedArguments = ListUtils.filter(args, arg -> arg != secondArgument);
-                } else {
-                    return m;
-                }
-
-                JavaType.Method updatedMethodType = requireNonNull(m.getMethodType())
-                        .withParameterTypes(ListUtils.filter(requireNonNull(m.getMethodType()).getParameterTypes(), type -> !TypeUtils.isAssignableTo("org.jboss.logging.Logger.Level", type)))
-                        .withParameterNames(ListUtils.filter(m.getMethodType().getParameterNames(), name -> !"level".equals(name)))
-                        .withName(logLevelName.toLowerCase());
-
-                return m
-                        .withArguments(updatedArguments)
-                        .withMethodType(updatedMethodType)
-                        .withName(m.getName().withSimpleName(logLevelName.toLowerCase()));
-            }
-
-            String extractLogLevelName(Expression expression) {
-                if (expression instanceof J.Identifier) {
-                    return ((J.Identifier) expression).getSimpleName();
-                }
-                return ((J.FieldAccess) expression).getSimpleName();
-            }
-        };
         return Preconditions.check(
                 Preconditions.and(
                         new UsesType<>("org.jboss.logging.Logger", true),
@@ -117,8 +60,62 @@ public class LoggerLevelArgumentToMethod extends Recipe {
                                 new UsesMethod<>(LOGV_MATCHER)
                         )
                 ),
-                javaVisitor
+                new JavaIsoVisitor<ExecutionContext>() {
+
+                    @Override
+                    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation mi, ExecutionContext ctx) {
+                        J.MethodInvocation m = super.visitMethodInvocation(mi, ctx);
+                        if (!(LOG_MATCHER.matches(m) || LOGF_MATCHER.matches(m) || LOGV_MATCHER.matches(m))) {
+                            return m;
+                        }
+                        List<Expression> args = m.getArguments();
+                        Expression firstArgument = args.get(0);
+                        Expression secondArgument = args.get(1);
+
+                        String formatted = "";
+                        if (LOGF_MATCHER.matches(m) || LOGV_MATCHER.matches(m)) {
+                            if (TypeUtils.isAssignableTo("java.lang.String", firstArgument.getType())) {
+                                // `logf(String, ..)` and `logv(String, ..)` don't have a logger.level() equivalent
+                                return m;
+                            }
+                            formatted = m.getSimpleName().substring(m.getSimpleName().length() - 1);
+                        }
+
+                        String logLevelName;
+                        List<Expression> updatedArguments;
+                        if (TypeUtils.isAssignableTo("org.jboss.logging.Logger.Level", firstArgument.getType())) {
+                            // void log,logf,logv(Logger.Level level, **);
+                            logLevelName = extractLogLevelName(firstArgument) + formatted;
+                            updatedArguments = ListUtils.concat(
+                                    (Expression) secondArgument.withPrefix(firstArgument.getPrefix()),
+                                    args.subList(2, args.size()));
+                        } else if (TypeUtils.isAssignableTo("java.lang.String", firstArgument.getType()) &&
+                                   TypeUtils.isAssignableTo("org.jboss.logging.Logger.Level", secondArgument.getType())) {
+                            // void log(String loggerFqcn, Logger.Level level, Object message, Object[] params, Throwable t);
+                            logLevelName = extractLogLevelName(secondArgument);
+                            updatedArguments = ListUtils.filter(args, arg -> arg != secondArgument);
+                        } else {
+                            return m;
+                        }
+
+                        JavaType.Method updatedMethodType = requireNonNull(m.getMethodType())
+                                .withParameterTypes(ListUtils.filter(m.getMethodType().getParameterTypes(), it -> !TypeUtils.isAssignableTo("org.jboss.logging.Logger.Level", it)))
+                                .withParameterNames(ListUtils.filter(m.getMethodType().getParameterNames(), name -> !"level".equals(name)))
+                                .withName(logLevelName.toLowerCase());
+
+                        return m
+                                .withArguments(updatedArguments)
+                                .withMethodType(updatedMethodType)
+                                .withName(m.getName().withSimpleName(logLevelName.toLowerCase()));
+                    }
+
+                    String extractLogLevelName(Expression expression) {
+                        if (expression instanceof J.Identifier) {
+                            return ((J.Identifier) expression).getSimpleName();
+                        }
+                        return ((J.FieldAccess) expression).getSimpleName();
+                    }
+                }
         );
     }
-
 }
