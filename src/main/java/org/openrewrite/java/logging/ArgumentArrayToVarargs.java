@@ -34,12 +34,12 @@ public class ArgumentArrayToVarargs extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Convert argument array to varargs";
+        return "Unpack Logger method `new Object[] {...}` into varargs";
     }
 
     @Override
     public String getDescription() {
-        return "Converts method calls that use an array of arguments to use varargs instead.";
+        return "For Logger methods that support varargs, convert any final explicit `Object[]` arguments into their unpacked values.";
     }
 
     @Override
