@@ -174,7 +174,7 @@ class ArgumentArrayToVarargsTest implements RewriteTest {
     }
 
     @Test
-    void loggerMethodWithoutVarargs() {
+    void notVarargsMethodParameterTypeNotConverted() {
         rewriteRun(
           //language=java
           java(
@@ -191,5 +191,4 @@ class ArgumentArrayToVarargsTest implements RewriteTest {
           )
         );
     }
-
 }

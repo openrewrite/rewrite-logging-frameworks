@@ -23,15 +23,13 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.java.tree.*;
 
 import java.time.Duration;
 import java.util.List;
 
 public class ArgumentArrayToVarargs extends Recipe {
+    // Match logger methods that end with Object[] - but we'll verify if it's varargs later
     private static final MethodMatcher LOGGER_METHOD = new MethodMatcher("*..*Log* *(.., Object[])");
 
     @Override
@@ -63,15 +61,14 @@ public class ArgumentArrayToVarargs extends Recipe {
                             J.NewArray arrayArg = (J.NewArray) lastArg;
                             if (arrayArg.getType() instanceof JavaType.Array &&
                                     TypeUtils.isObject(((JavaType.Array) arrayArg.getType()).getElemType())) {
-
-                                // TODO Only make changes if the method has a varargs parameter
-
-
-                                List<Expression> arrayElements = arrayArg.getInitializer();
-                                if (arrayElements == null || arrayElements.isEmpty() || arrayElements.get(0) instanceof J.Empty) {
-                                    return null; // Remove empty array argument
+                                // Only make changes if the method has a varargs parameter
+                                if (mi.getMethodType() == null || mi.getMethodType().hasFlags(Flag.Varargs)) {
+                                    List<Expression> arrayElements = arrayArg.getInitializer();
+                                    if (arrayElements == null || arrayElements.isEmpty() || arrayElements.get(0) instanceof J.Empty) {
+                                        return null; // Remove empty array argument
+                                    }
+                                    return ListUtils.mapFirst(arrayElements, first -> first.withPrefix(lastArg.getPrefix()));
                                 }
-                                return ListUtils.mapFirst(arrayElements, first -> first.withPrefix(lastArg.getPrefix()));
                             }
                         }
                         return lastArg;
