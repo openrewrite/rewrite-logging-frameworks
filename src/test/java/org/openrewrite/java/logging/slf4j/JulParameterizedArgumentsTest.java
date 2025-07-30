@@ -89,6 +89,34 @@ class JulParameterizedArgumentsTest implements RewriteTest {
     }
 
     @Test
+    void parameterizedArgumentArrayWithNoInitializer() {
+        rewriteRun(
+          // language=java
+          java(
+            """
+              import java.util.logging.Level;
+              import java.util.logging.Logger;
+
+              class Test {
+                  void method(Logger logger) {
+                      logger.log(Level.INFO, "INFO Log entry", new String[]{});
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  void method(Logger logger) {
+                      logger.info("INFO Log entry");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void retainLoggedArgumentOrder() {
         rewriteRun(
           // language=java
