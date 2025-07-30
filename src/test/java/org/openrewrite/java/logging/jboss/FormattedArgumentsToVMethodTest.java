@@ -42,6 +42,7 @@ class FormattedArgumentsToVMethodTest implements RewriteTest {
               class Test {
                   void test(Logger logger, String msg, Throwable t, Object[] formatArgs, Object o) {
                       logger.info(msg, formatArgs);
+                      logger.info(msg, new Object[]{o});
                       logger.info((Object)msg, formatArgs, t);
                       logger.info(o, formatArgs, t);
                   }
@@ -53,6 +54,7 @@ class FormattedArgumentsToVMethodTest implements RewriteTest {
               class Test {
                   void test(Logger logger, String msg, Throwable t, Object[] formatArgs, Object o) {
                       logger.infov(msg, formatArgs);
+                      logger.infov(msg, new Object[]{o});
                       logger.infov(msg, formatArgs, t);
                       logger.info(o, formatArgs, t);
                   }
