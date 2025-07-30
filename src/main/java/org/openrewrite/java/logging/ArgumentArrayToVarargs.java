@@ -19,16 +19,20 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.java.JavaVisitor;
+import org.openrewrite.internal.ListUtils;
+import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
+import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.TypeUtils;
 
 import java.time.Duration;
+import java.util.List;
 
-// Inspired by `org.openrewrite.staticanalysis.SimplifyArraysAsList`
 public class ArgumentArrayToVarargs extends Recipe {
-    private static final MethodMatcher LOGGER_METHOD = new MethodMatcher("*..Log* *(..)");
+    private static final MethodMatcher LOGGER_METHOD = new MethodMatcher("*..*Log* *(.., Object[])");
 
     @Override
     public String getDisplayName() {
@@ -47,11 +51,28 @@ public class ArgumentArrayToVarargs extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesMethod<>(LOGGER_METHOD), new JavaVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesMethod<>(LOGGER_METHOD), new JavaIsoVisitor<ExecutionContext>() {
             @Override
-            public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
                 if (LOGGER_METHOD.matches(mi)) {
+                    return mi.withArguments(ListUtils.flatMap(mi.getArguments(), (index, lastArg) -> {
+                        // Check if the last argument is a new Object[] array
+                        if (index == mi.getArguments().size() - 1 &&
+                                lastArg instanceof J.NewArray) {
+                            // Verify it's an Object[] array
+                            J.NewArray arrayArg = (J.NewArray) lastArg;
+                            if (arrayArg.getType() instanceof JavaType.Array &&
+                                    TypeUtils.isObject(((JavaType.Array) arrayArg.getType()).getElemType())) {
+                                List<Expression> arrayElements = arrayArg.getInitializer();
+                                if (arrayElements == null || arrayElements.isEmpty() || arrayElements.get(0) instanceof J.Empty) {
+                                    return null; // Remove empty array argument
+                                }
+                                return ListUtils.mapFirst(arrayElements, first -> first.withPrefix(lastArg.getPrefix()));
+                            }
+                        }
+                        return lastArg;
+                    }));
                 }
                 return mi;
             }

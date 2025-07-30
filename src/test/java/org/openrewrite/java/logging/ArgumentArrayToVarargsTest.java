@@ -25,7 +25,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-@SuppressWarnings({"RedundantArrayCreation", "ArraysAsListWithZeroOrOneArgument"})
+@SuppressWarnings("RedundantArrayCreation")
 class ArgumentArrayToVarargsTest implements RewriteTest {
 
     @Override
@@ -56,6 +56,116 @@ class ArgumentArrayToVarargsTest implements RewriteTest {
                   Logger logger;
                   void method() {
                       logger.info("Message {} {} {}", "old", "style", "args");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+     @Test
+     void emptyObjectArray() {
+         rewriteRun(
+           //language=java
+           java(
+             """
+               import org.slf4j.Logger;
+               class Test {
+                   Logger logger;
+                   void method() {
+                       logger.info("Message without placeholders", new Object[]{});
+                   }
+               }
+               """,
+             """
+               import org.slf4j.Logger;
+               class Test {
+                   Logger logger;
+                   void method() {
+                       logger.info("Message without placeholders");
+                   }
+               }
+               """
+           )
+         );
+     }
+
+    @Test
+    void singleElementArray() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              class Test {
+                  Logger logger;
+                  void method() {
+                      logger.warn("Single placeholder: {}", new Object[]{"value"});
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              class Test {
+                  Logger logger;
+                  void method() {
+                      logger.warn("Single placeholder: {}", "value");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @SuppressWarnings("ConfusingArgumentToVarargsMethod")
+    @Test
+    void nonObjectArrayNotConverted() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              class Test {
+                  Logger logger;
+                  void method() {
+                      logger.info("Message {}", new String[]{"test"});
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void notLastArgumentNotConverted() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              class Test {
+                  Logger logger;
+                  void method() {
+                      logger.info("Message {} {}", new Object[]{"test"}, "other");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void variableArrayNotConverted() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              class Test {
+                  Logger logger;
+                  void method() {
+                      Object[] args = {"old", "style", "args"};
+                      logger.info("Message {} {} {}", args);
                   }
               }
               """
