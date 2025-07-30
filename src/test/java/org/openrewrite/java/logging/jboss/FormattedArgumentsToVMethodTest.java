@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.logging.jboss;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.openrewrite.DocumentExample;
@@ -30,6 +31,37 @@ class FormattedArgumentsToVMethodTest implements RewriteTest {
     }
 
     @DocumentExample
+    @Test
+    void convertInfo() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.jboss.logging.Logger;
+
+              class Test {
+                  void test(Logger logger, String msg, Throwable t, Object[] formatArgs, Object o) {
+                      logger.info(msg, formatArgs);
+                      logger.info((Object)msg, formatArgs, t);
+                      logger.info(o, formatArgs, t);
+                  }
+              }
+              """,
+            """
+              import org.jboss.logging.Logger;
+
+              class Test {
+                  void test(Logger logger, String msg, Throwable t, Object[] formatArgs, Object o) {
+                      logger.infov(msg, formatArgs);
+                      logger.infov(msg, formatArgs, t);
+                      logger.info(o, formatArgs, t);
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"trace", "debug", "info", "warn", "error", "fatal"})
     void deprecatedParametrizedCallsToVCalls(String level) {
