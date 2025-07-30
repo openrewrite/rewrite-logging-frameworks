@@ -19,7 +19,6 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
-import org.openrewrite.staticanalysis.SimplifyArraysAsList;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -63,32 +62,32 @@ class ArgumentArrayToVarargsTest implements RewriteTest {
         );
     }
 
-     @Test
-     void emptyObjectArray() {
-         rewriteRun(
-           //language=java
-           java(
-             """
-               import org.slf4j.Logger;
-               class Test {
-                   Logger logger;
-                   void method() {
-                       logger.info("Message without placeholders", new Object[]{});
-                   }
-               }
-               """,
-             """
-               import org.slf4j.Logger;
-               class Test {
-                   Logger logger;
-                   void method() {
-                       logger.info("Message without placeholders");
-                   }
-               }
-               """
-           )
-         );
-     }
+    @Test
+    void emptyObjectArray() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              class Test {
+                  Logger logger;
+                  void method() {
+                      logger.info("Message without placeholders", new Object[]{});
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              class Test {
+                  Logger logger;
+                  void method() {
+                      logger.info("Message without placeholders");
+                  }
+              }
+              """
+          )
+        );
+    }
 
     @Test
     void singleElementArray() {
