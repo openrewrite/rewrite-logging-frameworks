@@ -35,6 +35,7 @@ dependencies {
         exclude("com.github.spotbugs", "spotbugs-annotations").because("https://github.com/apache/logging-log4j2/issues/3754")
     }
     implementation("org.slf4j:slf4j-api:2.+")
+    implementation("org.jboss.logging:jboss-logging:3.+")
 
     annotationProcessor("org.openrewrite:rewrite-templating:$rewriteVersion")
     implementation("org.openrewrite:rewrite-templating:$rewriteVersion")
@@ -48,7 +49,6 @@ dependencies {
     }
     testRuntimeOnly("log4j:log4j:1.+") // Necessary to match for now; explore alternatives for Refaster classpath in the future
     testRuntimeOnly("ch.qos.logback:logback-classic:1.3.+")
-    testRuntimeOnly("org.jboss.logging:jboss-logging:3.+")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.+")
     testImplementation("org.junit.jupiter:junit-jupiter-params:5.+")
