@@ -172,4 +172,24 @@ class ArgumentArrayToVarargsTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void loggerMethodWithoutVarargs() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.util.logging.Level;
+              import java.util.logging.Logger;
+              class Test {
+                  Logger logger;
+                  void method(Level level, String msg, Object o) {
+                      logger.log(level, msg, new Object[]{o});
+                  }
+              }
+              """
+          )
+        );
+    }
+
 }

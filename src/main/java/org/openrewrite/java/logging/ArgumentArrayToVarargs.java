@@ -58,12 +58,15 @@ public class ArgumentArrayToVarargs extends Recipe {
                 if (LOGGER_METHOD.matches(mi)) {
                     return mi.withArguments(ListUtils.flatMap(mi.getArguments(), (index, lastArg) -> {
                         // Check if the last argument is a new Object[] array
-                        if (index == mi.getArguments().size() - 1 &&
-                                lastArg instanceof J.NewArray) {
+                        if (index == mi.getArguments().size() - 1 && lastArg instanceof J.NewArray) {
                             // Verify it's an Object[] array
                             J.NewArray arrayArg = (J.NewArray) lastArg;
                             if (arrayArg.getType() instanceof JavaType.Array &&
                                     TypeUtils.isObject(((JavaType.Array) arrayArg.getType()).getElemType())) {
+
+                                // TODO Only make changes if the method has a varargs parameter
+
+
                                 List<Expression> arrayElements = arrayArg.getInitializer();
                                 if (arrayElements == null || arrayElements.isEmpty() || arrayElements.get(0) instanceof J.Empty) {
                                     return null; // Remove empty array argument
