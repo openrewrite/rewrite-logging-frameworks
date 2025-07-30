@@ -22,8 +22,9 @@ import org.openrewrite.Recipe;
 import org.openrewrite.java.ChangeType;
 
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static java.util.stream.Collectors.toList;
 
 @AllArgsConstructor
 public class ChangeLombokLogAnnotation extends Recipe {
@@ -60,7 +61,7 @@ public class ChangeLombokLogAnnotation extends Recipe {
                         "lombok.CustomLog")
                 .filter(annotationType -> !annotationType.equals(targetLogAnnotationType))
                 .map(annotationType -> new ChangeType(annotationType, targetLogAnnotationType, true))
-                .collect(Collectors.toList());
+                .collect(toList());
     }
 
     private static String getTargetAnnotationType(@Nullable String loggingFramework) {
