@@ -70,26 +70,22 @@ public class LoggerLevelArgumentToMethod extends Recipe {
                         Expression firstArgument = args.get(0);
                         Expression secondArgument = args.get(1);
 
-                        String formatted = "";
-                        if (LOGF_MATCHER.matches(m) || LOGV_MATCHER.matches(m)) {
-                            if (TypeUtils.isAssignableTo("java.lang.String", firstArgument.getType())) {
-                                // `logf(String, ..)` and `logv(String, ..)` don't have a logger.level() equivalent
-                                return m;
-                            }
-                            formatted = m.getSimpleName().substring(m.getSimpleName().length() - 1);
-                        }
-
                         String logLevelName;
                         List<Expression> updatedArguments;
                         if (TypeUtils.isAssignableTo("org.jboss.logging.Logger.Level", firstArgument.getType())) {
-                            // `log(Logger.Level, ..)`, `logf(Logger.Level, ..)`, `logv(Logger.Level, ..)`
-                            logLevelName = extractLogLevelName(firstArgument) + formatted;
+                            String suffix = "";
+                            if (LOGF_MATCHER.matches(m)) {
+                                suffix = "f";
+                            } else if (LOGV_MATCHER.matches(m)) {
+                                suffix = "v";
+                            }
+                            logLevelName = extractLogLevelName(firstArgument) + suffix;
                             updatedArguments = ListUtils.concat(
                                     (Expression) secondArgument.withPrefix(firstArgument.getPrefix()),
                                     args.subList(2, args.size()));
                         } else if (TypeUtils.isAssignableTo("java.lang.String", firstArgument.getType()) &&
-                                   TypeUtils.isAssignableTo("org.jboss.logging.Logger.Level", secondArgument.getType())) {
-                            // `log(String, Logger.Level, ..)`
+                                   TypeUtils.isAssignableTo("org.jboss.logging.Logger.Level", secondArgument.getType()) &&
+                                   LOG_MATCHER.matches(m)) { // `logf(String, ..)` and `logv(String, ..)` don't have a logger.level() equivalent
                             logLevelName = extractLogLevelName(secondArgument);
                             updatedArguments = ListUtils.filter(args, it -> it != secondArgument);
                         } else {
