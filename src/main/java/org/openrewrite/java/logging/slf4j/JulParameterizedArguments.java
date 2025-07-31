@@ -37,6 +37,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.openrewrite.Tree.randomId;
 
 public class JulParameterizedArguments extends Recipe {
@@ -145,7 +146,7 @@ public class JulParameterizedArguments extends Recipe {
                     }
                     return arrayAccessExpr;
                 }
-                return Collections.singletonList(arrayExpression);
+                return singletonList(arrayExpression);
             }
 
             private List<Integer> originalLoggedArgumentIndices(String strFormat) {
