@@ -30,7 +30,6 @@ import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Matcher;
@@ -58,42 +57,55 @@ public class JulParameterizedArguments extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(Preconditions.or(new UsesMethod<>(METHOD_MATCHER_PARAM), new UsesMethod<>(METHOD_MATCHER_ARRAY)), new JavaIsoVisitor<ExecutionContext>() {
             @Override
-            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                if (METHOD_MATCHER_ARRAY.matches(method) || METHOD_MATCHER_PARAM.matches(method)) {
-                    List<Expression> originalArguments = method.getArguments();
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation mi, ExecutionContext ctx) {
+                mi = super.visitMethodInvocation(mi, ctx);
 
-                    Expression levelArgument = originalArguments.get(0);
-                    Expression messageArgument = originalArguments.get(1);
-
-                    if (!(levelArgument instanceof J.FieldAccess || levelArgument instanceof J.Identifier) || !isStringLiteral(messageArgument)) {
-                        return method;
-                    }
-                    String newMethodName = getMethodIdentifier(levelArgument);
-                    if (newMethodName == null) {
-                        return method;
-                    }
-                    maybeRemoveImport("java.util.logging.Level");
-
-                    String originalFormatString = Objects.requireNonNull((String) ((J.Literal) messageArgument).getValue());
-                    List<Integer> originalIndices = originalLoggedArgumentIndices(originalFormatString);
-                    List<Expression> stringFormatArguments = splitArrayToExpressions(originalArguments.get(2), originalIndices.size());
-
-                    List<Expression> targetArguments = new ArrayList<>(2);
-                    targetArguments.add(buildStringLiteral(originalFormatString.replaceAll("\\{\\d*}", "{}")));
-                    originalIndices.forEach(i -> targetArguments.add(stringFormatArguments.get(i)));
-                    String newInvocationCode = newMethodName + '(' + StringUtils.repeat(",#{any()}", targetArguments.size()).substring(1) + ')';
-
-                    return JavaTemplate
-                            .builder(newInvocationCode)
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.1.+"))
-                            .build()
-                            .apply(
-                                    getCursor(),
-                                    method.getCoordinates().replaceMethod(),
-                                    targetArguments.toArray()
-                            );
+                if (!(METHOD_MATCHER_ARRAY.matches(mi) || METHOD_MATCHER_PARAM.matches(mi))) {
+                    return mi;
                 }
-                return super.visitMethodInvocation(method, ctx);
+
+                List<Expression> originalArguments = mi.getArguments();
+                Expression levelArgument = originalArguments.get(0);
+                Expression messageArgument = originalArguments.get(1);
+                Expression stringFormatArgument = originalArguments.get(2);
+
+                if (!(levelArgument instanceof J.FieldAccess || levelArgument instanceof J.Identifier) || !isStringLiteral(messageArgument)) {
+                    return mi;
+                }
+                String newMethodName = getMethodIdentifier(levelArgument);
+                if (newMethodName == null) {
+                    return mi;
+                }
+                if (stringFormatArgument instanceof J.Identifier && stringFormatArgument.getType() instanceof JavaType.Array) {
+                    return mi;
+                }
+
+                maybeRemoveImport("java.util.logging.Level");
+
+                String originalFormatString = Objects.requireNonNull((String) ((J.Literal) messageArgument).getValue());
+                List<Integer> originalIndices = originalLoggedArgumentIndices(originalFormatString);
+                List<Expression> stringFormatArguments;
+                if (stringFormatArgument instanceof J.NewArray) {
+                    List<Expression> initializer = ((J.NewArray) stringFormatArgument).getInitializer();
+                    stringFormatArguments = initializer == null ? emptyList() : initializer;
+                } else {
+                    stringFormatArguments = singletonList(stringFormatArgument);
+                }
+
+                List<Expression> targetArguments = new ArrayList<>(2);
+                targetArguments.add(buildStringLiteral(originalFormatString.replaceAll("\\{\\d*}", "{}")));
+                originalIndices.forEach(i -> targetArguments.add(stringFormatArguments.get(i)));
+                String newInvocationCode = newMethodName + '(' + StringUtils.repeat(",#{any()}", targetArguments.size()).substring(1) + ')';
+
+                return JavaTemplate
+                        .builder(newInvocationCode)
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.1.+"))
+                        .build()
+                        .apply(
+                                getCursor(),
+                                mi.getCoordinates().replaceMethod(),
+                                targetArguments.toArray()
+                        );
             }
 
             private boolean isStringLiteral(Expression expression) {
@@ -122,31 +134,6 @@ public class JulParameterizedArguments extends Recipe {
 
             private J.Literal buildStringLiteral(String string) {
                 return new J.Literal(randomId(), Space.EMPTY, Markers.EMPTY, string, String.format("\"%s\"", string), null, JavaType.Primitive.String);
-            }
-
-            /**
-             * Create a list of expression representing each element of an array
-             *
-             * @param arrayExpression Either a J.NewArray or a J.Identifier of an array
-             * @param indiceCount     size of the array
-             * @return A List of expression representing each item of the array. If the passed arrayExpression isn't of type J.NewArray or J.Identifier, the arrayExpression is returned alone in a list.
-             */
-            private List<Expression> splitArrayToExpressions(Expression arrayExpression, int indiceCount) {
-                if (arrayExpression instanceof J.NewArray) {
-                    List<Expression> initializer = ((J.NewArray) arrayExpression).getInitializer();
-                    return initializer == null ? emptyList() : initializer;
-                }
-                if (arrayExpression instanceof J.Identifier && arrayExpression.getType() instanceof JavaType.Array) {
-                    List<Expression> arrayAccessExpr = new ArrayList<>(indiceCount);
-                    for (int i = 0; i < indiceCount; i++) {
-                        J.Literal literal = new J.Literal(randomId(), Space.EMPTY, Markers.EMPTY, i, String.valueOf(i), null, JavaType.Primitive.Int);
-                        J.ArrayDimension dimension = new J.ArrayDimension(randomId(), Space.EMPTY, Markers.EMPTY, JRightPadded.build(literal));
-                        J.ArrayAccess arrayAccess = new J.ArrayAccess(randomId(), Space.EMPTY, Markers.EMPTY, arrayExpression.withPrefix(Space.EMPTY), dimension, arrayExpression.getType());
-                        arrayAccessExpr.add(arrayAccess);
-                    }
-                    return arrayAccessExpr;
-                }
-                return singletonList(arrayExpression);
             }
 
             private List<Integer> originalLoggedArgumentIndices(String strFormat) {
