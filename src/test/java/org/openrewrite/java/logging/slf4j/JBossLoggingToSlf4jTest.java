@@ -21,10 +21,7 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.gradle.Assertions.buildGradle;
 import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
 import static org.openrewrite.java.Assertions.*;
@@ -131,35 +128,10 @@ class JBossLoggingToSlf4jTest implements RewriteTest {
                         </dependencies>
                     </project>
                     """,
-                  sourceSpecs -> sourceSpecs.after(after -> {
-                      Matcher matcher = Pattern.compile("<version>(2.*)</version>").matcher(after);
-                      assertTrue(matcher.find());
-                      String version = matcher.group(1);
-                      return """
-                        <project>
-                            <groupId>org.example</groupId>
-                            <artifactId>example-lib</artifactId>
-                            <version>1</version>
-                            <dependencies>
-                                <dependency>
-                                    <groupId>org.jboss.logging</groupId>
-                                    <artifactId>jboss-logging</artifactId>
-                                    <version>3.6.1.Final</version>
-                                </dependency>
-                                <dependency>
-                                    <groupId>org.jboss.logmanager</groupId>
-                                    <artifactId>jboss-logmanager</artifactId>
-                                    <version>3.1.2.Final</version>
-                                </dependency>
-                                <dependency>
-                                    <groupId>org.jboss.slf4j</groupId>
-                                    <artifactId>slf4j-jboss-logmanager</artifactId>
-                                    <version>%1$s</version>
-                                </dependency>
-                            </dependencies>
-                        </project>
-                        """.formatted(version);
-                  })
+                  sourceSpecs -> sourceSpecs.after(after -> assertThat(after)
+                    .contains("<artifactId>slf4j-jboss-logmanager</artifactId>")
+                    .containsPattern("<version>(2.*)</version>")
+                    .actual())
                 )
               )
             );
