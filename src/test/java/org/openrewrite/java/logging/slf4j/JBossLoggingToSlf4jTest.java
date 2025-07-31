@@ -104,8 +104,8 @@ class JBossLoggingToSlf4jTest implements RewriteTest {
                     """
                       import org.jboss.logging.Logger;
 
-                      public class A {
-                          private static final Logger LOGGER = Logger.getLogger(A.class);
+                      class A {
+                          Logger LOGGER = Logger.getLogger(A.class);
                       }
                       """
                   )
@@ -236,7 +236,7 @@ class JBossLoggingToSlf4jTest implements RewriteTest {
                     """
                       import org.jboss.logging.Logger;
 
-                      public class A {
+                      class A {
                           private static final Logger LOGGER = Logger.getLogger(A.class);
                       }
                       """
@@ -276,7 +276,7 @@ class JBossLoggingToSlf4jTest implements RewriteTest {
                   //language=java
                   java(
                     """
-                      public class A {
+                      class A {
                       }
                       """
                   )
