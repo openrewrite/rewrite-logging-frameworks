@@ -20,6 +20,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.StringUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
@@ -39,8 +40,8 @@ import static java.util.Collections.singletonList;
 import static org.openrewrite.Tree.randomId;
 
 public class JulParameterizedArguments extends Recipe {
-    private static final MethodMatcher METHOD_MATCHER_PARAM = new MethodMatcher("java.util.logging.Logger log(java.util.logging.Level, java.lang.String, java.lang.Object)");
-    private static final MethodMatcher METHOD_MATCHER_ARRAY = new MethodMatcher("java.util.logging.Logger log(java.util.logging.Level, java.lang.String, java.lang.Object[])");
+    private static final MethodMatcher METHOD_MATCHER_PARAM = new MethodMatcher("java.util.logging.Logger log(java.util.logging.Level, String, Object)");
+    private static final MethodMatcher METHOD_MATCHER_ARRAY = new MethodMatcher("java.util.logging.Logger log(java.util.logging.Level, String, Object[])");
 
     @Override
     public String getDisplayName() {
@@ -54,101 +55,97 @@ public class JulParameterizedArguments extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(Preconditions.or(new UsesMethod<>(METHOD_MATCHER_PARAM), new UsesMethod<>(METHOD_MATCHER_ARRAY)), new JulParameterizedToSlf4jVisitor());
-    }
+        return Preconditions.check(Preconditions.or(new UsesMethod<>(METHOD_MATCHER_PARAM), new UsesMethod<>(METHOD_MATCHER_ARRAY)), new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation mi, ExecutionContext ctx) {
+                mi = super.visitMethodInvocation(mi, ctx);
 
-    private static class JulParameterizedToSlf4jVisitor extends JavaIsoVisitor<ExecutionContext> {
+                if (!(METHOD_MATCHER_ARRAY.matches(mi) || METHOD_MATCHER_PARAM.matches(mi))) {
+                    return mi;
+                }
 
-        public static boolean isStringLiteral(Expression expression) {
-            return expression instanceof J.Literal && TypeUtils.isString(((J.Literal) expression).getType());
-        }
-
-        private static @Nullable String getMethodIdentifier(Expression levelArgument) {
-            String levelSimpleName = levelArgument instanceof J.FieldAccess ?
-                    (((J.FieldAccess) levelArgument).getName().getSimpleName()) :
-                    (((J.Identifier) levelArgument).getSimpleName());
-            switch (levelSimpleName) {
-                case "ALL":
-                case "FINEST":
-                case "FINER":
-                    return "trace";
-                case "FINE":
-                    return "debug";
-                case "CONFIG":
-                case "INFO":
-                    return "info";
-                case "WARNING":
-                    return "warn";
-                case "SEVERE":
-                    return "error";
-            }
-            return null;
-        }
-
-        private static J.Literal buildStringLiteral(String string) {
-            return new J.Literal(randomId(), Space.EMPTY, Markers.EMPTY, string, String.format("\"%s\"", string), null, JavaType.Primitive.String);
-        }
-
-        @Override
-        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-            if (METHOD_MATCHER_ARRAY.matches(method) || METHOD_MATCHER_PARAM.matches(method)) {
-                List<Expression> originalArguments = method.getArguments();
-
+                List<Expression> originalArguments = mi.getArguments();
                 Expression levelArgument = originalArguments.get(0);
                 Expression messageArgument = originalArguments.get(1);
+                Expression stringFormatArgument = originalArguments.get(2);
 
-                if (!(levelArgument instanceof J.FieldAccess || levelArgument instanceof J.Identifier) ||
-                    !isStringLiteral(messageArgument)) {
-                    return method;
+                if (!(levelArgument instanceof J.FieldAccess || levelArgument instanceof J.Identifier) || !isStringLiteral(messageArgument)) {
+                    return mi;
                 }
-                String newName = getMethodIdentifier(levelArgument);
-                if(newName == null) {
-                    return method;
+                String newMethodName = getMethodIdentifier(levelArgument);
+                if (newMethodName == null) {
+                    return mi;
                 }
+                if (stringFormatArgument instanceof J.Identifier && stringFormatArgument.getType() instanceof JavaType.Array) {
+                    return mi;
+                }
+
                 maybeRemoveImport("java.util.logging.Level");
 
                 String originalFormatString = Objects.requireNonNull((String) ((J.Literal) messageArgument).getValue());
                 List<Integer> originalIndices = originalLoggedArgumentIndices(originalFormatString);
-                List<Expression> originalParameters = originalParameters(originalArguments.get(2));
+                List<Expression> stringFormatArguments;
+                if (stringFormatArgument instanceof J.NewArray) {
+                    List<Expression> initializer = ((J.NewArray) stringFormatArgument).getInitializer();
+                    stringFormatArguments = initializer == null ? emptyList() : initializer;
+                } else {
+                    stringFormatArguments = singletonList(stringFormatArgument);
+                }
 
                 List<Expression> targetArguments = new ArrayList<>(2);
                 targetArguments.add(buildStringLiteral(originalFormatString.replaceAll("\\{\\d*}", "{}")));
-                originalIndices.forEach(i -> targetArguments.add(originalParameters.get(i)));
-                return JavaTemplate.builder(createTemplateString(newName, targetArguments))
-                        .contextSensitive()
-                        .javaParser(JavaParser.fromJavaVersion()
-                                .classpathFromResources(ctx, "slf4j-api-2.1.+"))
+                originalIndices.forEach(i -> targetArguments.add(stringFormatArguments.get(i)));
+                String newInvocationCode = newMethodName + '(' + StringUtils.repeat(",#{any()}", targetArguments.size()).substring(1) + ')';
+
+                return JavaTemplate
+                        .builder(newInvocationCode)
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.1.+"))
                         .build()
-                        .apply(getCursor(), method.getCoordinates().replaceMethod(), targetArguments.toArray());
+                        .apply(
+                                getCursor(),
+                                mi.getCoordinates().replaceMethod(),
+                                targetArguments.toArray()
+                        );
             }
-            return super.visitMethodInvocation(method, ctx);
-        }
 
-        private List<Integer> originalLoggedArgumentIndices(String strFormat) {
-            // A string format like "Hello {0} {1} {1}" should be transformed to 0, 1, 1
-            Matcher matcher = Pattern.compile("\\{(\\d+)}").matcher(strFormat);
-            List<Integer> loggedArgumentIndices = new ArrayList<>(2);
-            while (matcher.find()) {
-                loggedArgumentIndices.add(Integer.valueOf(matcher.group(1)));
+            private boolean isStringLiteral(Expression expression) {
+                return expression instanceof J.Literal && TypeUtils.isString(((J.Literal) expression).getType());
             }
-            return loggedArgumentIndices;
-        }
 
-        private static List<Expression> originalParameters(Expression logParameters) {
-            if (logParameters instanceof J.NewArray) {
-                final List<Expression> initializer = ((J.NewArray) logParameters).getInitializer();
-                if (initializer == null || initializer.isEmpty()) {
-                    return emptyList();
+            private @Nullable String getMethodIdentifier(Expression levelArgument) {
+                String levelSimpleName = levelArgument instanceof J.FieldAccess ? (((J.FieldAccess) levelArgument).getName().getSimpleName()) : (((J.Identifier) levelArgument).getSimpleName());
+                switch (levelSimpleName) {
+                    case "ALL":
+                    case "FINEST":
+                    case "FINER":
+                        return "trace";
+                    case "FINE":
+                        return "debug";
+                    case "CONFIG":
+                    case "INFO":
+                        return "info";
+                    case "WARNING":
+                        return "warn";
+                    case "SEVERE":
+                        return "error";
                 }
-                return initializer;
+                return null;
             }
-            return singletonList(logParameters);
-        }
 
-        private static String createTemplateString(String newName, List<Expression> targetArguments) {
-            List<String> targetArgumentsStrings = new ArrayList<>();
-            targetArguments.forEach(targetArgument -> targetArgumentsStrings.add("#{any()}"));
-            return newName + '(' + String.join(",", targetArgumentsStrings) + ')';
-        }
+            private J.Literal buildStringLiteral(String string) {
+                return new J.Literal(randomId(), Space.EMPTY, Markers.EMPTY, string, String.format("\"%s\"", string), null, JavaType.Primitive.String);
+            }
+
+            private List<Integer> originalLoggedArgumentIndices(String strFormat) {
+                // A string format like "Hello {0} {1} {1}" should be transformed to 0, 1, 1
+                Matcher matcher = Pattern.compile("\\{(\\d+)}").matcher(strFormat);
+                List<Integer> loggedArgumentIndices = new ArrayList<>(2);
+                while (matcher.find()) {
+                    loggedArgumentIndices.add(Integer.valueOf(matcher.group(1)));
+                }
+                return loggedArgumentIndices;
+            }
+        });
     }
+
 }
