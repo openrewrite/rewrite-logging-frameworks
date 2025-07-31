@@ -29,12 +29,13 @@ import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.openrewrite.Tree.randomId;
 
 public class JulParameterizedArguments extends Recipe {
@@ -137,11 +138,11 @@ public class JulParameterizedArguments extends Recipe {
             if (logParameters instanceof J.NewArray) {
                 final List<Expression> initializer = ((J.NewArray) logParameters).getInitializer();
                 if (initializer == null || initializer.isEmpty()) {
-                    return Collections.emptyList();
+                    return emptyList();
                 }
                 return initializer;
             }
-            return Collections.singletonList(logParameters);
+            return singletonList(logParameters);
         }
 
         private static String createTemplateString(String newName, List<Expression> targetArguments) {
