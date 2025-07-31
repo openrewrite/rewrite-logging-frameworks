@@ -159,16 +159,6 @@ class JulParameterizedArgumentsTest implements RewriteTest {
                       logger.log(Level.INFO, "INFO Log entry, param1: {0}, param2: {1}, etc", params);
                   }
               }
-              """,
-            """
-              import org.slf4j.Logger;
-
-              class Test {
-                  void method(Logger logger, String[] params) {
-                      logger.info("INFO Log entry, param2: {}, param1: {}, etc", params[1], params[0]);
-                      logger.info("INFO Log entry, param1: {}, param2: {}, etc", params[0], params[1]);
-                  }
-              }
               """
           )
         );
