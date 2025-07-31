@@ -49,6 +49,7 @@ dependencies {
     }
     testRuntimeOnly("log4j:log4j:1.+") // Necessary to match for now; explore alternatives for Refaster classpath in the future
     testRuntimeOnly("ch.qos.logback:logback-classic:1.3.+")
+    testImplementation("org.jboss.logging:jboss-logging:latest.release")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.+")
     testImplementation("org.junit.jupiter:junit-jupiter-params:5.+")
@@ -56,7 +57,10 @@ dependencies {
 
     testImplementation("org.openrewrite:rewrite-kotlin")
     testImplementation("org.openrewrite:rewrite-maven")
+    testImplementation("org.openrewrite:rewrite-gradle")
+    testImplementation("org.openrewrite.gradle.tooling:model:${rewriteVersion}")
     testImplementation("org.openrewrite:rewrite-test")
 
     testImplementation("org.assertj:assertj-core:latest.release")
+    testRuntimeOnly(gradleApi())
 }
