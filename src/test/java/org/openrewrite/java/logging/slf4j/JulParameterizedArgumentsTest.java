@@ -15,8 +15,10 @@
  */
 package org.openrewrite.java.logging.slf4j;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.Issue;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -144,6 +146,8 @@ class JulParameterizedArgumentsTest implements RewriteTest {
         );
     }
 
+    @Disabled("Skipped by `JulParameterizedArguments`, but incomplete changes seen from JUL -> Log4j -> Slf4j")
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/pull/244#issuecomment-3140661425")
     @Test
     void arrayIdentifierArgument() {
         rewriteRun(

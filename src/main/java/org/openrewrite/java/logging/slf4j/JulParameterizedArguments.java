@@ -92,6 +92,11 @@ public class JulParameterizedArguments extends Recipe {
                 Expression messageArgument = originalArguments.get(1);
                 Expression stringFormatArgument = originalArguments.get(2);
 
+                if (stringFormatArgument.getType() instanceof JavaType.Array &&
+                        !(stringFormatArgument instanceof J.NewArray)) {
+                    return method;
+                }
+
                 if (!(levelArgument instanceof J.FieldAccess || levelArgument instanceof J.Identifier) ||
                         !isStringLiteral(messageArgument)) {
                     return method;
