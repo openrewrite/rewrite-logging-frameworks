@@ -145,5 +145,22 @@ public class JulParameterizedArguments extends Recipe {
             }
             return loggedArgumentIndices;
         }
+
+        private static List<Expression> originalParameters(Expression logParameters) {
+            if (logParameters instanceof J.NewArray) {
+                final List<Expression> initializer = ((J.NewArray) logParameters).getInitializer();
+                if (initializer == null || initializer.isEmpty()) {
+                    return Collections.emptyList();
+                }
+                return initializer;
+            }
+            return Collections.singletonList(logParameters);
+        }
+
+        private static String createTemplateString(String newName, List<Expression> targetArguments) {
+            List<String> targetArgumentsStrings = new ArrayList<>();
+            targetArguments.forEach(targetArgument -> targetArgumentsStrings.add("#{any()}"));
+            return newName + '(' + String.join(",", targetArgumentsStrings) + ')';
+        }
     }
 }
