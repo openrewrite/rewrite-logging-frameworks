@@ -20,22 +20,21 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.logging.ArgumentArrayToVarargs;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
-import org.openrewrite.marker.Markers;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.openrewrite.Tree.randomId;
+import static java.util.Collections.emptyList;
+import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.toList;
 
 public class JulParameterizedArguments extends Recipe {
     private static final MethodMatcher METHOD_MATCHER_PARAM = new MethodMatcher("java.util.logging.Logger log(java.util.logging.Level, java.lang.String, java.lang.Object)");
@@ -84,10 +83,6 @@ public class JulParameterizedArguments extends Recipe {
             return null;
         }
 
-        private static J.Literal buildStringLiteral(String string) {
-            return new J.Literal(randomId(), Space.EMPTY, Markers.EMPTY, string, String.format("\"%s\"", string), null, JavaType.Primitive.String);
-        }
-
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             if (METHOD_MATCHER_ARRAY.matches(method) || METHOD_MATCHER_PARAM.matches(method)) {
@@ -95,30 +90,54 @@ public class JulParameterizedArguments extends Recipe {
 
                 Expression levelArgument = originalArguments.get(0);
                 Expression messageArgument = originalArguments.get(1);
+                Expression stringFormatArgument = originalArguments.get(2);
+
+                if (stringFormatArgument.getType() instanceof JavaType.Array &&
+                        !(stringFormatArgument instanceof J.NewArray)) {
+                    return method;
+                }
 
                 if (!(levelArgument instanceof J.FieldAccess || levelArgument instanceof J.Identifier) ||
-                    !isStringLiteral(messageArgument)) {
+                        !isStringLiteral(messageArgument)) {
                     return method;
                 }
                 String newName = getMethodIdentifier(levelArgument);
-                if(newName == null) {
+                if (newName == null) {
                     return method;
                 }
                 maybeRemoveImport("java.util.logging.Level");
 
-                String originalFormatString = Objects.requireNonNull((String) ((J.Literal) messageArgument).getValue());
+                String originalFormatString = requireNonNull((String) ((J.Literal) messageArgument).getValue());
                 List<Integer> originalIndices = originalLoggedArgumentIndices(originalFormatString);
-                List<Expression> originalParameters = originalParameters(originalArguments.get(2));
 
-                List<Expression> targetArguments = new ArrayList<>(2);
-                targetArguments.add(buildStringLiteral(originalFormatString.replaceAll("\\{\\d*}", "{}")));
-                originalIndices.forEach(i -> targetArguments.add(originalParameters.get(i)));
-                return JavaTemplate.builder(createTemplateString(newName, targetArguments))
-                        .contextSensitive()
-                        .javaParser(JavaParser.fromJavaVersion()
-                                .classpathFromResources(ctx, "slf4j-api-2.1.+"))
+                Expression updatedStringFormatArgument = stringFormatArgument;
+                if (stringFormatArgument instanceof J.NewArray) {
+                    J.NewArray newArray = (J.NewArray) stringFormatArgument;
+                    List<Expression> arrayContent = newArray.getInitializer() == null ? emptyList() : newArray.getInitializer();
+                    updatedStringFormatArgument = newArray
+                            .withInitializer(originalIndices.stream().map(arrayContent::get).collect(toList()))
+                            // Also unpack `new String[]{ ... }`, as `ArgumentArrayToVarargs` requires `Object[]`
+                            .withType(((JavaType.Array) requireNonNull(newArray.getType())).withElemType(JavaType.ShallowClass.build("java.lang.Object")));
+                }
+
+                J.MethodInvocation updatedMi = JavaTemplate.builder(newName + "(\"#{}\",#{anyArray(Object)})")
                         .build()
-                        .apply(getCursor(), method.getCoordinates().replaceMethod(), targetArguments.toArray());
+                        .apply(
+                                getCursor(),
+                                method.getCoordinates().replaceMethod(),
+                                originalFormatString.replaceAll("\\{\\d*}", "{}"),
+                                updatedStringFormatArgument
+                        );
+
+                // In case of logger.log(Level.INFO, "Hello {0}, {0}", "foo")
+                if (!(stringFormatArgument instanceof J.NewArray) && originalIndices.size() > 1) {
+                    return updatedMi.withArguments(ListUtils.concatAll(updatedMi.getArguments(), Collections.nCopies(originalIndices.size() - 1, updatedStringFormatArgument)));
+                }
+                // Delegate to ArgumentArrayToVarargs to convert the array argument to varargs
+                doAfterVisit(new ArgumentArrayToVarargs().getVisitor());
+                Set<Flag> flags = new HashSet<>(requireNonNull(updatedMi.getMethodType()).getFlags());
+                flags.add(Flag.Varargs);
+                return updatedMi.withMethodType(updatedMi.getMethodType().withFlags(flags));
             }
             return super.visitMethodInvocation(method, ctx);
         }
@@ -131,23 +150,6 @@ public class JulParameterizedArguments extends Recipe {
                 loggedArgumentIndices.add(Integer.valueOf(matcher.group(1)));
             }
             return loggedArgumentIndices;
-        }
-
-        private static List<Expression> originalParameters(Expression logParameters) {
-            if (logParameters instanceof J.NewArray) {
-                final List<Expression> initializer = ((J.NewArray) logParameters).getInitializer();
-                if (initializer == null || initializer.isEmpty()) {
-                    return Collections.emptyList();
-                }
-                return initializer;
-            }
-            return Collections.singletonList(logParameters);
-        }
-
-        private static String createTemplateString(String newName, List<Expression> targetArguments) {
-            List<String> targetArgumentsStrings = new ArrayList<>();
-            targetArguments.forEach(targetArgument -> targetArgumentsStrings.add("#{any()}"));
-            return newName + '(' + String.join(",", targetArgumentsStrings) + ')';
         }
     }
 }

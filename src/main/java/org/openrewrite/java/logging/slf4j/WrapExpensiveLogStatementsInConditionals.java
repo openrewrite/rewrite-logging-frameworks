@@ -27,9 +27,9 @@ import org.openrewrite.marker.Markers;
 
 import java.util.*;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
+import static java.util.stream.Collectors.toList;
 import static org.openrewrite.Preconditions.or;
 import static org.openrewrite.Tree.randomId;
 
@@ -283,7 +283,7 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
             if (ifCache == null) {
                 statements.addAll(logStatementsCache);
             } else {
-                J.If anIf = ifCache.withThenPart(new J.Block(randomId(), Space.EMPTY, Markers.EMPTY, JRightPadded.build(false), logStatementsCache.stream().map(JRightPadded::build).collect(Collectors.toList()), Space.EMPTY));
+                J.If anIf = ifCache.withThenPart(new J.Block(randomId(), Space.EMPTY, Markers.EMPTY, JRightPadded.build(false), logStatementsCache.stream().map(JRightPadded::build).collect(toList()), Space.EMPTY));
                 statements.add((Statement) formatter.apply(anIf));
             }
             logStatementsCache.clear();
