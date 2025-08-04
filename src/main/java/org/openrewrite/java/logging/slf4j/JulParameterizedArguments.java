@@ -111,15 +111,15 @@ public class JulParameterizedArguments extends Recipe {
                     List<Expression> arrayContent = newArray.getInitializer() == null ? emptyList() : newArray.getInitializer();
                     updatedStringFormatArgument = newArray
                             .withInitializer(originalIndices.stream().map(arrayContent::get).collect(toList()))
+                            // Also unpack `new String[]{ ... }`, as `ArgumentArrayToVarargs` requires `Object[]`
                             .withType(((JavaType.Array) requireNonNull(newArray.getType())).withElemType(JavaType.ShallowClass.build("java.lang.Object")));
                 }
 
-                J.MethodInvocation updatedMi = JavaTemplate.builder("#{}(\"#{}\",#{anyArray(Object)})")
+                J.MethodInvocation updatedMi = JavaTemplate.builder(newName + "(\"#{}\",#{anyArray(Object)})")
                         .build()
                         .apply(
                                 getCursor(),
                                 method.getCoordinates().replaceMethod(),
-                                newName,
                                 originalFormatString.replaceAll("\\{\\d*}", "{}"),
                                 updatedStringFormatArgument
                         );
@@ -128,9 +128,10 @@ public class JulParameterizedArguments extends Recipe {
                 if (!(stringFormatArgument instanceof J.NewArray) && originalIndices.size() > 1) {
                     return updatedMi.withArguments(ListUtils.concatAll(updatedMi.getArguments(), Collections.nCopies(originalIndices.size() - 1, updatedStringFormatArgument)));
                 }
+                // Delegate to ArgumentArrayToVarargs to convert the array argument to varargs
+                doAfterVisit(new ArgumentArrayToVarargs().getVisitor());
                 Set<Flag> flags = new HashSet<>(requireNonNull(updatedMi.getMethodType()).getFlags());
                 flags.add(Flag.Varargs);
-                doAfterVisit(new ArgumentArrayToVarargs().getVisitor());
                 return updatedMi.withMethodType(updatedMi.getMethodType().withFlags(flags));
             }
             return super.visitMethodInvocation(method, ctx);
