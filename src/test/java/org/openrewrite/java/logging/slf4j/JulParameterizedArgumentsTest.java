@@ -15,8 +15,10 @@
  */
 package org.openrewrite.java.logging.slf4j;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.Issue;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -89,6 +91,34 @@ class JulParameterizedArgumentsTest implements RewriteTest {
     }
 
     @Test
+    void parameterizedArgumentArrayWithNoInitializer() {
+        rewriteRun(
+          // language=java
+          java(
+            """
+              import java.util.logging.Level;
+              import java.util.logging.Logger;
+
+              class Test {
+                  void method(Logger logger) {
+                      logger.log(Level.INFO, "INFO Log entry", new String[]{});
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  void method(Logger logger) {
+                      logger.info("INFO Log entry");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void retainLoggedArgumentOrder() {
         rewriteRun(
           // language=java
@@ -109,6 +139,28 @@ class JulParameterizedArgumentsTest implements RewriteTest {
               class Test {
                   void method(Logger logger, String param1, String param2) {
                       logger.info("INFO Log entry, param2: {}, param1: {}, etc", param2, param1);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Disabled("Skipped by `JulParameterizedArguments`, but incomplete changes seen from JUL -> Log4j -> Slf4j")
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/pull/244#issuecomment-3140661425")
+    @Test
+    void arrayIdentifierArgument() {
+        rewriteRun(
+          // language=java
+          java(
+            """
+              import java.util.logging.Level;
+              import java.util.logging.Logger;
+
+              class Test {
+                  void method(Logger logger, String[] params) {
+                      logger.log(Level.INFO, "INFO Log entry, param2: {1}, param1: {0}, etc", params);
+                      logger.log(Level.INFO, "INFO Log entry, param1: {0}, param2: {1}, etc", params);
                   }
               }
               """
