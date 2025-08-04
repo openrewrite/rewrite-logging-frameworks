@@ -24,5 +24,6 @@ tags:
   - logging
   - jboss
 recipeList:
+  - org.openrewrite.java.logging.jboss.LoggerLevelArgumentToMethod
   - org.openrewrite.java.logging.jboss.FormattedArgumentsToVMethodRecipes
   - org.openrewrite.java.logging.ArgumentArrayToVarargs
