@@ -91,6 +91,29 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.ArgumentArrayToVarargs
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.slf4j.Logger;
+      class Test {
+          Logger logger;
+          void method() {
+              logger.info("Message {} {} {}", new Object[]{"old", "style", "args"});
+          }
+      }
+    after: |
+      import org.slf4j.Logger;
+      class Test {
+          Logger logger;
+          void method() {
+              logger.info("Message {} {} {}", "old", "style", "args");
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.CatchBlockLogLevel
 examples:
 - description: ''
@@ -279,6 +302,58 @@ examples:
 
           void test() {
               logger.debug("Oh {} no", n);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.jboss.FormattedArgumentsToVMethodRecipes
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.jboss.logging.Logger;
+
+      class Test {
+          void test(Logger logger, String msg, Throwable t, Object[] formatArgs, Object o) {
+              logger.info(msg, formatArgs);
+              logger.info(msg, new Object[]{o});
+              logger.info((Object)msg, formatArgs, t);
+              logger.info(o, formatArgs, t);
+          }
+      }
+    after: |
+      import org.jboss.logging.Logger;
+
+      class Test {
+          void test(Logger logger, String msg, Throwable t, Object[] formatArgs, Object o) {
+              logger.infov(msg, formatArgs);
+              logger.infov(msg, new Object[]{o});
+              logger.infov(msg, formatArgs, t);
+              logger.info(o, formatArgs, t);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.jboss.JBossLoggingBestPractices
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.jboss.logging.Logger;
+
+      class Test {
+          void test(Logger logger, String msg, Object o) {
+              logger.info(msg, new Object[]{o});
+          }
+      }
+    after: |
+      import org.jboss.logging.Logger;
+
+      class Test {
+          void test(Logger logger, String msg, Object o) {
+              logger.infov(msg, o);
           }
       }
     language: java
