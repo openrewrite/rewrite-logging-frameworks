@@ -199,3 +199,40 @@ recipeList:
   - org.openrewrite.java.logging.slf4j.JulLevelAllToTraceRecipe
   - org.openrewrite.java.logging.log4j.JulToLog4j
   - org.openrewrite.java.logging.slf4j.Log4j2ToSlf4j1
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.logging.slf4j.JBossLoggingToSlf4j
+displayName: Migrate JBoss Logging to SLF4J
+description: Migrates usage of the JBoss Logging facade to using SLF4J.
+tags:
+  - logging
+  - jboss
+  - slf4j
+recipeList:
+  - org.openrewrite.java.logging.jboss.JBossLoggingBestPractices
+  - org.openrewrite.java.logging.slf4j.AddJBossLogManagerSlf4jProviderDependency
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.jboss.logging
+      artifactId: jboss-logging
+      unlessUsing: org.jboss.logging.*
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.jboss.logging.Logger fatal(..)
+      newMethodName: error
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.jboss.logging.Logger
+      newFullyQualifiedTypeName: org.slf4j.Logger
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.logging.slf4j.AddJBossLogManagerSlf4jProviderDependency
+displayName: Add JBoss LogManager's SLF4J provider
+description: When JBoss LogManager is the logging backend, add its SLF4J provider so we can migrate to SLF4J as a logging facade.
+preconditions:
+  - org.openrewrite.java.dependencies.DependencyInsight:
+      groupIdPattern: org.jboss.logmanager
+      artifactIdPattern: jboss-logmanager
+recipeList:
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: org.jboss.slf4j
+      artifactId: slf4j-jboss-logmanager
+      version: 2.*
