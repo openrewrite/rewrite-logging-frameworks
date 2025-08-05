@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.logging.jboss;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.openrewrite.DocumentExample;
@@ -31,6 +32,33 @@ class LoggerLevelArgumentToMethodTest implements RewriteTest {
     }
 
     @DocumentExample
+    @Test
+    void replaceLevelArguments() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.jboss.logging.Logger;
+
+              class Test {
+                  void test(Logger logger, String msg) {
+                      logger.log(Logger.Level.INFO, msg);
+                  }
+              }
+              """,
+            """
+              import org.jboss.logging.Logger;
+
+              class Test {
+                  void test(Logger logger, String msg) {
+                      logger.info(msg);
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"trace", "debug", "info", "warn", "error", "fatal"})
     void replaceLevelArguments(String level) {
