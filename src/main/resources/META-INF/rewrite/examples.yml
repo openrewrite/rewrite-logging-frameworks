@@ -359,6 +359,29 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.jboss.LoggerLevelArgumentToMethod
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.jboss.logging.Logger;
+
+      class Test {
+          void test(Logger logger, String msg) {
+              logger.log(Logger.Level.INFO, msg);
+          }
+      }
+    after: |
+      import org.jboss.logging.Logger;
+
+      class Test {
+          void test(Logger logger, String msg) {
+              logger.info(msg);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.jul.LoggerLevelArgumentToMethodRecipes
 examples:
 - description: ''
