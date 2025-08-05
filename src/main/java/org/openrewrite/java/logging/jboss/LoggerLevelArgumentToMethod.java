@@ -85,7 +85,8 @@ public class LoggerLevelArgumentToMethod extends Recipe {
                                 logLevelName += suffix;
                             }
                             updatedArguments = ListUtils.concat(
-                                    (Expression) secondArgument.withPrefix(firstArgument.getPrefix()),
+                                    (Expression) secondArgument.withPrefix(secondArgument.getPrefix()
+                                            .withWhitespace(firstArgument.getPrefix().getWhitespace())),
                                     args.subList(2, args.size()));
                         } else if (TypeUtils.isAssignableTo("java.lang.String", firstArgument.getType()) &&
                                 TypeUtils.isAssignableTo("org.jboss.logging.Logger.Level", secondArgument.getType()) &&
