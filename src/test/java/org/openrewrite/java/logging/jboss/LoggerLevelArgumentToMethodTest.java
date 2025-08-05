@@ -206,4 +206,23 @@ class LoggerLevelArgumentToMethodTest implements RewriteTest {
           )
         );
     }
+
+
+    @Test
+    void noChangeIfLevelUnknown() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.jboss.logging.Logger;
+
+              class Test {
+                  void test(Logger logger, Logger.Level level, String msg) {
+                      logger.log(level, msg);
+                  }
+              }
+              """
+          )
+        );
+    }
 }

@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.logging.jboss;
 
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -79,16 +80,24 @@ public class LoggerLevelArgumentToMethod extends Recipe {
                             } else if (LOGV_MATCHER.matches(m)) {
                                 suffix = "v";
                             }
-                            logLevelName = extractLogLevelName(firstArgument) + suffix;
+                            logLevelName = extractLogLevelName(firstArgument);
+                            if (logLevelName != null) {
+                                logLevelName += suffix;
+                            }
                             updatedArguments = ListUtils.concat(
                                     (Expression) secondArgument.withPrefix(firstArgument.getPrefix()),
                                     args.subList(2, args.size()));
                         } else if (TypeUtils.isAssignableTo("java.lang.String", firstArgument.getType()) &&
-                                   TypeUtils.isAssignableTo("org.jboss.logging.Logger.Level", secondArgument.getType()) &&
-                                   LOG_MATCHER.matches(m)) { // `logf(String, ..)` and `logv(String, ..)` don't have a logger.level() equivalent
+                                TypeUtils.isAssignableTo("org.jboss.logging.Logger.Level", secondArgument.getType()) &&
+                                LOG_MATCHER.matches(m)) { // `logf(String, ..)` and `logv(String, ..)` don't have a logger.level() equivalent
                             logLevelName = extractLogLevelName(secondArgument);
                             updatedArguments = ListUtils.filter(args, it -> it != secondArgument);
                         } else {
+                            return m;
+                        }
+
+                        // If we can't extract a log level name, we don't change the method call
+                        if (logLevelName == null) {
                             return m;
                         }
 
@@ -103,11 +112,18 @@ public class LoggerLevelArgumentToMethod extends Recipe {
                                 .withName(m.getName().withSimpleName(logLevelName.toLowerCase()));
                     }
 
+                    @Nullable
                     String extractLogLevelName(Expression expression) {
                         if (expression instanceof J.Identifier) {
-                            return ((J.Identifier) expression).getSimpleName();
+                            J.Identifier identifier = (J.Identifier) expression;
+                            if (identifier.getFieldType() != null &&
+                                    identifier.getFieldType().getOwner() instanceof JavaType.Class) {
+                                return identifier.getSimpleName();
+                            }
+                        } else if (expression instanceof J.FieldAccess) {
+                            return ((J.FieldAccess) expression).getSimpleName();
                         }
-                        return ((J.FieldAccess) expression).getSimpleName();
+                        return null;
                     }
                 }
         );
