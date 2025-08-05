@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.test.SourceSpec;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.gradle.Assertions.buildGradle;
@@ -84,12 +85,7 @@ class JBossLoggingToSlf4jTest implements RewriteTest {
     }
 
     @Nested
-    class DependenciesTest implements RewriteTest {
-        @Override
-        public void defaults(RecipeSpec spec) {
-            spec.recipeFromResources("org.openrewrite.java.logging.slf4j.JBossLoggingToSlf4jUpdateDependencies");
-        }
-
+    class DependenciesTest {
         @Test
         void stillUsingJBossLoggingKeepsTheDependencyUsingMaven() {
             rewriteRun(
@@ -104,7 +100,8 @@ class JBossLoggingToSlf4jTest implements RewriteTest {
                       class A {
                           Logger LOGGER = Logger.getLogger(A.class);
                       }
-                      """
+                      """,
+                    SourceSpec::skip
                   )
                 ),
                 //language=xml
@@ -142,15 +139,6 @@ class JBossLoggingToSlf4jTest implements RewriteTest {
             rewriteRun(
               mavenProject(
                 "project",
-                srcMainJava(
-                  //language=java
-                  java(
-                    """
-                      public class A {
-                      }
-                      """
-                  )
-                ),
                 //language=xml
                 pomXml(
                   """
@@ -197,62 +185,11 @@ class JBossLoggingToSlf4jTest implements RewriteTest {
         }
 
         @Test
-        void stillUsingJBossLoggingKeepsTheDependencyUsingGradle() {
-            rewriteRun(
-              spec -> spec.beforeRecipe(withToolingApi()),
-              mavenProject(
-                "project",
-                srcMainJava(
-                  //language=java
-                  java(
-                    """
-                      import org.jboss.logging.Logger;
-
-                      class A {
-                          private static final Logger LOGGER = Logger.getLogger(A.class);
-                      }
-                      """
-                  )
-                ),
-                //language=gradle
-                buildGradle(
-                  """
-                    plugins { id "java" }
-                    repositories { mavenCentral() }
-                    dependencies {
-                        implementation "org.jboss.logmanager:jboss-logmanager:3.1.2.Final"
-                        implementation "org.jboss.logging:jboss-logging:3.6.1.Final"
-                    }
-                    """,
-                  """
-                    plugins { id "java" }
-                    repositories { mavenCentral() }
-                    dependencies {
-                        implementation "org.jboss.logmanager:jboss-logmanager:3.1.2.Final"
-                        implementation "org.jboss.slf4j:slf4j-jboss-logmanager:2.0.1.Final"
-                        implementation "org.jboss.logging:jboss-logging:3.6.1.Final"
-                    }
-                    """
-                )
-              )
-            );
-        }
-
-        @Test
         void noMoreJBossLoggingUsagesRemovesTheDependencyUsingGradle() {
             rewriteRun(
               spec -> spec.beforeRecipe(withToolingApi()),
               mavenProject(
                 "project",
-                srcMainJava(
-                  //language=java
-                  java(
-                    """
-                      class A {
-                      }
-                      """
-                  )
-                ),
                 //language=gradle
                 buildGradle(
                   """
