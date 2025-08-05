@@ -28,11 +28,15 @@ import org.openrewrite.java.logging.ArgumentArrayToVarargs;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.nCopies;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
@@ -131,7 +135,7 @@ public class JulParameterizedArguments extends Recipe {
 
                 // In case of logger.log(Level.INFO, "Hello {0}, {0}", "foo")
                 if (!(stringFormatArgument instanceof J.NewArray) && originalIndices.size() > 1) {
-                    return updatedMi.withArguments(ListUtils.concatAll(updatedMi.getArguments(), Collections.nCopies(originalIndices.size() - 1, updatedStringFormatArgument)));
+                    return updatedMi.withArguments(ListUtils.concatAll(updatedMi.getArguments(), nCopies(originalIndices.size() - 1, updatedStringFormatArgument)));
                 }
                 // Delegate to ArgumentArrayToVarargs to convert the array argument to varargs
                 doAfterVisit(new ArgumentArrayToVarargs().getVisitor());
