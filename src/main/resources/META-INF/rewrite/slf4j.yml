@@ -210,26 +210,18 @@ tags:
   - jboss
   - slf4j
 recipeList:
-  - org.openrewrite.java.logging.slf4j.JBossLoggingToSlf4jUpdateDependencies
+  - org.openrewrite.java.logging.jboss.JBossLoggingBestPractices
+  - org.openrewrite.java.logging.slf4j.AddJBossLogManagerSlf4jProviderDependency
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.jboss.logging
+      artifactId: jboss-logging
+      unlessUsing: org.jboss.logging.*
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: org.jboss.logging.Logger fatal(..)
       newMethodName: error
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.jboss.logging.Logger
       newFullyQualifiedTypeName: org.slf4j.Logger
-
----
-type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.logging.slf4j.JBossLoggingToSlf4jUpdateDependencies
-displayName: JBoss Logging to SLF4J migration dependency update
-description: Update dependencies for migrating from JBoss Logging to SLF4J.
-recipeList:
-  - org.openrewrite.java.logging.slf4j.AddJBossLogManagerSlf4jProviderDependency
-  - org.openrewrite.java.dependencies.RemoveDependency:
-      groupId: org.jboss.logging
-      artifactId: jboss-logging
-      unlessUsing: org.jboss.logging.*
-
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.slf4j.AddJBossLogManagerSlf4jProviderDependency
