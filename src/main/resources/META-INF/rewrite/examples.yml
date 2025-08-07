@@ -845,6 +845,51 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.slf4j.JBossLoggingToSlf4j
+examples:
+- description: ''
+  sources:
+  - before: |
+      import org.jboss.logging.Logger;
+
+      class A {
+          void doLog(Logger logger, String msg, Throwable t) {
+              logger.trace(msg);
+              logger.trace(msg, t);
+              logger.debug(msg);
+              logger.debug(msg, t);
+              logger.info(msg);
+              logger.info(msg, t);
+              logger.warn(msg);
+              logger.warn(msg, t);
+              logger.error(msg);
+              logger.error(msg, t);
+              logger.fatal(msg);
+              logger.fatal(msg, t);
+          }
+      }
+    after: |
+      import org.slf4j.Logger;
+
+      class A {
+          void doLog(Logger logger, String msg, Throwable t) {
+              logger.trace(msg);
+              logger.trace(msg, t);
+              logger.debug(msg);
+              logger.debug(msg, t);
+              logger.info(msg);
+              logger.info(msg, t);
+              logger.warn(msg);
+              logger.warn(msg, t);
+              logger.error(msg);
+              logger.error(msg, t);
+              logger.error(msg);
+              logger.error(msg, t);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.slf4j.JulToSlf4j
 examples:
 - description: ''
