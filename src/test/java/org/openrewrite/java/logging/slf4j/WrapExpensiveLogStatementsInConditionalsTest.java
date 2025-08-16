@@ -84,7 +84,7 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
         //language=java
         rewriteRun(
           java(
-            String.format("""
+                  """
               import org.slf4j.Logger;
 
               class A {
@@ -96,8 +96,8 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
                       return "expensive";
                   }
               }
-              """, method),
-            String.format("""
+              """.formatted(method),
+                  """
               import org.slf4j.Logger;
 
               class A {
@@ -111,7 +111,7 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
                       return "expensive";
                   }
               }
-              """, check, method)
+              """.formatted(check, method)
           )
         );
     }
@@ -600,7 +600,7 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
         //language=java
         rewriteRun(
           java(
-            String.format("""
+                  """
               import java.nio.charset.StandardCharsets;
               import java.util.Optional;
               import org.slf4j.Logger;
@@ -622,8 +622,8 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
                       return true;
                   }
               }
-              """, logArgument),
-            String.format("""
+              """.formatted(logArgument),
+                  """
               import java.nio.charset.StandardCharsets;
               import java.util.Optional;
               import org.slf4j.Logger;
@@ -647,7 +647,7 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
                       return true;
                   }
               }
-              """, logArgument)
+              """.formatted(logArgument)
           )
         );
     }
@@ -672,7 +672,7 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
         //language=java
         rewriteRun(
           java(
-            String.format("""
+                  """
               import org.slf4j.Logger;
 
               class A {
@@ -686,7 +686,7 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
                       return true;
                   }
               }
-              """, logArgument)
+              """.formatted(logArgument)
           )
         );
     }

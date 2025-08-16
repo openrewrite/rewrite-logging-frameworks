@@ -191,7 +191,7 @@ class Slf4jToLog4jTest implements RewriteTest {
                     while (matcher.find()) {
                         versions.add(matcher.group(1));
                     }
-                    return String.format("""
+                    return """
                       <project>
                           <groupId>org.example</groupId>
                           <artifactId>example-lib</artifactId>
@@ -204,7 +204,7 @@ class Slf4jToLog4jTest implements RewriteTest {
                               </dependency>
                           </dependencies>
                       </project>
-                      """, versions.isEmpty() ? "" : versions.getFirst(), versions.size() > 1 ? versions.get(1) : "");
+                      """.formatted(versions.isEmpty() ? "" : versions.getFirst(), versions.size() > 1 ? versions.get(1) : "");
                 }
               )
             )

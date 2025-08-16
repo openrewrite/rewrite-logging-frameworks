@@ -87,8 +87,8 @@ class StripToStringFromArgumentsTest implements RewriteTest {
                     }
                   }
                 """;
-        @Language("java") String before = String.format(testTemplate, method, arguments);
-        @Language("java") String after = String.format(testTemplate, method, expectedArguments);
+        @Language("java") String before = testTemplate.formatted(method, arguments);
+        @Language("java") String after = testTemplate.formatted(method, expectedArguments);
 
         // Ideally we'd only call `rewriteRun(java(before, after));` but the only way to expect a no-change is to call `rewrite(java(before))`
         if (before.equals(after)) {
