@@ -32,9 +32,7 @@ dependencies {
     implementation("org.openrewrite.recipe:rewrite-static-analysis:${rewriteVersion}")
     runtimeOnly("org.openrewrite:rewrite-java-17")
 
-    compileOnly("org.apache.logging.log4j:log4j-core:2.+") {
-        exclude("com.github.spotbugs", "spotbugs-annotations").because("https://github.com/apache/logging-log4j2/issues/3754")
-    }
+    compileOnly("org.apache.logging.log4j:log4j-core:2.+")
     compileOnly("org.slf4j:slf4j-api:2.+")
     compileOnly("org.jboss.logging:jboss-logging:3.+")
 
