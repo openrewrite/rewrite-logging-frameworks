@@ -17,6 +17,7 @@ package org.openrewrite.java.logging.log4j;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -28,7 +29,7 @@ class LoggingExceptionConcatenationTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipe(new LoggingExceptionConcatenationRecipe())
-          .parser(JavaParser.fromJavaVersion().classpath("log4j-api"));
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "log4j-api"));
     }
 
     @DocumentExample
@@ -39,7 +40,7 @@ class LoggingExceptionConcatenationTest implements RewriteTest {
           java(
             """
               import org.apache.logging.log4j.Logger;
-                            
+
               class Test {
                   void test(Logger logger, RuntimeException e) {
                       logger.error("test" + e);
@@ -48,7 +49,7 @@ class LoggingExceptionConcatenationTest implements RewriteTest {
               """,
             """
               import org.apache.logging.log4j.Logger;
-                            
+
               class Test {
                   void test(Logger logger, RuntimeException e) {
                       logger.error("test", e);

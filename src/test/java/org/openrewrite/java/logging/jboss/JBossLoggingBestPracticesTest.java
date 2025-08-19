@@ -17,6 +17,8 @@ package org.openrewrite.java.logging.jboss;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -25,10 +27,8 @@ import static org.openrewrite.java.Assertions.java;
 class JBossLoggingBestPracticesTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.recipeFromResource(
-          "/META-INF/rewrite/jboss.yml",
-          "org.openrewrite.java.logging.jboss.JBossLoggingBestPractices"
-        );
+        spec.recipeFromResource("/META-INF/rewrite/jboss.yml", "org.openrewrite.java.logging.jboss.JBossLoggingBestPractices")
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "jboss-logging"));
     }
 
     @DocumentExample

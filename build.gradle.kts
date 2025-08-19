@@ -16,6 +16,7 @@ recipeDependencies {
     parserClasspath("commons-logging:commons-logging:1.+")
     parserClasspath("ch.qos.logback:logback-classic:1.3.+")
     parserClasspath("org.projectlombok:lombok:1.18.+")
+    parserClasspath("org.jboss.logging:jboss-logging:3.+")
 }
 
 dependencies {
@@ -31,11 +32,9 @@ dependencies {
     implementation("org.openrewrite.recipe:rewrite-static-analysis:${rewriteVersion}")
     runtimeOnly("org.openrewrite:rewrite-java-17")
 
-    implementation("org.apache.logging.log4j:log4j-core:2.+") {
-        exclude("com.github.spotbugs", "spotbugs-annotations").because("https://github.com/apache/logging-log4j2/issues/3754")
-    }
-    implementation("org.slf4j:slf4j-api:2.+")
-    implementation("org.jboss.logging:jboss-logging:3.+")
+    compileOnly("org.apache.logging.log4j:log4j-core:2.+")
+    compileOnly("org.slf4j:slf4j-api:2.+")
+    compileOnly("org.jboss.logging:jboss-logging:3.+")
 
     annotationProcessor("org.openrewrite:rewrite-templating:$rewriteVersion")
     implementation("org.openrewrite:rewrite-templating:$rewriteVersion")
@@ -62,4 +61,8 @@ dependencies {
 
     testImplementation("org.assertj:assertj-core:latest.release")
     testRuntimeOnly(gradleApi())
+}
+
+tasks.withType<JavaCompile> {
+    options.compilerArgs.add("-Arewrite.javaParserClasspathFrom=resources")
 }

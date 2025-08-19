@@ -17,6 +17,7 @@ package org.openrewrite.java.logging;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -35,7 +36,7 @@ class CatchBlockLogLevelTest implements RewriteTest {
     @Test
     void log4j1() {
         rewriteRun(
-          spec -> spec.parser(JavaParser.fromJavaVersion().classpath("log4j")),
+          spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "log4j-1")),
           //language=java
           java(
                """
@@ -77,7 +78,7 @@ class CatchBlockLogLevelTest implements RewriteTest {
     @Test
     void log4j2() {
         rewriteRun(
-          spec -> spec.parser(JavaParser.fromJavaVersion().classpath("log4j-core", "log4j-api")),
+          spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "log4j-core-2+", "log4j-api-2+")),
           //language=java
           java(
                """

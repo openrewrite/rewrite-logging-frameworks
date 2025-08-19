@@ -17,6 +17,8 @@ package org.openrewrite.java.logging;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -26,7 +28,8 @@ class ChangeLoggersToPrivateTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.recipe(new ChangeLoggersToPrivate());
+        spec.recipe(new ChangeLoggersToPrivate())
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "log4j-1", "slf4j-api-2.1.+", "log4j-api-2.+"));
     }
 
     @DocumentExample
