@@ -36,7 +36,7 @@ class CatchBlockLogLevelTest implements RewriteTest {
     @Test
     void log4j1() {
         rewriteRun(
-          spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "log4j-1+")),
+          spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "log4j-1")),
           //language=java
           java(
                """

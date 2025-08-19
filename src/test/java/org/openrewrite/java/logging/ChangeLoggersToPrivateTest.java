@@ -29,7 +29,7 @@ class ChangeLoggersToPrivateTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipe(new ChangeLoggersToPrivate())
-          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "log4j-1+", "slf4j-api-2.1.+", "log4j-api-2.+"));
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "log4j-1", "slf4j-api-2.1.+", "log4j-api-2.+"));
     }
 
     @DocumentExample
