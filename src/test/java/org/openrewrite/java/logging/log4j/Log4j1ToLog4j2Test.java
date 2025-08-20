@@ -26,7 +26,7 @@ import org.openrewrite.test.RewriteTest;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.java.Assertions.*;
 import static org.openrewrite.maven.Assertions.pomXml;
 
@@ -300,7 +300,7 @@ class Log4j1ToLog4j2Test implements RewriteTest {
                   """,
                 sourceSpecs -> sourceSpecs.after(after -> {
                     Matcher matcher = Pattern.compile("<version>(2\\.2\\d\\.\\d)</version>").matcher(after);
-                    assertTrue(matcher.find());
+                    assertThat(matcher.find()).isTrue();
                     String version = matcher.group(1);
                     return """
                       <project>
