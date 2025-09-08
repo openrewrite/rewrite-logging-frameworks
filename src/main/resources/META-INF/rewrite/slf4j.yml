@@ -178,6 +178,12 @@ recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.apache.commons.logging.Log
       newFullyQualifiedTypeName: org.slf4j.Logger
+  - org.openrewrite.java.dependencies.ChangeDependency:
+     oldGroupId: commons-logging
+     oldArtifactId: commons-logging
+     newGroupId: org.slf4j
+     newArtifactId: slf4j-api
+     newVersion: 1.x
   - org.openrewrite.java.logging.ChangeLombokLogAnnotation
 
 ---
