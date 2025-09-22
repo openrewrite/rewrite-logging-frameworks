@@ -1,4 +1,3 @@
-#
 # Copyright 2025 the original author or authors.
 # <p>
 # Licensed under the Moderne Source Available License (the "License");
@@ -13,15 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
-#
 # Generated InlineMe recipes from TypeTable
 #
 
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.log4j.InlineMethods
 displayName: Inline methods annotated with `@InlineMe`
-description: >
+description: >-
   Automatically generated recipes to inline method calls based on `@InlineMe` annotations
   discovered in the type table.
 recipeList:
