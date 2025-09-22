@@ -137,6 +137,7 @@ recipeList:
       newArtifactId: log4j-slf4j-impl
       newVersion: 2.x
   - org.openrewrite.java.logging.log4j.UpgradeLog4J2DependencyVersion
+  - org.openrewrite.java.logging.log4j.InlineMethods
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
