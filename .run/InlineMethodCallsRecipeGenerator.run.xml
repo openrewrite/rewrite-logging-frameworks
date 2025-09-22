@@ -1,0 +1,10 @@
+<component name="ProjectRunConfigurationManager">
+    <configuration default="false" name="InlineMethodCallsRecipeGenerator" type="Application" factoryName="Application">
+        <option name="MAIN_CLASS_NAME" value="org.openrewrite.java.internal.parser.InlineMethodCallsRecipeGenerator" />
+        <module name="rewrite-logging-frameworks.main" />
+        <option name="PROGRAM_PARAMETERS" value="src/main/resources/META-INF/rewrite/classpath.tsv.gz src/main/resources/META-INF/rewrite/inline-logging-methods.yml org.openrewrite.java.logging.log4j.InlineMethods" />
+        <method v="2">
+            <option name="Make" enabled="true" />
+        </method>
+    </configuration>
+</component>
