@@ -46,7 +46,7 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Optimize log statements with expensive arguments";
+        return "Optimize log statements";
     }
 
     @Override
@@ -135,39 +135,66 @@ private static class OptimizeLogStatementsVisitor extends JavaVisitor<ExecutionC
                     templateStr.append("#{logger:any(org.slf4j.Logger)}.").append(fluentLevel).append("()");
 
                     // Add each parameter as an argument
+                    // Use lambda for expensive operations, direct value for cheap ones
+                    List<Object> templateArgs = new ArrayList<>();
+                    //noinspection DataFlowIssue
+                    templateArgs.add(m.getSelect());
+
                     for (int i = 1; i < args.size(); i++) {
-                        templateStr.append(".addArgument(#{any()})");
+                        Expression arg = args.get(i);
+                        if (isExpensiveArgument(arg)) {
+                            // Use supplier lambda for expensive operations
+                            templateStr.append(".addArgument(() -> #{any()})");
+                        } else {
+                            // Use direct value for cheap operations
+                            templateStr.append(".addArgument(#{any()})");
+                        }
+                        templateArgs.add(arg);
                     }
                     templateStr.append(".log(#{any()})");
+                    templateArgs.add(messageTemplate);
 
                     JavaTemplate template = JavaTemplate
                             .builder(templateStr.toString())
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.+"))
                             .build();
 
-                    // Build the arguments array for the template
-                    Object[] templateArgs = new Object[args.size() + 1];
-                    //noinspection DataFlowIssue
-                    templateArgs[0] = m.getSelect();
-                    for (int i = 1; i < args.size(); i++) {
-                        templateArgs[i] = args.get(i);
-                    }
-                    templateArgs[args.size()] = messageTemplate;
-
-                    return template.apply(getCursor(), m.getCoordinates().replace(), templateArgs);
+                    return template.apply(getCursor(), m.getCoordinates().replace(), templateArgs.toArray());
                 } else {
                     // Simple case with just a message
-                    JavaTemplate template = JavaTemplate
-                            .builder("#{logger:any(org.slf4j.Logger)}.#{}().log(#{any()})")
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.+"))
-                            .build();
+                    Expression arg = args.get(0);
+                    if (isExpensiveArgument(arg)) {
+                        // Use supplier lambda for expensive message
+                        JavaTemplate template = JavaTemplate
+                                .builder("#{logger:any(org.slf4j.Logger)}.#{}().log(() -> #{any()})")
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.+"))
+                                .build();
 
-                    //noinspection DataFlowIssue
-                    return template.apply(getCursor(), m.getCoordinates().replace(),
-                            m.getSelect(), fluentLevel, args.get(0));
+                        //noinspection DataFlowIssue
+                        return template.apply(getCursor(), m.getCoordinates().replace(),
+                                m.getSelect(), fluentLevel, arg);
+                    } else {
+                        // Use direct value for cheap message
+                        JavaTemplate template = JavaTemplate
+                                .builder("#{logger:any(org.slf4j.Logger)}.#{}().log(#{any()})")
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.+"))
+                                .build();
+
+                        //noinspection DataFlowIssue
+                        return template.apply(getCursor(), m.getCoordinates().replace(),
+                                m.getSelect(), fluentLevel, arg);
+                    }
                 }
             }
             return m;
+        }
+
+        private boolean isExpensiveArgument(Expression arg) {
+            return !(arg instanceof J.MethodInvocation && isSimpleGetter((J.MethodInvocation) arg) ||
+                    arg instanceof J.Literal ||
+                    arg instanceof J.Identifier ||
+                    arg instanceof J.FieldAccess ||
+                    arg instanceof J.Binary && isOnlyLiterals((J.Binary) arg));
         }
 
         private boolean isAlreadyUsingFluentApi(Cursor cursor) {

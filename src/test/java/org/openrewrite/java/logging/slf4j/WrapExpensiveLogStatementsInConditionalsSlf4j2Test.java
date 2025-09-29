@@ -39,6 +39,7 @@ class WrapExpensiveLogStatementsInConditionalsSlf4j2Test implements RewriteTest 
     @Test
     void convertToFluentApiWithExpensiveArgument() {
         rewriteRun(
+          //language=java
           java(
             """
               import org.slf4j.Logger;
@@ -63,8 +64,8 @@ class WrapExpensiveLogStatementsInConditionalsSlf4j2Test implements RewriteTest 
 
               class A {
                   void method(Logger logger) {
-                      logger.atInfo().addArgument(calculateResult()).log("Result: {}");
-                      logger.atInfo().addArgument(doExpensiveOperation()).addArgument("bar").log("This was {} and {}");
+                      logger.atInfo().addArgument(() -> calculateResult()).log("Result: {}");
+                      logger.atInfo().addArgument(() -> doExpensiveOperation()).addArgument("bar").log("This was {} and {}");
                   }
 
                   String calculateResult() {
@@ -107,7 +108,7 @@ class WrapExpensiveLogStatementsInConditionalsSlf4j2Test implements RewriteTest 
 
               class A {
                   void method(Logger logger) {
-                      logger.at%s().addArgument("some param").addArgument(expensiveOp()).log("SomeString {}, {}");
+                      logger.at%s().addArgument("some param").addArgument(() -> expensiveOp()).log("SomeString {}, {}");
                   }
 
                   String expensiveOp() {
@@ -159,6 +160,42 @@ class WrapExpensiveLogStatementsInConditionalsSlf4j2Test implements RewriteTest 
     }
 
     @Test
+    void useMethodReferencesForSimpleMethodCalls() {
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger logger) {
+                      logger.info("Value: {}", computeValue());
+                      logger.debug("Complex: {}", computeValue() + " suffix");
+                  }
+
+                  String computeValue() {
+                      return "value";
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger logger) {
+                      logger.atInfo().addArgument(() -> computeValue()).log("Value: {}");
+                      logger.atDebug().addArgument(() -> computeValue() + " suffix").log("Complex: {}");
+                  }
+
+                  String computeValue() {
+                      return "value";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void handleBlocksWithExpensiveOperationsUsingFluentApi() {
         rewriteRun(
           java(
@@ -185,9 +222,9 @@ class WrapExpensiveLogStatementsInConditionalsSlf4j2Test implements RewriteTest 
               class A {
                   void method(Logger logger) {
                       System.out.println("an unrelated statement");
-                      logger.atInfo().log(expensiveOp());
+                      logger.atInfo().log(() -> expensiveOp());
                       logger.info("SomeString {}", "some param");
-                      logger.atInfo().addArgument(expensiveOp()).log("SomeString {}");
+                      logger.atInfo().addArgument(() -> expensiveOp()).log("SomeString {}");
                       System.out.println("another unrelated statement");
                   }
 
