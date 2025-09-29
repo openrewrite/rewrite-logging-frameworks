@@ -65,7 +65,7 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
     }
 
 
-    private static class OptimizeLogStatementsVisitor extends JavaVisitor<ExecutionContext> {
+private static class OptimizeLogStatementsVisitor extends JavaVisitor<ExecutionContext> {
 
         final Set<UUID> visitedBlocks = new HashSet<>();
 
@@ -147,6 +147,7 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
 
                     // Build the arguments array for the template
                     Object[] templateArgs = new Object[args.size() + 1];
+                    //noinspection DataFlowIssue
                     templateArgs[0] = m.getSelect();
                     for (int i = 1; i < args.size(); i++) {
                         templateArgs[i] = args.get(i);
@@ -161,6 +162,7 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.+"))
                             .build();
 
+                    //noinspection DataFlowIssue
                     return template.apply(getCursor(), m.getCoordinates().replace(),
                             m.getSelect(), fluentLevel, args.get(0));
                 }
