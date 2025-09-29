@@ -10,6 +10,7 @@ val rewriteVersion = rewriteRecipe.rewriteVersion.get()
 
 recipeDependencies {
     parserClasspath("org.slf4j:slf4j-api:2.+")
+    parserClasspath("org.slf4j:slf4j-api:1.7.+")
     parserClasspath("log4j:log4j:1.+")
     parserClasspath("org.apache.logging.log4j:log4j-core:2.+")
     parserClasspath("org.apache.logging.log4j:log4j-api:2.+")
