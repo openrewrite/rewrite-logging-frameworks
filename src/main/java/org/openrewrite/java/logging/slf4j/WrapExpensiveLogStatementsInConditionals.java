@@ -82,9 +82,9 @@ private static class OptimizeLogStatementsVisitor extends JavaVisitor<ExecutionC
 
             // Check if the logger type has the fluent API methods (introduced in SLF4J 2.0)
             return loggerType.getMethods().stream()
-                    .anyMatch(m -> m.getName().equals("atInfo") ||
-                                  m.getName().equals("atDebug") ||
-                                  m.getName().equals("atTrace"));
+                    .anyMatch(m -> "atInfo".equals(m.getName()) ||
+                                  "atDebug".equals(m.getName()) ||
+                                  "atTrace".equals(m.getName()));
         }
 
         @Override
@@ -99,22 +99,21 @@ private static class OptimizeLogStatementsVisitor extends JavaVisitor<ExecutionC
                 // Check if we should use fluent API (SLF4J 2.0+) or if-statements (SLF4J 1.x)
                 if (supportsFluentApi(m)) {
                     return convertToFluentApi(m, ctx);
-                } else {
-                    // Use the traditional if-statement approach for SLF4J 1.x
-                    J container = getCursor().getParentTreeCursor().getValue();
-                    if (container instanceof J.Block) {
-                        UUID id = container.getId();
-                        J.If if_ = ((J.If) JavaTemplate
-                                .builder("if(#{logger:any(org.slf4j.Logger)}.is#{}Enabled()) {}")
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-1.+"))
-                                .build()
-                                .apply(getCursor(), m.getCoordinates().replace(),
-                                        m.getSelect(), StringUtils.capitalize(m.getSimpleName())))
-                                .withThenPart(m.withPrefix(m.getPrefix().withWhitespace("\n" + m.getPrefix().getWhitespace().replace("\n", ""))))
-                                .withPrefix(m.getPrefix().withComments(emptyList()));
-                        visitedBlocks.add(id);
-                        return if_;
-                    }
+                }
+                // Use the traditional if-statement approach for SLF4J 1.x
+                J container = getCursor().getParentTreeCursor().getValue();
+                if (container instanceof J.Block) {
+                    UUID id = container.getId();
+                    J.If if_ = ((J.If) JavaTemplate
+                            .builder("if(#{logger:any(org.slf4j.Logger)}.is#{}Enabled()) {}")
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-1.+"))
+                            .build()
+                            .apply(getCursor(), m.getCoordinates().replace(),
+                                    m.getSelect(), StringUtils.capitalize(m.getSimpleName())))
+                            .withThenPart(m.withPrefix(m.getPrefix().withWhitespace("\n" + m.getPrefix().getWhitespace().replace("\n", ""))))
+                            .withPrefix(m.getPrefix().withComments(emptyList()));
+                    visitedBlocks.add(id);
+                    return if_;
                 }
             }
             return m;
