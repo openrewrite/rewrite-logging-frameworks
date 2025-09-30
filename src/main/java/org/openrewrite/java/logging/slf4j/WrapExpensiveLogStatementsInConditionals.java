@@ -46,27 +46,46 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Wrap expensive log statements in conditionals";
+        return "Optimize log statements";
     }
 
     @Override
     public String getDescription() {
         return "When trace, debug and info log statements use methods for constructing log messages, " +
                 "those methods are called regardless of whether the log level is enabled. " +
-                "This recipe encapsulates those log statements in an `if` statement that checks the log level before calling the log method. " +
-                "It then bundles surrounding log statements with the same log level into the `if` statement to improve readability of the resulting code.";
+                "This recipe optimizes these statements by either wrapping them in if-statements (SLF4J 1.x) " +
+                "or converting them to fluent API calls (SLF4J 2.0+) to ensure expensive methods are only called when necessary.";
     }
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(
                 or(new UsesMethod<>(infoMatcher), new UsesMethod<>(debugMatcher), new UsesMethod<>(traceMatcher)),
-                new AddIfEnabledVisitor());
+                new OptimizeLogStatementsVisitor());
     }
 
-    private static class AddIfEnabledVisitor extends JavaVisitor<ExecutionContext> {
+
+private static class OptimizeLogStatementsVisitor extends JavaVisitor<ExecutionContext> {
 
         final Set<UUID> visitedBlocks = new HashSet<>();
+
+        private boolean supportsFluentApi(J.MethodInvocation logMethod) {
+            // Check if the logger type supports fluent API by looking for atInfo/atDebug/atTrace methods
+            if (logMethod.getSelect() == null || logMethod.getMethodType() == null) {
+                return false;
+            }
+
+            JavaType.FullyQualified loggerType = TypeUtils.asFullyQualified(logMethod.getMethodType().getDeclaringType());
+            if (loggerType == null) {
+                return false;
+            }
+
+            // Check if the logger type has the fluent API methods (introduced in SLF4J 2.0)
+            return loggerType.getMethods().stream()
+                    .anyMatch(m -> "atInfo".equals(m.getName()) ||
+                                  "atDebug".equals(m.getName()) ||
+                                  "atTrace".equals(m.getName()));
+        }
 
         @Override
         public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
@@ -74,13 +93,20 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
             if (m.getSelect() != null &&
                     (infoMatcher.matches(m) || debugMatcher.matches(m) || traceMatcher.matches(m)) &&
                     !isInIfStatementWithLogLevelCheck(getCursor(), m) &&
+                    !isAlreadyUsingFluentApi(getCursor()) &&
                     isAnyArgumentExpensive(m)) {
+
+                // Check if we should use fluent API (SLF4J 2.0+) or if-statements (SLF4J 1.x)
+                if (supportsFluentApi(m)) {
+                    return convertToFluentApi(m, ctx);
+                }
+                // Use the traditional if-statement approach for SLF4J 1.x
                 J container = getCursor().getParentTreeCursor().getValue();
                 if (container instanceof J.Block) {
                     UUID id = container.getId();
                     J.If if_ = ((J.If) JavaTemplate
                             .builder("if(#{logger:any(org.slf4j.Logger)}.is#{}Enabled()) {}")
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.+"))
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-1.+"))
                             .build()
                             .apply(getCursor(), m.getCoordinates().replace(),
                                     m.getSelect(), StringUtils.capitalize(m.getSimpleName())))
@@ -91,6 +117,98 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
                 }
             }
             return m;
+        }
+
+        private J.MethodInvocation convertToFluentApi(J.MethodInvocation m, ExecutionContext ctx) {
+            String logLevel = m.getSimpleName();
+            String fluentLevel = "at" + StringUtils.capitalize(logLevel);
+
+            List<Expression> args = m.getArguments();
+            if (!args.isEmpty()) {
+                if (args.size() > 1) {
+                    // First argument is the message template
+                    Expression messageTemplate = args.get(0);
+
+                    // Build fluent API with addArgument() calls for each parameter
+                    StringBuilder templateStr = new StringBuilder();
+                    templateStr.append("#{logger:any(org.slf4j.Logger)}.").append(fluentLevel).append("()");
+
+                    // Add each parameter as an argument
+                    // Use lambda for expensive operations, direct value for cheap ones
+                    List<Object> templateArgs = new ArrayList<>();
+                    //noinspection DataFlowIssue
+                    templateArgs.add(m.getSelect());
+
+                    for (int i = 1; i < args.size(); i++) {
+                        Expression arg = args.get(i);
+                        if (isExpensiveArgument(arg)) {
+                            // Use supplier lambda for expensive operations
+                            templateStr.append(".addArgument(() -> #{any()})");
+                        } else {
+                            // Use direct value for cheap operations
+                            templateStr.append(".addArgument(#{any()})");
+                        }
+                        templateArgs.add(arg);
+                    }
+                    templateStr.append(".log(#{any()})");
+                    templateArgs.add(messageTemplate);
+
+                    JavaTemplate template = JavaTemplate
+                            .builder(templateStr.toString())
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.+"))
+                            .build();
+
+                    return template.apply(getCursor(), m.getCoordinates().replace(), templateArgs.toArray());
+                } else {
+                    // Simple case with just a message
+                    Expression arg = args.get(0);
+                    if (isExpensiveArgument(arg)) {
+                        // Use supplier lambda for expensive message
+                        JavaTemplate template = JavaTemplate
+                                .builder("#{logger:any(org.slf4j.Logger)}.#{}().log(() -> #{any()})")
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.+"))
+                                .build();
+
+                        //noinspection DataFlowIssue
+                        return template.apply(getCursor(), m.getCoordinates().replace(),
+                                m.getSelect(), fluentLevel, arg);
+                    } else {
+                        // Use direct value for cheap message
+                        JavaTemplate template = JavaTemplate
+                                .builder("#{logger:any(org.slf4j.Logger)}.#{}().log(#{any()})")
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.+"))
+                                .build();
+
+                        //noinspection DataFlowIssue
+                        return template.apply(getCursor(), m.getCoordinates().replace(),
+                                m.getSelect(), fluentLevel, arg);
+                    }
+                }
+            }
+            return m;
+        }
+
+        private boolean isExpensiveArgument(Expression arg) {
+            return !(arg instanceof J.MethodInvocation && isSimpleGetter((J.MethodInvocation) arg) ||
+                    arg instanceof J.Literal ||
+                    arg instanceof J.Identifier ||
+                    arg instanceof J.FieldAccess ||
+                    arg instanceof J.Binary && isOnlyLiterals((J.Binary) arg));
+        }
+
+        private boolean isAlreadyUsingFluentApi(Cursor cursor) {
+            // Check if we're already in a fluent API chain
+            J.MethodInvocation parent = cursor.firstEnclosing(J.MethodInvocation.class);
+            if (parent != null && parent.getSimpleName().equals("log")) {
+                Expression select = parent.getSelect();
+                if (select instanceof J.MethodInvocation) {
+                    J.MethodInvocation selectMethod = (J.MethodInvocation) select;
+                    return selectMethod.getSimpleName().equals("addArgument") ||
+                           selectMethod.getSimpleName().equals("addParameter") ||
+                           selectMethod.getSimpleName().startsWith("at");
+                }
+            }
+            return false;
         }
 
         @Override
@@ -127,6 +245,7 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
         }
 
         private static boolean isSimpleGetter(J.MethodInvocation mi) {
+            // Consider it a simple getter if it follows getter naming convention and has no parameters
             return ((mi.getSimpleName().startsWith("get") && mi.getSimpleName().length() > 3) ||
                     (mi.getSimpleName().startsWith("is") && mi.getSimpleName().length() > 2)) &&
                     mi.getMethodType() != null &&
