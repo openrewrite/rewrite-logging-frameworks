@@ -159,31 +159,29 @@ private static class OptimizeLogStatementsVisitor extends JavaVisitor<ExecutionC
                             .build();
 
                     return template.apply(getCursor(), m.getCoordinates().replace(), templateArgs.toArray());
-                } else {
-                    // Simple case with just a message
-                    Expression arg = args.get(0);
-                    if (isExpensiveArgument(arg)) {
-                        // Use supplier lambda for expensive message
-                        JavaTemplate template = JavaTemplate
-                                .builder("#{logger:any(org.slf4j.Logger)}.#{}().log(() -> #{any()})")
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.+"))
-                                .build();
-
-                        //noinspection DataFlowIssue
-                        return template.apply(getCursor(), m.getCoordinates().replace(),
-                                m.getSelect(), fluentLevel, arg);
-                    } else {
-                        // Use direct value for cheap message
-                        JavaTemplate template = JavaTemplate
-                                .builder("#{logger:any(org.slf4j.Logger)}.#{}().log(#{any()})")
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.+"))
-                                .build();
-
-                        //noinspection DataFlowIssue
-                        return template.apply(getCursor(), m.getCoordinates().replace(),
-                                m.getSelect(), fluentLevel, arg);
-                    }
                 }
+                // Simple case with just a message
+                Expression arg = args.get(0);
+                if (isExpensiveArgument(arg)) {
+                    // Use supplier lambda for expensive message
+                    JavaTemplate template = JavaTemplate
+                            .builder("#{logger:any(org.slf4j.Logger)}.#{}().log(() -> #{any()})")
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.+"))
+                            .build();
+
+                    //noinspection DataFlowIssue
+                    return template.apply(getCursor(), m.getCoordinates().replace(),
+                            m.getSelect(), fluentLevel, arg);
+                }
+                // Use direct value for cheap message
+                JavaTemplate template = JavaTemplate
+                        .builder("#{logger:any(org.slf4j.Logger)}.#{}().log(#{any()})")
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.+"))
+                        .build();
+
+                //noinspection DataFlowIssue
+                return template.apply(getCursor(), m.getCoordinates().replace(),
+                        m.getSelect(), fluentLevel, arg);
             }
             return m;
         }
@@ -199,12 +197,12 @@ private static class OptimizeLogStatementsVisitor extends JavaVisitor<ExecutionC
         private boolean isAlreadyUsingFluentApi(Cursor cursor) {
             // Check if we're already in a fluent API chain
             J.MethodInvocation parent = cursor.firstEnclosing(J.MethodInvocation.class);
-            if (parent != null && parent.getSimpleName().equals("log")) {
+            if (parent != null && "log".equals(parent.getSimpleName())) {
                 Expression select = parent.getSelect();
                 if (select instanceof J.MethodInvocation) {
                     J.MethodInvocation selectMethod = (J.MethodInvocation) select;
-                    return selectMethod.getSimpleName().equals("addArgument") ||
-                           selectMethod.getSimpleName().equals("addParameter") ||
+                    return "addArgument".equals(selectMethod.getSimpleName()) ||
+                           "addParameter".equals(selectMethod.getSimpleName()) ||
                            selectMethod.getSimpleName().startsWith("at");
                 }
             }
