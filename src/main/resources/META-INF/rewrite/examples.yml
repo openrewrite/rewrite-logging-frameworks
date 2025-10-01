@@ -1113,6 +1113,43 @@ examples:
       import org.slf4j.Logger;
 
       class A {
+          void method(Logger logger) {
+              logger.info("Result: {}", calculateResult());
+              logger.info("This was {} and {}", doExpensiveOperation(), "bar");
+          }
+
+          String calculateResult() {
+              return "result";
+          }
+
+          String doExpensiveOperation() {
+              return "foo";
+          }
+      }
+    after: |
+      import org.slf4j.Logger;
+
+      class A {
+          void method(Logger logger) {
+              logger.atInfo().addArgument(() -> calculateResult()).log("Result: {}");
+              logger.atInfo().addArgument(() -> doExpensiveOperation()).addArgument("bar").log("This was {} and {}");
+          }
+
+          String calculateResult() {
+              return "result";
+          }
+
+          String doExpensiveOperation() {
+              return "foo";
+          }
+      }
+    language: java
+- description: ''
+  sources:
+  - before: |
+      import org.slf4j.Logger;
+
+      class A {
           void method(Logger LOG) {
               LOG.debug("SomeString {}, {}", "some param", expensiveOp());
           }
