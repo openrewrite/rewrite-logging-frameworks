@@ -15,32 +15,7 @@
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.ChangeType
 examples:
-- description: ''
-  parameters:
-  - java.util.logging.Logger
-  - org.apache.logging.log4j.Logger
-  - 'true'
-  sources:
-  - before: |
-      import java.util.logging.Logger;
-
-      class Test {
-          void method(Logger logger) {
-            logger.exiting("Test", "method");
-            logger.exiting("Test", "method", "result");
-          }
-      }
-    after: |
-      import org.apache.logging.log4j.Logger;
-
-      class Test {
-          void method(Logger logger) {
-            logger.traceExit();
-            logger.traceExit("result");
-          }
-      }
-    language: java
-- description: ''
+- description: '`ConvertJulEnteringTest#enteringToTraceEntry`'
   parameters:
   - java.util.logging.Logger
   - org.apache.logging.log4j.Logger
@@ -67,11 +42,36 @@ examples:
           }
       }
     language: java
+- description: '`ConvertJulExitingTest#exitingToTraceExit`'
+  parameters:
+  - java.util.logging.Logger
+  - org.apache.logging.log4j.Logger
+  - 'true'
+  sources:
+  - before: |
+      import java.util.logging.Logger;
+
+      class Test {
+          void method(Logger logger) {
+            logger.exiting("Test", "method");
+            logger.exiting("Test", "method", "result");
+          }
+      }
+    after: |
+      import org.apache.logging.log4j.Logger;
+
+      class Test {
+          void method(Logger logger) {
+            logger.traceExit();
+            logger.traceExit("result");
+          }
+      }
+    language: java
 ---
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.AddLoggerTest$MaybeAddLoggerToClass
 examples:
-- description: ''
+- description: '`AddLoggerTest#addLogger`'
   parameters:
   - Test
   sources:
@@ -93,7 +93,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.ArgumentArrayToVarargs
 examples:
-- description: ''
+- description: '`ArgumentArrayToVarargsTest#objectArrayToVarargs`'
   sources:
   - before: |
       import org.slf4j.Logger;
@@ -116,7 +116,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.CatchBlockLogLevel
 examples:
-- description: ''
+- description: '`CatchBlockLogLevelTest#log4j1`'
   sources:
   - before: |
       import org.apache.log4j.Logger;
@@ -153,7 +153,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.ChangeLoggersToPrivate
 examples:
-- description: ''
+- description: '`ChangeLoggersToPrivateTest#changePublicSlf4jLoggerPrivate`'
   sources:
   - before: |
       import org.slf4j.Logger;
@@ -174,7 +174,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.ParameterizedLogging
 examples:
-- description: ''
+- description: '`ParameterizedLoggingTest#basicParameterization`'
   parameters:
   - org.slf4j.Logger info(..)
   - 'false'
@@ -200,7 +200,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.PrintStackTraceToLogError
 examples:
-- description: ''
+- description: '`PrintStackTraceToLogErrorTest#useSlf4j`'
   parameters:
   - 'null'
   - LOGGER
@@ -239,7 +239,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.SystemErrToLogging
 examples:
-- description: ''
+- description: '`SystemErrToLoggingTest#useSlf4j`'
   parameters:
   - 'null'
   - LOGGER
@@ -277,7 +277,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.SystemOutToLogging
 examples:
-- description: ''
+- description: '`SystemOutToLoggingTest#useSlf4j`'
   parameters:
   - 'null'
   - LOGGER
@@ -309,7 +309,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.jboss.FormattedArgumentsToVMethodRecipes
 examples:
-- description: ''
+- description: '`FormattedArgumentsToVMethodTest#convertInfo`'
   sources:
   - before: |
       import org.jboss.logging.Logger;
@@ -338,7 +338,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.jboss.JBossLoggingBestPractices
 examples:
-- description: ''
+- description: '`JBossLoggingBestPracticesTest#convertInfo`'
   sources:
   - before: |
       import org.jboss.logging.Logger;
@@ -361,7 +361,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.jboss.LoggerLevelArgumentToMethod
 examples:
-- description: ''
+- description: '`LoggerLevelArgumentToMethodTest#replaceLevelArguments`'
   sources:
   - before: |
       import org.jboss.logging.Logger;
@@ -384,7 +384,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.jul.LoggerLevelArgumentToMethodRecipes
 examples:
-- description: ''
+- description: '`LoggerLevelArgumentToMethodTest#replaceLevelArguments`'
   sources:
   - before: |
       import java.util.logging.Level;
@@ -420,7 +420,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.log4j.CommonsLoggingToLog4j
 examples:
-- description: ''
+- description: '`CommonsLoggingToLog4jTest#loggerFactoryToLogManager`'
   sources:
   - before: |
       import org.apache.commons.logging.LogFactory;
@@ -447,7 +447,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.log4j.JulToLog4j
 examples:
-- description: ''
+- description: '`JulToLog4jTest#simpleLoggerCalls`'
   sources:
   - before: |
       import java.util.logging.Level;
@@ -503,7 +503,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.log4j.Log4j1ToLog4j2
 examples:
-- description: ''
+- description: '`Log4j1ToLog4j2Test#loggerToLogManager`'
   sources:
   - before: |
       import org.apache.log4j.Logger;
@@ -523,7 +523,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.log4j.LoggingExceptionConcatenationRecipe
 examples:
-- description: ''
+- description: '`LoggingExceptionConcatenationTest#loggingException`'
   sources:
   - before: |
       import org.apache.logging.log4j.Logger;
@@ -546,7 +546,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.log4j.PrependRandomName
 examples:
-- description: ''
+- description: '`PrependRandomNameTest#prependRandomName`'
   parameters:
   - '2048'
   sources:
@@ -573,7 +573,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.log4j.Slf4jToLog4j
 examples:
-- description: ''
+- description: '`Slf4jToLog4jTest#loggerUsage`'
   sources:
   - before: |
       import org.slf4j.Logger;
@@ -614,7 +614,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.logback.ConfigureLoggerLevel
 examples:
-- description: ''
+- description: '`ConfigureLoggerLevelTest#editExistingLogger`'
   parameters:
   - org.springframework
   - ConfigureLoggerLevel.LogLevel.off
@@ -648,12 +648,13 @@ examples:
               <appender-ref ref="STDOUT" />
           </logger>
       </configuration>
+    path: logback.xml
     language: xml
 ---
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.logback.Log4jAppenderToLogback
 examples:
-- description: ''
+- description: '`Log4jAppenderToLogbackTest#appenderMigration`'
   sources:
   - before: |
       import org.apache.log4j.AppenderSkeleton;
@@ -692,7 +693,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.logback.Log4jLayoutToLogback
 examples:
-- description: ''
+- description: '`Log4jLayoutToLogbackTest#layoutMigration`'
   sources:
   - before: |
       import org.apache.log4j.Layout;
@@ -731,7 +732,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.slf4j.ChangeLogLevel
 examples:
-- description: ''
+- description: '`ChangeLogLevelTest#basic`'
   parameters:
   - ChangeLogLevel.Level.INFO
   - ChangeLogLevel.Level.DEBUG
@@ -764,7 +765,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.slf4j.CommonsLogging1ToSlf4j1
 examples:
-- description: ''
+- description: '`CommonsLoggingToSlf4j1Test#useLoggerFactory`'
   sources:
   - before: |
       import org.apache.commons.logging.LogFactory;
@@ -791,7 +792,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.slf4j.CompleteExceptionLogging
 examples:
-- description: ''
+- description: '`CompleteExceptionLoggingTest#addExceptionToBeTheLastArg`'
   sources:
   - before: |
       import org.slf4j.Logger;
@@ -847,7 +848,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.slf4j.JBossLoggingToSlf4j
 examples:
-- description: ''
+- description: '`JBossLoggingToSlf4jTest#simpleLogInvocationMapping`'
   sources:
   - before: |
       import org.jboss.logging.Logger;
@@ -892,7 +893,27 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.slf4j.JulToSlf4j
 examples:
-- description: ''
+- description: '`JulParameterizedArgumentsTest#parameterizedSingleArgument`'
+  sources:
+  - before: |
+      import java.util.logging.Level;
+      import java.util.logging.Logger;
+
+      class Test {
+          void method(Logger logger, String param1) {
+              logger.log(Level.INFO, "INFO Log entry, param1: {0}", param1);
+          }
+      }
+    after: |
+      import org.slf4j.Logger;
+
+      class Test {
+          void method(Logger logger, String param1) {
+              logger.info("INFO Log entry, param1: {}", param1);
+          }
+      }
+    language: java
+- description: '`JulToSlf4jTest#simpleLoggerCalls`'
   sources:
   - before: |
       import java.util.logging.Level;
@@ -944,31 +965,11 @@ examples:
           }
       }
     language: java
-- description: ''
-  sources:
-  - before: |
-      import java.util.logging.Level;
-      import java.util.logging.Logger;
-
-      class Test {
-          void method(Logger logger, String param1) {
-              logger.log(Level.INFO, "INFO Log entry, param1: {0}", param1);
-          }
-      }
-    after: |
-      import org.slf4j.Logger;
-
-      class Test {
-          void method(Logger logger, String param1) {
-              logger.info("INFO Log entry, param1: {}", param1);
-          }
-      }
-    language: java
 ---
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.slf4j.Log4j1ToSlf4j1
 examples:
-- description: ''
+- description: '`Log4j1ToSlf4j1Test#useLoggerFactory`'
   sources:
   - before: |
       import org.apache.log4j.Logger;
@@ -988,7 +989,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.slf4j.Log4j2ToSlf4j1
 examples:
-- description: ''
+- description: '`Log4j2ToSlf4j1Test#logLevelFatalToError`'
   sources:
   - before: |
       import org.apache.logging.log4j.Logger;
@@ -1011,7 +1012,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.slf4j.LoggersNamedForEnclosingClass
 examples:
-- description: ''
+- description: '`LoggersNamedForEnclosingClassTest#shouldRenameLogger`'
   sources:
   - before: |
       import org.slf4j.Logger;
@@ -1032,7 +1033,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.slf4j.MatchIsLogLevelEnabledWithLogStatements
 examples:
-- description: ''
+- description: '`MatchIsLogLevelEnabledWithLogStatementsTest#debugEnabledToInfo`'
   sources:
   - before: |
       class Test {
@@ -1055,7 +1056,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.slf4j.Slf4jBestPractices
 examples:
-- description: ''
+- description: '`Slf4jBestPracticesTest#applyBestPractices`'
   sources:
   - before: |
       import org.slf4j.Logger;
@@ -1092,7 +1093,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.slf4j.Slf4jLogShouldBeConstant
 examples:
-- description: ''
+- description: '`Slf4jLogShouldBeConstantTest#differentFormatSpecifier`'
   sources:
   - before: |
       import org.slf4j.Logger;
@@ -1107,7 +1108,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.slf4j.WrapExpensiveLogStatementsInConditionals
 examples:
-- description: ''
+- description: '`WrapExpensiveLogStatementsInConditionalsSlf4j2Test#convertToFluentApiWithExpensiveArgument`'
   sources:
   - before: |
       import org.slf4j.Logger;
@@ -1144,7 +1145,7 @@ examples:
           }
       }
     language: java
-- description: ''
+- description: '`WrapExpensiveLogStatementsInConditionalsTest#documentationExample`'
   sources:
   - before: |
       import org.slf4j.Logger;
