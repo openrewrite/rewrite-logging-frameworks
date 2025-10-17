@@ -223,6 +223,7 @@ class ParameterizedLoggingTest implements RewriteTest {
         );
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/257")
     @Test
     void exceptionArgumentsAsConcatenatedString() {
         rewriteRun(
@@ -250,7 +251,7 @@ class ParameterizedLoggingTest implements RewriteTest {
                       try {
                           Integer i = Integer.valueOf(numberString);
                       } catch (NumberFormatException ex) {
-                          logger.debug("some big error: {}", ex);
+                          logger.debug("some big error: {}", (Object) ex);
                       }
                   }
               }
