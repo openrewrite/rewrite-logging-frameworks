@@ -121,13 +121,10 @@ public class ParameterizedLogging extends Recipe {
                                 messageBuilder.append(literalAndArgs.message);
                                 messageBuilder.append("\"");
                                 // Cast Throwables to Object to preserve toString() behavior
-                                literalAndArgs.arguments.forEach(arg -> {
-                                    if (TypeUtils.isAssignableTo("java.lang.Throwable", arg.getType())) {
-                                        messageBuilder.append(", (Object) #{any()}");
-                                    } else {
-                                        messageBuilder.append(", #{any()}");
-                                    }
-                                });
+                                literalAndArgs.arguments.forEach(arg -> messageBuilder.append(
+                                        TypeUtils.isAssignableTo("java.lang.Throwable", arg.getType()) ?
+                                                ", (Object) #{any()}" :
+                                                ", #{any()}"));
                             } else {
                                 messageBuilder.append("#{any()}");
                             }
