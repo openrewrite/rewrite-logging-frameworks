@@ -57,6 +57,7 @@ public class ParameterizedLogging extends Recipe {
 
     @Override
     public String getDescription() {
+        //language=markdown
         return "Transform logging statements using concatenation for messages and variables into a parameterized format. " +
                "For example, `logger.info(\"hi \" + userName)` becomes `logger.info(\"hi {}\", userName)`. This can " +
                "significantly boost performance for messages that otherwise would be assembled with String concatenation. " +
@@ -119,7 +120,11 @@ public class ParameterizedLogging extends Recipe {
                                 MessageAndArguments literalAndArgs = concatenationToLiteral(message, new MessageAndArguments("", new ArrayList<>()));
                                 messageBuilder.append(literalAndArgs.message);
                                 messageBuilder.append("\"");
-                                literalAndArgs.arguments.forEach(arg -> messageBuilder.append(", #{any()}"));
+                                // Cast Throwables to Object to preserve toString() behavior
+                                literalAndArgs.arguments.forEach(arg -> messageBuilder.append(
+                                        TypeUtils.isAssignableTo("java.lang.Throwable", arg.getType()) ?
+                                                ", (Object) #{any()}" :
+                                                ", #{any()}"));
                             } else {
                                 messageBuilder.append("#{any()}");
                             }

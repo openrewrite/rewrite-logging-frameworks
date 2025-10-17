@@ -110,7 +110,7 @@ class Slf4jBestPracticesTest implements RewriteTest {
                       try {
                         throw new IllegalStateException("oops");
                       } catch (Exception e) {
-                        logger.error("aaa: {}", e);
+                        logger.error("aaa: {}", (Object) e);
                         logger.error("bbb: {}", String.valueOf(e));
                         logger.error("ccc: {}", e.toString());
                       }
