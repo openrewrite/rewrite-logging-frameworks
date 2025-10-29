@@ -31,7 +31,7 @@ dependencies {
     implementation("org.openrewrite:rewrite-xml")
     implementation("org.openrewrite.recipe:rewrite-java-dependencies:${rewriteVersion}")
     implementation("org.openrewrite.recipe:rewrite-static-analysis:${rewriteVersion}")
-    runtimeOnly("org.openrewrite:rewrite-java-17")
+    runtimeOnly("org.openrewrite:rewrite-java-21")
 
     compileOnly("org.apache.logging.log4j:log4j-core:2.+")
     compileOnly("org.slf4j:slf4j-api:2.+")
