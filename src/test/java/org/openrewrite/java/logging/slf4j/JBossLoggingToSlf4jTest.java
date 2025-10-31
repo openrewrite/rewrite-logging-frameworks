@@ -177,7 +177,7 @@ class JBossLoggingToSlf4jTest implements RewriteTest {
                             <dependency>
                                 <groupId>org.jboss.slf4j</groupId>
                                 <artifactId>slf4j-jboss-logmanager</artifactId>
-                                <version>2.0.1.Final</version>
+                                <version>2.0.2.Final</version>
                             </dependency>
                         </dependencies>
                     </project>
@@ -208,7 +208,7 @@ class JBossLoggingToSlf4jTest implements RewriteTest {
                     repositories { mavenCentral() }
                     dependencies {
                         implementation "org.jboss.logmanager:jboss-logmanager:3.1.2.Final"
-                        implementation "org.jboss.slf4j:slf4j-jboss-logmanager:2.0.1.Final"
+                        implementation "org.jboss.slf4j:slf4j-jboss-logmanager:2.0.2.Final"
                     }
                     """
                 )
