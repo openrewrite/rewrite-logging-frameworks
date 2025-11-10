@@ -190,4 +190,22 @@ class ArgumentArrayToVarargsTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void changesIncorrectly() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.lang.reflect.Method;
+
+              class A {
+                  void something(Method method, Object object) {
+                      method.invoke(object, new Object[]{});
+                  }
+              }
+              """
+          )
+        );
+    }
 }
