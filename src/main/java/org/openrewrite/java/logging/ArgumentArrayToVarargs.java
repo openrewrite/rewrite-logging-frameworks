@@ -30,7 +30,7 @@ import java.util.List;
 
 public class ArgumentArrayToVarargs extends Recipe {
     // Match logger methods that end with Object[] - but we'll verify if it's varargs later
-    private static final MethodMatcher LOGGER_METHOD = new MethodMatcher("*..*Log* *(.., Object[])");
+    private static final MethodMatcher LOGGER_METHOD = new MethodMatcher("*..Log* *(.., Object[])");
 
     @Override
     public String getDisplayName() {
