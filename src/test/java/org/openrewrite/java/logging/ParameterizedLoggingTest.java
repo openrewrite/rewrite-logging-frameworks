@@ -260,6 +260,42 @@ class ParameterizedLoggingTest implements RewriteTest {
         );
     }
 
+    @Test
+    void exceptionArgumentsWithOtherParametersNoCast() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger debug(..)", false)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  static void asInteger(Logger logger, String numberString, String context) {
+                      try {
+                          Integer i = Integer.valueOf(numberString);
+                      } catch (NumberFormatException ex) {
+                          logger.debug("Error in context " + context + ": " + ex);
+                      }
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  static void asInteger(Logger logger, String numberString, String context) {
+                      try {
+                          Integer i = Integer.valueOf(numberString);
+                      } catch (NumberFormatException ex) {
+                          logger.debug("Error in context {}: {}", context, ex);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/38")
     @Test
     void indexOutOfBoundsExceptionOnParseMethodArguments() {
