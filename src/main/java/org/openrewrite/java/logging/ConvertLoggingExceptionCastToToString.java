@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 the original author or authors.
+ * Copyright 2025 the original author or authors.
  * <p>
  * Licensed under the Moderne Source Available License (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,11 +17,8 @@ package org.openrewrite.java.logging;
 
 import lombok.EqualsAndHashCode;
 import lombok.Value;
-import org.openrewrite.Cursor;
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Option;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
@@ -29,7 +26,6 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -52,7 +48,8 @@ public class ConvertLoggingExceptionCastToToString extends Recipe {
         //language=markdown
         return "Converts `(Object) exception` casts in logging statements to `exception.toString()` calls. " +
                "This is more explicit about the intent to log the string representation of the exception " +
-               "rather than relying on implicit toString() conversion through Object casting.";
+               "rather than relying on implicit toString() conversion through Object casting." +
+               "Run this after ParameterizedLogging is applied to reduce RSPEC-S1905 findings.";
     }
 
     @Override
@@ -74,62 +71,25 @@ public class ConvertLoggingExceptionCastToToString extends Recipe {
                     return m;
                 }
 
-                // Check if there are any Object casts of Throwables to replace
-                boolean hasObjectCastsToReplace = m.getArguments().stream().anyMatch(arg -> {
-                    if (arg instanceof J.TypeCast) {
-                        J.TypeCast cast = (J.TypeCast) arg;
-                        return cast.getType() != null &&
-                               TypeUtils.isOfClassType(cast.getType(), "java.lang.Object") &&
-                               cast.getExpression() != null &&
-                               TypeUtils.isAssignableTo("java.lang.Throwable", cast.getExpression().getType());
-                    }
-                    return false;
-                });
-
-                // If there are no casts to replace, return the method as-is
-                if (!hasObjectCastsToReplace) {
-                    return m;
-                }
-
-                // Use a JavaTemplate to properly replace the arguments
-                JavaTemplate template = JavaTemplate.builder(m.getArguments().stream()
-                        .map(arg -> {
-                            if (arg instanceof J.TypeCast) {
-                                J.TypeCast cast = (J.TypeCast) arg;
-                                if (cast.getType() != null &&
-                                    TypeUtils.isOfClassType(cast.getType(), "java.lang.Object") &&
-                                    cast.getExpression() != null &&
-                                    TypeUtils.isAssignableTo("java.lang.Throwable", cast.getExpression().getType())) {
-                                    return "#{any(java.lang.Throwable)}.toString()";
-                                }
-                            }
-                            return "#{any()}";
-                        })
-                        .reduce((a, b) -> a + ", " + b)
-                        .orElse(""))
+                JavaTemplate toStringTemplate = JavaTemplate.builder("#{any(java.lang.Throwable)}.toString()")
                         .build();
 
-                // Prepare the arguments for the template
-                Object[] templateArgs = m.getArguments().stream()
-                        .map(arg -> {
-                            if (arg instanceof J.TypeCast) {
-                                J.TypeCast cast = (J.TypeCast) arg;
-                                if (cast.getType() != null &&
-                                    TypeUtils.isOfClassType(cast.getType(), "java.lang.Object") &&
-                                    cast.getExpression() != null &&
-                                    TypeUtils.isAssignableTo("java.lang.Throwable", cast.getExpression().getType())) {
-                                    return cast.getExpression();
-                                }
-                            }
-                            return arg;
-                        })
-                        .toArray();
+                m = m.withArguments(ListUtils.map(m.getArguments(), arg -> {
+                    if (arg instanceof J.TypeCast) {
+                        J.TypeCast cast = (J.TypeCast) arg;
+                        if (cast.getType() != null &&
+                            TypeUtils.isOfClassType(cast.getType(), "java.lang.Object") &&
+                            TypeUtils.isAssignableTo("java.lang.Throwable", cast.getExpression().getType())) {
+                            return toStringTemplate.apply(
+                                    new Cursor(getCursor(), arg),
+                                    arg.getCoordinates().replace(),
+                                    cast.getExpression());
+                        }
+                    }
+                    return arg;
+                }));
 
-                // Apply the template
-                return (J.MethodInvocation) template.apply(
-                                new Cursor(getCursor().getParent(), m),
-                                m.getCoordinates().replaceArguments(),
-                                templateArgs);
+                return m.equals(method) ? method : m;
             }
         };
     }
