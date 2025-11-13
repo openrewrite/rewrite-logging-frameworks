@@ -48,7 +48,7 @@ public class ConvertLoggingExceptionCastToToString extends Recipe {
         //language=markdown
         return "Converts `(Object) exception` casts in logging statements to `exception.toString()` calls. " +
                "This is more explicit about the intent to log the string representation of the exception " +
-               "rather than relying on implicit toString() conversion through Object casting." +
+               "rather than relying on implicit toString() conversion through Object casting. " +
                "Run this after ParameterizedLogging is applied to reduce RSPEC-S1905 findings.";
     }
 
@@ -89,7 +89,7 @@ public class ConvertLoggingExceptionCastToToString extends Recipe {
                     return arg;
                 }));
 
-                return m.equals(method) ? method : m;
+                return m.getArguments().equals(method.getArguments()) ? method : m;
             }
         };
     }
