@@ -110,8 +110,14 @@ public class ParameterizedLogging extends Recipe {
                             }
                         }
 
-                        // Determine if we should cast throwable to Object (only when it's the sole argument)
-                        final boolean shouldCastThrowable = regularArgs.isEmpty() && possibleThrowable == null;
+                        // Check if any of the concatenation arguments is a throwable
+                        // If so, skip parameterization to preserve exception handling behavior
+                        boolean hasThrowableInConcatenation = concatenationArgs.stream()
+                                .anyMatch(arg -> TypeUtils.isAssignableTo("java.lang.Throwable", arg.getType()));
+
+                        if (hasThrowableInConcatenation) {
+                            return m; // Skip parameterization when throwables are concatenated
+                        }
 
                         // Build the message template
                         ListUtils.map(m.getArguments(), (index, message) -> {
@@ -123,12 +129,8 @@ public class ParameterizedLogging extends Recipe {
                                 MessageAndArguments literalAndArgs = concatenationToLiteral(message, new MessageAndArguments("", new ArrayList<>()));
                                 messageBuilder.append(literalAndArgs.message);
                                 messageBuilder.append("\"");
-                                // Cast Throwables to Object to preserve toString() behavior, but only when it's the sole argument
-                                literalAndArgs.arguments.forEach(arg -> messageBuilder.append(
-                                        TypeUtils.isAssignableTo("java.lang.Throwable", arg.getType()) &&
-                                        literalAndArgs.arguments.size() == 1 && shouldCastThrowable ?
-                                                ", (Object) #{any()}" :
-                                                ", #{any()}"));
+                                // Add arguments without casting throwables
+                                literalAndArgs.arguments.forEach(arg -> messageBuilder.append(", #{any()}"));
                             } else {
                                 messageBuilder.append("#{any()}");
                             }

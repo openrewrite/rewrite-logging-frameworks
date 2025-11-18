@@ -242,19 +242,6 @@ class ParameterizedLoggingTest implements RewriteTest {
                       }
                   }
               }
-              """,
-            """
-              import org.slf4j.Logger;
-
-              class Test {
-                  static void asInteger(Logger logger, String numberString) {
-                      try {
-                          Integer i = Integer.valueOf(numberString);
-                      } catch (NumberFormatException ex) {
-                          logger.debug("some big error: {}", (Object) ex);
-                      }
-                  }
-              }
               """
           )
         );
@@ -278,19 +265,6 @@ class ParameterizedLoggingTest implements RewriteTest {
                       }
                   }
               }
-              """,
-            """
-              import org.slf4j.Logger;
-
-              class Test {
-                  static void parseValue(Logger logger, String numberString) {
-                      try {
-                          Integer i = Integer.valueOf(numberString);
-                      } catch (NumberFormatException | IllegalArgumentException ex) {
-                          logger.debug("parsing error: {}", (Object) ex);
-                      }
-                  }
-              }
               """
           )
         );
@@ -311,19 +285,6 @@ class ParameterizedLoggingTest implements RewriteTest {
                           Integer i = Integer.valueOf(numberString);
                       } catch (NumberFormatException ex) {
                           logger.debug("Error in context " + context + ": " + ex);
-                      }
-                  }
-              }
-              """,
-            """
-              import org.slf4j.Logger;
-
-              class Test {
-                  static void asInteger(Logger logger, String numberString, String context) {
-                      try {
-                          Integer i = Integer.valueOf(numberString);
-                      } catch (NumberFormatException ex) {
-                          logger.debug("Error in context {}: {}", context, ex);
                       }
                   }
               }
