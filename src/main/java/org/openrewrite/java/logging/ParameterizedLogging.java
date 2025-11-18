@@ -110,6 +110,15 @@ public class ParameterizedLogging extends Recipe {
                             }
                         }
 
+                        // Check if any of the concatenation arguments is a throwable
+                        // If so, skip parameterization to preserve exception handling behavior
+                        boolean hasThrowableInConcatenation = concatenationArgs.stream()
+                                .anyMatch(arg -> TypeUtils.isAssignableTo("java.lang.Throwable", arg.getType()));
+
+                        if (hasThrowableInConcatenation) {
+                            return m; // Skip parameterization when throwables are concatenated
+                        }
+
                         // Build the message template
                         ListUtils.map(m.getArguments(), (index, message) -> {
                             if (index > 0) {
@@ -120,11 +129,7 @@ public class ParameterizedLogging extends Recipe {
                                 MessageAndArguments literalAndArgs = concatenationToLiteral(message, new MessageAndArguments("", new ArrayList<>()));
                                 messageBuilder.append(literalAndArgs.message);
                                 messageBuilder.append("\"");
-                                // Cast Throwables to Object to preserve toString() behavior
-                                literalAndArgs.arguments.forEach(arg -> messageBuilder.append(
-                                        TypeUtils.isAssignableTo("java.lang.Throwable", arg.getType()) ?
-                                                ", (Object) #{any()}" :
-                                                ", #{any()}"));
+                                literalAndArgs.arguments.forEach(arg -> messageBuilder.append(", #{any()}"));
                             } else {
                                 messageBuilder.append("#{any()}");
                             }
