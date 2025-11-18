@@ -271,7 +271,7 @@ class ParameterizedLoggingTest implements RewriteTest {
     }
 
     @Test
-    void exceptionArgumentsWithOtherParametersNoCast() {
+    void exceptionArgumentsWithOtherParametersNoChange() {
         rewriteRun(
           spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger debug(..)", false)),
           //language=java

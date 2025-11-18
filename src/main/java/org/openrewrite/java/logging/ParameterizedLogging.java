@@ -129,7 +129,6 @@ public class ParameterizedLogging extends Recipe {
                                 MessageAndArguments literalAndArgs = concatenationToLiteral(message, new MessageAndArguments("", new ArrayList<>()));
                                 messageBuilder.append(literalAndArgs.message);
                                 messageBuilder.append("\"");
-                                // Add arguments without casting throwables
                                 literalAndArgs.arguments.forEach(arg -> messageBuilder.append(", #{any()}"));
                             } else {
                                 messageBuilder.append("#{any()}");
