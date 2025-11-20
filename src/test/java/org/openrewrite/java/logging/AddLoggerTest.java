@@ -213,7 +213,7 @@ class AddLoggerTest implements RewriteTest {
     }
 
     @NoArgsConstructor(force = true)
-    private static final class MaybeAddLoggerToClass extends Recipe {
+    public static final class MaybeAddLoggerToClass extends Recipe {
         private final String simpleName;
         private final int times;
 
