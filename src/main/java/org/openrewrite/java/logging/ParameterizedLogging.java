@@ -163,7 +163,6 @@ public class ParameterizedLogging extends Recipe {
                     if (Boolean.TRUE.equals(removeToString)) {
                         m = m.withArguments(ListUtils.map(m.getArguments(), arg -> (Expression) removeToStringVisitor.visitNonNull(arg, ctx, getCursor())));
                     }
-                    m = maybeAutoFormat(method, m, ctx);
                 }
 
                 // Avoid changing reference if the templating didn't actually change the contents of the method
@@ -182,7 +181,6 @@ public class ParameterizedLogging extends Recipe {
     }
 
     private static class RemoveToStringVisitor extends JavaVisitor<ExecutionContext> {
-        private final JavaTemplate t = JavaTemplate.builder("#{any(java.lang.String)}").build();
         private final MethodMatcher TO_STRING = new MethodMatcher("*..* toString()");
 
         @Override
@@ -192,8 +190,8 @@ public class ParameterizedLogging extends Recipe {
             }
             if (TO_STRING.matches(method.getSelect())) {
                 getCursor().putMessage("DO_NOT_REMOVE", Boolean.TRUE);
-            } else if (TO_STRING.matches(method)) {
-                return t.apply(getCursor(), method.getCoordinates().replace(), method.getSelect());
+            } else if (TO_STRING.matches(method) && method.getSelect() != null) {
+                return method.getSelect().withPrefix(method.getPrefix());
             }
             return super.visitMethodInvocation(method, ctx);
         }
