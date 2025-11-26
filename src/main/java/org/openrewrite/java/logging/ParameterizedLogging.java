@@ -26,10 +26,7 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.java.tree.*;
 import org.openrewrite.staticanalysis.groovy.GroovyFileChecker;
 import org.openrewrite.staticanalysis.kotlin.KotlinFileChecker;
 
@@ -184,7 +181,6 @@ public class ParameterizedLogging extends Recipe {
     }
 
     private static class RemoveToStringVisitor extends JavaVisitor<ExecutionContext> {
-        private final JavaTemplate t = JavaTemplate.builder("#{any(java.lang.String)}").build();
         private final MethodMatcher TO_STRING = new MethodMatcher("*..* toString()");
 
         @Override
@@ -194,8 +190,8 @@ public class ParameterizedLogging extends Recipe {
             }
             if (TO_STRING.matches(method.getSelect())) {
                 getCursor().putMessage("DO_NOT_REMOVE", Boolean.TRUE);
-            } else if (TO_STRING.matches(method)) {
-                return t.apply(getCursor(), method.getCoordinates().replace(), method.getSelect());
+            } else if (TO_STRING.matches(method) && method.getSelect() != null) {
+                return method.getSelect().withPrefix(method.getPrefix());
             }
             return super.visitMethodInvocation(method, ctx);
         }
