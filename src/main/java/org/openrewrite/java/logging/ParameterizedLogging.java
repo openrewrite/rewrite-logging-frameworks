@@ -26,10 +26,7 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.java.tree.*;
 import org.openrewrite.staticanalysis.groovy.GroovyFileChecker;
 import org.openrewrite.staticanalysis.kotlin.KotlinFileChecker;
 
@@ -166,6 +163,7 @@ public class ParameterizedLogging extends Recipe {
                     if (Boolean.TRUE.equals(removeToString)) {
                         m = m.withArguments(ListUtils.map(m.getArguments(), arg -> (Expression) removeToStringVisitor.visitNonNull(arg, ctx, getCursor())));
                     }
+                    m = maybeAutoFormat(method, m, ctx);
                 }
 
                 // Avoid changing reference if the templating didn't actually change the contents of the method
