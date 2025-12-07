@@ -142,6 +142,29 @@ class WrapExpensiveLogStatementsInConditionalsSlf4j2Test implements RewriteTest 
     }
 
     @Test
+    void doNotConvertRecordComponentAccessors() {
+        rewriteRun(
+          java(
+            """
+              record Track(String title, String artist) {}
+              """
+          ),
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger logger, Track track) {
+                      logger.info("Track: {}", track.title());
+                      logger.info("Track: {} by {}", track.title(), track.artist());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void doNotConvertAlreadyFluentApi() {
         rewriteRun(
           java(

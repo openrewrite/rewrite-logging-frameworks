@@ -243,13 +243,19 @@ private static class OptimizeLogStatementsVisitor extends JavaVisitor<ExecutionC
         }
 
         private static boolean isSimpleGetter(J.MethodInvocation mi) {
-            // Consider it a simple getter if it follows getter naming convention and has no parameters
-            return ((mi.getSimpleName().startsWith("get") && mi.getSimpleName().length() > 3) ||
-                    (mi.getSimpleName().startsWith("is") && mi.getSimpleName().length() > 2)) &&
-                    mi.getMethodType() != null &&
-                    mi.getMethodType().getParameterNames().isEmpty() &&
-                    ((mi.getSelect() == null || mi.getSelect() instanceof J.Identifier) &&
-                            !mi.getMethodType().hasFlags(Flag.Static));
+            if (mi.getMethodType() == null ||
+                    !mi.getMethodType().getParameterNames().isEmpty() ||
+                    mi.getMethodType().hasFlags(Flag.Static) ||
+                    !(mi.getSelect() == null || mi.getSelect() instanceof J.Identifier)) {
+                return false;
+            }
+            // Consider it a simple getter if it follows getter naming convention
+            if ((mi.getSimpleName().startsWith("get") && mi.getSimpleName().length() > 3) ||
+                    (mi.getSimpleName().startsWith("is") && mi.getSimpleName().length() > 2)) {
+                return true;
+            }
+            // Also consider record component accessors as simple getters
+            return mi.getMethodType().getDeclaringType().getKind() == JavaType.FullyQualified.Kind.Record;
         }
 
         private static boolean isOnlyLiterals(J.Binary binary) {
