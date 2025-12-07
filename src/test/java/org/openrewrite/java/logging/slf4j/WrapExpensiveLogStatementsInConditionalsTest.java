@@ -652,6 +652,30 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
         );
     }
 
+    @Test
+    void dontWrapRecordComponentAccessor() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              record Track(String title, String artist) {}
+              """
+          ),
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger log, Track track) {
+                      log.info("Track: {}", track.title());
+                      log.info("Track: {} by {}", track.title(), track.artist());
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {
       "input", // identifier alone
