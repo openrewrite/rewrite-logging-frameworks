@@ -40,25 +40,25 @@ class CommonsLoggingToLog4jGroovyTest
         rewriteRun(
             groovy(
                 """
-                  import org.apache.commons.logging.LogFactory;
-                  import org.apache.commons.logging.Log;
+                  import org.apache.commons.logging.LogFactory
+                  import org.apache.commons.logging.Log
     
                   class Test {
-                      Log log1 = LogFactory.getLog(Test.class);
-                      Log log2 = LogFactory.getLog("Test");
-                      Log log3 = LogFactory.getFactory().getInstance(Test.class);
-                      Log log4 = LogFactory.getFactory().getInstance("Test");
+                      Log log1 = LogFactory.getLog(Test.class)
+                      Log log2 = LogFactory.getLog("Test")
+                      Log log3 = LogFactory.getFactory().getInstance(Test.class)
+                      Log log4 = LogFactory.getFactory().getInstance("Test")
                   }
                   """,
                 """
-                  import org.apache.logging.log4j.LogManager;
-                  import org.apache.logging.log4j.Logger;
+                  import org.apache.logging.log4j.LogManager
+                  import org.apache.logging.log4j.Logger
     
                   class Test {
-                      Logger log1 = LogManager.getLogger(Test.class);
-                      Logger log2 = LogManager.getLogger("Test");
-                      Logger log3 = LogManager.getLogger(Test.class);
-                      Logger log4 = LogManager.getLogger("Test");
+                      Logger log1 = LogManager.getLogger(Test.class)
+                      Logger log2 = LogManager.getLogger("Test")
+                      Logger log3 = LogManager.getLogger(Test.class)
+                      Logger log4 = LogManager.getLogger("Test")
                   }
                   """
             )
