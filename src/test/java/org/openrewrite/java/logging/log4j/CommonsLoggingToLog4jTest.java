@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.logging.log4j;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
@@ -134,7 +133,6 @@ class CommonsLoggingToLog4jTest implements RewriteTest {
             );
         }
 
-        @Disabled("Not supported yet")
         @Test
         void getInstance() {
             rewriteRun(
