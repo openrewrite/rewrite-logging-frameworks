@@ -15,23 +15,27 @@
  */
 package org.openrewrite.java.logging.log4j;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.groovy.GroovyParser;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
 
+import static org.openrewrite.groovy.Assertions.groovy;
 import static org.openrewrite.java.Assertions.java;
 
 class CommonsLoggingToLog4jTest implements RewriteTest {
+    protected static final String[] CLASSPATH = {"log4j-api-2.+", "commons-logging-1.3.+", "lombok-1.18.+"};
+
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipeFromResource("/META-INF/rewrite/log4j.yml",
             "org.openrewrite.java.logging.log4j.CommonsLoggingToLog4j")
-          .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "log4j-api-2.+", "commons-logging-1.3.+", "lombok-1.18.+"));
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), CLASSPATH));
     }
 
     @DocumentExample
@@ -97,5 +101,64 @@ class CommonsLoggingToLog4jTest implements RewriteTest {
               """
           )
         );
+    }
+
+    @Nested
+    class Groovy {
+        @Test
+        void getLog() {
+            rewriteRun(
+              spec -> spec.parser(GroovyParser.builder().classpathFromResource(new InMemoryExecutionContext(), CLASSPATH)),
+              // language=groovy
+              groovy(
+                """
+                  import org.apache.commons.logging.LogFactory
+                  import org.apache.commons.logging.Log
+
+                  class Test {
+                      Log log1 = LogFactory.getLog(Test.class)
+                      Log log2 = LogFactory.getLog("Test")
+                  }
+                  """,
+                """
+                  import org.apache.logging.log4j.LogManager
+                  import org.apache.logging.log4j.Logger
+
+                  class Test {
+                      Logger log1 = LogManager.getLogger(Test.class)
+                      Logger log2 = LogManager.getLogger("Test")
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void getInstance() {
+            rewriteRun(
+              spec -> spec.parser(GroovyParser.builder().classpathFromResource(new InMemoryExecutionContext(), CLASSPATH)),
+              // language=groovy
+              groovy(
+                """
+                  import org.apache.commons.logging.LogFactory
+                  import org.apache.commons.logging.Log
+
+                  class Test {
+                      Log log3 = LogFactory.getFactory().getInstance(Test.class)
+                      Log log4 = LogFactory.getFactory().getInstance("Test")
+                  }
+                  """,
+                """
+                  import org.apache.logging.log4j.LogManager
+                  import org.apache.logging.log4j.Logger
+
+                  class Test {
+                      Logger log3 = LogManager.getLogger(Test.class)
+                      Logger log4 = LogManager.getLogger("Test")
+                  }
+                  """
+              )
+            );
+        }
     }
 }
