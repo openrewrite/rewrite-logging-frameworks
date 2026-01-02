@@ -15,6 +15,31 @@
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.ChangeType
 examples:
+- description: '`ConvertJulExitingTest#exitingToTraceExit`'
+  parameters:
+  - java.util.logging.Logger
+  - org.apache.logging.log4j.Logger
+  - 'true'
+  sources:
+  - before: |
+      import java.util.logging.Logger;
+
+      class Test {
+          void method(Logger logger) {
+            logger.exiting("Test", "method");
+            logger.exiting("Test", "method", "result");
+          }
+      }
+    after: |
+      import org.apache.logging.log4j.Logger;
+
+      class Test {
+          void method(Logger logger) {
+            logger.traceExit();
+            logger.traceExit("result");
+          }
+      }
+    language: java
 - description: '`ConvertJulEnteringTest#enteringToTraceEntry`'
   parameters:
   - java.util.logging.Logger
@@ -39,31 +64,6 @@ examples:
             logger.traceEntry();
             logger.traceEntry(null, "param");
             logger.traceEntry(null, new Object[]{"param1", "param2"});
-          }
-      }
-    language: java
-- description: '`ConvertJulExitingTest#exitingToTraceExit`'
-  parameters:
-  - java.util.logging.Logger
-  - org.apache.logging.log4j.Logger
-  - 'true'
-  sources:
-  - before: |
-      import java.util.logging.Logger;
-
-      class Test {
-          void method(Logger logger) {
-            logger.exiting("Test", "method");
-            logger.exiting("Test", "method", "result");
-          }
-      }
-    after: |
-      import org.apache.logging.log4j.Logger;
-
-      class Test {
-          void method(Logger logger) {
-            logger.traceExit();
-            logger.traceExit("result");
           }
       }
     language: java
@@ -893,26 +893,6 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.slf4j.JulToSlf4j
 examples:
-- description: '`JulParameterizedArgumentsTest#parameterizedSingleArgument`'
-  sources:
-  - before: |
-      import java.util.logging.Level;
-      import java.util.logging.Logger;
-
-      class Test {
-          void method(Logger logger, String param1) {
-              logger.log(Level.INFO, "INFO Log entry, param1: {0}", param1);
-          }
-      }
-    after: |
-      import org.slf4j.Logger;
-
-      class Test {
-          void method(Logger logger, String param1) {
-              logger.info("INFO Log entry, param1: {}", param1);
-          }
-      }
-    language: java
 - description: '`JulToSlf4jTest#simpleLoggerCalls`'
   sources:
   - before: |
@@ -962,6 +942,26 @@ examples:
               logger.error("severe");
 
               logger.trace("all");
+          }
+      }
+    language: java
+- description: '`JulParameterizedArgumentsTest#parameterizedSingleArgument`'
+  sources:
+  - before: |
+      import java.util.logging.Level;
+      import java.util.logging.Logger;
+
+      class Test {
+          void method(Logger logger, String param1) {
+              logger.log(Level.INFO, "INFO Log entry, param1: {0}", param1);
+          }
+      }
+    after: |
+      import org.slf4j.Logger;
+
+      class Test {
+          void method(Logger logger, String param1) {
+              logger.info("INFO Log entry, param1: {}", param1);
           }
       }
     language: java
