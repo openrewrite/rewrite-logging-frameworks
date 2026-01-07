@@ -28,8 +28,7 @@ import static org.openrewrite.java.Assertions.java;
 class ConvertJulEnteringTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.recipes(new ConvertJulEntering(),
-            new ChangeType("java.util.logging.Logger", "org.apache.logging.log4j.Logger", true))
+        spec.recipes(new ConvertJulEntering())
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "log4j-api-2.+"));
     }
@@ -41,7 +40,7 @@ class ConvertJulEnteringTest implements RewriteTest {
           // language=java
           java(
             """
-              import java.util.logging.Logger;
+              import java.util.logging.Logger; // ChangeType will handle import
 
               class Test {
                   void method(Logger logger) {
@@ -52,7 +51,7 @@ class ConvertJulEnteringTest implements RewriteTest {
               }
               """,
             """
-              import org.apache.logging.log4j.Logger;
+              import java.util.logging.Logger; // ChangeType will handle import
 
               class Test {
                   void method(Logger logger) {

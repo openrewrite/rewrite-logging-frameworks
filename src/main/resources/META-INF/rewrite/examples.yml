@@ -13,62 +13,6 @@
 # limitations under the License.
 ---
 type: specs.openrewrite.org/v1beta/example
-recipeName: org.openrewrite.java.ChangeType
-examples:
-- description: '`ConvertJulEnteringTest#enteringToTraceEntry`'
-  parameters:
-  - java.util.logging.Logger
-  - org.apache.logging.log4j.Logger
-  - 'true'
-  sources:
-  - before: |
-      import java.util.logging.Logger;
-
-      class Test {
-          void method(Logger logger) {
-            logger.entering("Test", "method");
-            logger.entering("Test", "method", "param");
-            logger.entering("Test", "method", new Object[]{"param1", "param2"});
-          }
-      }
-    after: |
-      import org.apache.logging.log4j.Logger;
-
-      class Test {
-          void method(Logger logger) {
-            logger.traceEntry();
-            logger.traceEntry(null, "param");
-            logger.traceEntry(null, new Object[]{"param1", "param2"});
-          }
-      }
-    language: java
-- description: '`ConvertJulExitingTest#exitingToTraceExit`'
-  parameters:
-  - java.util.logging.Logger
-  - org.apache.logging.log4j.Logger
-  - 'true'
-  sources:
-  - before: |
-      import java.util.logging.Logger;
-
-      class Test {
-          void method(Logger logger) {
-            logger.exiting("Test", "method");
-            logger.exiting("Test", "method", "result");
-          }
-      }
-    after: |
-      import org.apache.logging.log4j.Logger;
-
-      class Test {
-          void method(Logger logger) {
-            logger.traceExit();
-            logger.traceExit("result");
-          }
-      }
-    language: java
----
-type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.AddLoggerTest$MaybeAddLoggerToClass
 examples:
 - description: '`AddLoggerTest#addLogger`'
@@ -443,6 +387,58 @@ examples:
           Logger log4 = LogManager.getLogger("Test");
       }
     language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.log4j.ConvertJulEntering
+examples:
+  - description: '`ConvertJulEnteringTest#enteringToTraceEntry`'
+    sources:
+      - before: |
+          import java.util.logging.Logger;
+
+          class Test {
+              void method(Logger logger) {
+                logger.entering("Test", "method");
+                logger.entering("Test", "method", "param");
+                logger.entering("Test", "method", new Object[]{"param1", "param2"});
+              }
+          }
+        after: |
+          import java.util.logging.Logger;
+
+          class Test {
+              void method(Logger logger) {
+                logger.traceEntry();
+                logger.traceEntry(null, "param");
+                logger.traceEntry(null, new Object[]{"param1", "param2"});
+              }
+          }
+        language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.log4j.ConvertJulExiting
+examples:
+  - description: '`ConvertJulExitingTest#exitingToTraceExit`'
+    sources:
+      - before: |
+          import java.util.logging.Logger;
+
+          class Test {
+              void method(Logger logger) {
+                logger.exiting("Test", "method");
+                logger.exiting("Test", "method", "result");
+              }
+          }
+        after: |
+          import java.util.logging.Logger;
+
+          class Test {
+              void method(Logger logger) {
+                logger.traceExit();
+                logger.traceExit("result");
+              }
+          }
+        language: java
 ---
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.log4j.JulToLog4j
