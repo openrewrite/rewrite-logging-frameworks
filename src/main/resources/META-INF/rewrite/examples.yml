@@ -391,54 +391,54 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.log4j.ConvertJulEntering
 examples:
-  - description: '`ConvertJulEnteringTest#enteringToTraceEntry`'
-    sources:
-      - before: |
-          import java.util.logging.Logger;
+- description: '`ConvertJulEnteringTest#enteringToTraceEntry`'
+  sources:
+  - before: |
+      import java.util.logging.Logger; // ChangeType will handle import
 
-          class Test {
-              void method(Logger logger) {
-                logger.entering("Test", "method");
-                logger.entering("Test", "method", "param");
-                logger.entering("Test", "method", new Object[]{"param1", "param2"});
-              }
+      class Test {
+          void method(Logger logger) {
+            logger.entering("Test", "method");
+            logger.entering("Test", "method", "param");
+            logger.entering("Test", "method", new Object[]{"param1", "param2"});
           }
-        after: |
-          import java.util.logging.Logger;
+      }
+    after: |
+      import java.util.logging.Logger; // ChangeType will handle import
 
-          class Test {
-              void method(Logger logger) {
-                logger.traceEntry();
-                logger.traceEntry(null, "param");
-                logger.traceEntry(null, new Object[]{"param1", "param2"});
-              }
+      class Test {
+          void method(Logger logger) {
+            logger.traceEntry();
+            logger.traceEntry(null, "param");
+            logger.traceEntry(null, new Object[]{"param1", "param2"});
           }
-        language: java
+      }
+    language: java
 ---
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.log4j.ConvertJulExiting
 examples:
-  - description: '`ConvertJulExitingTest#exitingToTraceExit`'
-    sources:
-      - before: |
-          import java.util.logging.Logger;
+- description: '`ConvertJulExitingTest#exitingToTraceExit`'
+  sources:
+  - before: |
+      import java.util.logging.Logger; // ChangeType will handle import
 
-          class Test {
-              void method(Logger logger) {
-                logger.exiting("Test", "method");
-                logger.exiting("Test", "method", "result");
-              }
+      class Test {
+          void method(Logger logger) {
+            logger.exiting("Test", "method");
+            logger.exiting("Test", "method", "result");
           }
-        after: |
-          import java.util.logging.Logger;
+      }
+    after: |
+      import java.util.logging.Logger; // ChangeType will handle import
 
-          class Test {
-              void method(Logger logger) {
-                logger.traceExit();
-                logger.traceExit("result");
-              }
+      class Test {
+          void method(Logger logger) {
+            logger.traceExit();
+            logger.traceExit("result");
           }
-        language: java
+      }
+    language: java
 ---
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.log4j.JulToLog4j
