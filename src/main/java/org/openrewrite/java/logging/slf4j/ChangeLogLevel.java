@@ -33,15 +33,9 @@ import java.util.List;
 @Value
 public class ChangeLogLevel extends Recipe {
 
-    @Override
-    public String getDisplayName() {
-        return "Change SLF4J log level";
-    }
+    String displayName = "Change SLF4J log level";
 
-    @Override
-    public String getDescription() {
-        return "Change the log level of SLF4J log statements.";
-    }
+    String description = "Change the log level of SLF4J log statements.";
 
     @Option(displayName = "From",
             description = "The log level to change from.",

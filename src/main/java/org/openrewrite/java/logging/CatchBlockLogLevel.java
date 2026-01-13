@@ -31,18 +31,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Value
 public class CatchBlockLogLevel extends Recipe {
 
-    @Override
-    public String getDisplayName() {
-        return "Catch block log level";
-    }
+    String displayName = "Catch block log level";
 
-    @Override
-    public String getDescription() {
-        return "Sometimes exceptions are caught and logged at the wrong log level. This will set the log level of " +
+    String description = "Sometimes exceptions are caught and logged at the wrong log level. This will set the log level of " +
                "logging statements within a catch block not containing an exception to \"warn\", and the log level of " +
                "logging statements containing an exception to \"error\". " +
                "This supports SLF4J, Log4J1, Log4j2, and Logback.";
-    }
 
     private static final MethodMatcher SLF4J_MATCHER = new MethodMatcher("org.slf4j.Logger *(..)");
     private static final MethodMatcher LOG4J1_MATCHER = new MethodMatcher("org.apache.log4j.Category *(..)");

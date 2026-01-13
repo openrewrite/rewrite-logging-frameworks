@@ -56,15 +56,9 @@ public class PrintStackTraceToLogError extends Recipe {
     @Nullable
     String loggingFramework;
 
-    @Override
-    public String getDisplayName() {
-        return "Use logger instead of `printStackTrace()`";
-    }
+    String displayName = "Use logger instead of `printStackTrace()`";
 
-    @Override
-    public String getDescription() {
-        return "When a logger is present, log exceptions rather than calling `printStackTrace()`.";
-    }
+    String description = "When a logger is present, log exceptions rather than calling `printStackTrace()`.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

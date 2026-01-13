@@ -62,15 +62,9 @@ public class SystemOutToLogging extends Recipe {
     @Nullable
     String level;
 
-    @Override
-    public String getDisplayName() {
-        return "Use logger instead of `System.out` print statements";
-    }
+    String displayName = "Use logger instead of `System.out` print statements";
 
-    @Override
-    public String getDescription() {
-        return "Replace `System.out` print statements with a logger.";
-    }
+    String description = "Replace `System.out` print statements with a logger.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

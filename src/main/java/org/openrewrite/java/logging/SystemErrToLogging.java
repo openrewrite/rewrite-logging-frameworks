@@ -60,15 +60,9 @@ public class SystemErrToLogging extends Recipe {
     @Nullable
     String loggingFramework;
 
-    @Override
-    public String getDisplayName() {
-        return "Use logger instead of `System.err` print statements";
-    }
+    String displayName = "Use logger instead of `System.err` print statements";
 
-    @Override
-    public String getDescription() {
-        return "Replace `System.err` print statements with a logger.";
-    }
+    String description = "Replace `System.err` print statements with a logger.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

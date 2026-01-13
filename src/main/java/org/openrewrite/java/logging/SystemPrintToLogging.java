@@ -62,13 +62,7 @@ public class SystemPrintToLogging extends Recipe {
             new PrintStackTraceToLogError(addLogger, loggerName, loggingFramework)
     );
 
-    @Override
-    public String getDisplayName() {
-        return "Use logger instead of system print statements";
-    }
+    String displayName = "Use logger instead of system print statements";
 
-    @Override
-    public String getDescription() {
-        return "Replace `System.out` and `System.err` print statements with a logger.";
-    }
+    String description = "Replace `System.out` and `System.err` print statements with a logger.";
 }

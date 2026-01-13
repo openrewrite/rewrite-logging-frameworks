@@ -33,16 +33,10 @@ public class ConfigureLoggerLevel extends Recipe {
 
     public static final String DEFAULT_FILE = "**/logback.xml";
 
-    @Override
-    public String getDisplayName() {
-        return "Configure logback logger level";
-    }
+    String displayName = "Configure logback logger level";
 
-    @Override
-    public String getDescription() {
-        return "Within logback.xml configuration files sets the specified log level for a particular class. " +
+    String description = "Within logback.xml configuration files sets the specified log level for a particular class. " +
                "Will not create a logback.xml if one does not already exist.";
-    }
 
     @Option(displayName = "Class name",
             description = "The fully qualified class name to configure the log level for",

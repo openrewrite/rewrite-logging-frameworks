@@ -44,15 +44,9 @@ public class ChangeLoggersToPrivate extends Recipe {
             .map(LoggingFramework::getLoggerType)
             .collect(toSet());
 
-    @Override
-    public String getDisplayName() {
-        return "Change logger fields to `private`";
-    }
+    String displayName = "Change logger fields to `private`";
 
-    @Override
-    public String getDescription() {
-        return "Ensures that logger fields are declared as `private` to encapsulate logging mechanics within the class.";
-    }
+    String description = "Ensures that logger fields are declared as `private` to encapsulate logging mechanics within the class.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

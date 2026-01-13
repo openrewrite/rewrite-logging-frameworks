@@ -38,15 +38,9 @@ public class ConvertJulExiting extends Recipe {
 
     private static final MethodMatcher METHOD_MATCHER = new MethodMatcher("java.util.logging.Logger exiting(String, String, ..)", false);
 
-    @Override
-    public String getDisplayName() {
-        return "Rewrites JUL's Logger#exiting method to Log4j API";
-    }
+    String displayName = "Rewrites JUL's Logger#exiting method to Log4j API";
 
-    @Override
-    public String getDescription() {
-        return "Replaces JUL's Logger#exiting method calls to Log4j API Logger#traceEntry calls.";
-    }
+    String description = "Replaces JUL's Logger#exiting method calls to Log4j API Logger#traceEntry calls.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
