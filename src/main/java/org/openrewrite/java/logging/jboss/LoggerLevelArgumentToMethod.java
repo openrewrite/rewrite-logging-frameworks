@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.logging.jboss;
 
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -39,15 +40,11 @@ public class LoggerLevelArgumentToMethod extends Recipe {
     private static final MethodMatcher LOGF_MATCHER = new MethodMatcher("org.jboss.logging.Logger logf(*,*,..)", true);
     private static final MethodMatcher LOGV_MATCHER = new MethodMatcher("org.jboss.logging.Logger logv(*,*,..)", true);
 
-    @Override
-    public String getDisplayName() {
-        return "Replace JBoss Logging Level arguments with the corresponding eponymous level method calls";
-    }
+    @Getter
+    final String displayName = "Replace JBoss Logging Level arguments with the corresponding eponymous level method calls";
 
-    @Override
-    public String getDescription() {
-        return "Replace calls to `Logger.log(Level, ...)` with the corresponding eponymous level method calls. For example `Logger.log(Level.INFO, ...)` to `Logger.info(...)`.";
-    }
+    @Getter
+    final String description = "Replace calls to `Logger.log(Level, ...)` with the corresponding eponymous level method calls. For example `Logger.log(Level.INFO, ...)` to `Logger.info(...)`.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

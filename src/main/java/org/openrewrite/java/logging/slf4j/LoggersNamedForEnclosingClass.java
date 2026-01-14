@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.logging.slf4j;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -39,15 +40,11 @@ public class LoggersNamedForEnclosingClass extends Recipe {
     private static final MethodMatcher LOGGERFACTORY_GETLOGGER = new MethodMatcher(
             "org.slf4j.LoggerFactory getLogger(Class)");
 
-    @Override
-    public String getDisplayName() {
-        return "Loggers should be named for their enclosing classes";
-    }
+    @Getter
+    final String displayName = "Loggers should be named for their enclosing classes";
 
-    @Override
-    public String getDescription() {
-        return "Ensure `LoggerFactory#getLogger(Class)` is called with the enclosing class as argument.";
-    }
+    @Getter
+    final String description = "Ensure `LoggerFactory#getLogger(Class)` is called with the enclosing class as argument.";
 
     @Override
     public Duration getEstimatedEffortPerOccurrence() {

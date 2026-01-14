@@ -16,6 +16,7 @@
 package org.openrewrite.java.logging.log4j;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Getter;
 import org.kohsuke.randname.RandomNameGenerator;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -40,15 +41,11 @@ public class PrependRandomName extends Recipe {
         randomName = new RandomNameGenerator(seed);
     }
 
-    @Override
-    public String getDisplayName() {
-        return "Prepend a random name to each Log4J statement";
-    }
+    @Getter
+    final String displayName = "Prepend a random name to each Log4J statement";
 
-    @Override
-    public String getDescription() {
-        return "To make finding the callsite of a logging statement easier in code search.";
-    }
+    @Getter
+    final String description = "To make finding the callsite of a logging statement easier in code search.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

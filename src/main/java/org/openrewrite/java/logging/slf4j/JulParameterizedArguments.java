@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.logging.slf4j;
 
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -44,15 +45,11 @@ public class JulParameterizedArguments extends Recipe {
     private static final MethodMatcher METHOD_MATCHER_PARAM = new MethodMatcher("java.util.logging.Logger log(java.util.logging.Level, java.lang.String, java.lang.Object)");
     private static final MethodMatcher METHOD_MATCHER_ARRAY = new MethodMatcher("java.util.logging.Logger log(java.util.logging.Level, java.lang.String, java.lang.Object[])");
 
-    @Override
-    public String getDisplayName() {
-        return "Replace parameterized JUL level call with corresponding SLF4J method calls";
-    }
+    @Getter
+    final String displayName = "Replace parameterized JUL level call with corresponding SLF4J method calls";
 
-    @Override
-    public String getDescription() {
-        return "Replace calls to parameterized `Logger.log(Level,String,…)` call with the corresponding slf4j method calls transforming the formatter and parameter lists.";
-    }
+    @Getter
+    final String description = "Replace calls to parameterized `Logger.log(Level,String,…)` call with the corresponding slf4j method calls transforming the formatter and parameter lists.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

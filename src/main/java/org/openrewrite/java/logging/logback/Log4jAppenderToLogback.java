@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.logging.logback;
 
+import lombok.Getter;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
@@ -24,19 +25,15 @@ import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
 public class Log4jAppenderToLogback extends Recipe {
-    @Override
-    public String getDisplayName() {
-        return "Migrate Log4j 2.x Appender to logback-classic equivalents";
-    }
+    @Getter
+    final String displayName = "Migrate Log4j 2.x Appender to logback-classic equivalents";
 
-    @Override
-    public String getDescription() {
-        return "Migrates custom Log4j 2.x Appender components to `logback-classic`. This recipe operates on the following assumptions: " +
-               "1.) The contents of the `append()` method remains unchanged. " +
-               "2.) The `requiresLayout()` method is not used in logback and can be removed. " +
-               "3.) In logback, the `stop()` method is the equivalent of log4j's close() method. " +
-               "For more details, see this page from logback: [`Migration from log4j`](http://logback.qos.ch/manual/migrationFromLog4j.html).";
-    }
+    @Getter
+    final String description = "Migrates custom Log4j 2.x Appender components to `logback-classic`. This recipe operates on the following assumptions: " +
+            "1.) The contents of the `append()` method remains unchanged. " +
+            "2.) The `requiresLayout()` method is not used in logback and can be removed. " +
+            "3.) In logback, the `stop()` method is the equivalent of log4j's close() method. " +
+            "For more details, see this page from logback: [`Migration from log4j`](http://logback.qos.ch/manual/migrationFromLog4j.html).";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
