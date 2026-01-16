@@ -51,10 +51,8 @@ public class LoggersNamedForEnclosingClass extends Recipe {
         return Duration.ofMinutes(1);
     }
 
-    @Override
-    public Set<String> getTags() {
-        return new HashSet<>(Arrays.asList("RSPEC-S3416", "logging", "slf4j"));
-    }
+    @Getter
+    final Set<String> tags = new HashSet<>(Arrays.asList("RSPEC-S3416", "logging", "slf4j"));
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

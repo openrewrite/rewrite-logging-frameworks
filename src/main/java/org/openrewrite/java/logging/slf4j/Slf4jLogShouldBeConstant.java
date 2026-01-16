@@ -55,10 +55,8 @@ public class Slf4jLogShouldBeConstant extends Recipe {
     @Getter
     final String description = "Logging statements shouldn't begin with `String#format`, calls to `toString()`, etc.";
 
-    @Override
-    public Set<String> getTags() {
-        return new HashSet<>(Arrays.asList("logging", "slf4j"));
-    }
+    @Getter
+    final Set<String> tags = new HashSet<>(Arrays.asList("logging", "slf4j"));
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

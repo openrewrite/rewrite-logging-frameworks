@@ -57,10 +57,7 @@ public class ParameterizedLogging extends Recipe {
                "significantly boost performance for messages that otherwise would be assembled with String concatenation. " +
                "Particularly impactful when the log level is not enabled, as no work is done to assemble the message.";
 
-    @Override
-    public Set<String> getTags() {
-        return new HashSet<>(Arrays.asList("RSPEC-S2629", "RSPEC-S3457"));
-    }
+    Set<String> tags = new HashSet<>(Arrays.asList("RSPEC-S2629", "RSPEC-S3457"));
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

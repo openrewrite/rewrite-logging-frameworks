@@ -58,10 +58,8 @@ public class CompleteExceptionLogging extends Recipe {
             "and not an exception is already passed as the last parameter to the log method, then we will append " +
             "the exception as the last parameter in the log method.";
 
-    @Override
-    public Set<String> getTags() {
-        return new HashSet<>(Arrays.asList("logging", "slf4j"));
-    }
+    @Getter
+    final Set<String> tags = new HashSet<>(Arrays.asList("logging", "slf4j"));
 
     @Override
     public @Nullable Duration getEstimatedEffortPerOccurrence() {
