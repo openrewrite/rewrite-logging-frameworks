@@ -50,7 +50,7 @@ public class SystemOutToLogging extends Recipe {
 
     @Option(displayName = "Logging framework",
             description = "The logging framework to use.",
-            valid = {"SLF4J", "Log4J1", "Log4J2", "JUL", "COMMONS"},
+            valid = {"SLF4J", "Log4J1", "Log4J2", "JUL", "COMMONS", "SYSTEM"},
             required = false)
     @Nullable
     String loggingFramework;
@@ -119,6 +119,11 @@ public class SystemOutToLogging extends Recipe {
                 if (framework == LoggingFramework.JUL) {
                     maybeAddImport("java.util.logging.Level");
                 }
+
+                if (framework == LoggingFramework.SYSTEM) {
+                    maybeAddImport("java.lang.System.Logger.Level");
+                }
+                
                 return print;
             }
 
@@ -144,9 +149,13 @@ public class SystemOutToLogging extends Recipe {
                                 .javaParser(JavaParser.fromJavaVersion()
                                         .classpathFromResources(ctx, "log4j-api-2.+"))
                                 .build();
+                    case SYSTEM:
+                        return JavaTemplate
+                                .builder("#{any(java.lang.System.Logger)}.log(Level." + levelOrDefault.toUpperCase() + ", #{any(String)})")
+                                .imports("java.lang.System.Logger.Level")
+                                .build();
                     case JUL:
                     default:
-
                         return JavaTemplate
                                 .builder("#{any(java.util.logging.Logger)}.log(Level." + levelOrDefault + ", #{any(String)})")
                                 .imports("java.util.logging.Level")
