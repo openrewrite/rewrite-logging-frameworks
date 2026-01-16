@@ -25,7 +25,8 @@ public enum LoggingFramework {
     Log4J1("org.apache.log4j.Logger"),
     Log4J2("org.apache.logging.log4j.Logger"),
     JUL("java.util.logging.Logger"),
-    COMMONS("org.apache.commons.logging.Log");
+    COMMONS("org.apache.commons.logging.Log"),
+    SYSTEM("java.lang.System.Logger");
 
     private final String loggerType;
 
@@ -70,6 +71,11 @@ public enum LoggingFramework {
                 return JavaTemplate
                         .builder("#{any(org.apache.commons.logging.Log)}.error(" + message + ", #{any(java.lang.Throwable)})")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "commons-logging-1.3.+"))
+                        .build();
+            case SYSTEM:
+                return JavaTemplate
+                        .builder("#{any(java.lang.System.Logger)}.error(" + message + ", #{any(java.lang.Throwable)})")
+                        .imports("java.lang.System.Logger.Level")
                         .build();
             case JUL:
             default:
