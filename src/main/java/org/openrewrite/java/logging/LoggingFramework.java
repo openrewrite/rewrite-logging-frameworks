@@ -74,7 +74,7 @@ public enum LoggingFramework {
                         .build();
             case SYSTEM:
                 return JavaTemplate
-                        .builder("#{any(java.lang.System.Logger)}.error(" + message + ", #{any(java.lang.Throwable)})")
+                        .builder("#{any(java.lang.System.Logger)}.log(Level.ERROR, " + message + ", #{any(java.lang.Throwable)})")
                         .imports("java.lang.System.Logger.Level")
                         .build();
             case JUL:
