@@ -59,6 +59,8 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
                 return addLog4j2Logger(scope, loggerName, ctx);
             case JUL:
                 return addJulLogger(scope, loggerName, ctx);
+            case SYSTEM:
+                return addSystemLogger(scope, loggerName, ctx);
             case SLF4J:
             default:
                 return addSlf4jLogger(scope, loggerName, ctx);
@@ -83,6 +85,16 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
                         .builder(getModifiers(scope) + " Logger #{} = LogManager.getLogManager().getLogger(\"#{}\");")
                         .contextSensitive()
                         .imports("java.util.logging.Logger", "java.util.logging.LogManager")
+                        .build()
+        );
+    }
+
+        public static AddLogger addSystemLogger(J.ClassDeclaration scope, String loggerName, @SuppressWarnings("unused") ExecutionContext ctx) {
+        return new AddLogger(scope, "java.lang.System.Logger", "java.lang.System", loggerName, visitor ->
+                JavaTemplate
+                        .builder(getModifiers(scope) + " Logger #{} = System.getLogger(\"#{}\");")
+                        .contextSensitive()
+                        .imports("java.lang.System.Logger")
                         .build()
         );
     }
