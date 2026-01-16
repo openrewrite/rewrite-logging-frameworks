@@ -55,7 +55,7 @@ public class SystemErrToLogging extends Recipe {
 
     @Option(displayName = "Logging framework",
             description = "The logging framework to use.",
-            valid = {"SLF4J", "Log4J1", "Log4J2", "JUL", "COMMONS"},
+            valid = {"SLF4J", "Log4J1", "Log4J2", "JUL", "COMMONS", "SYSTEM"},
             required = false)
     @Nullable
     String loggingFramework;
@@ -180,7 +180,18 @@ public class SystemErrToLogging extends Recipe {
                     maybeAddImport("java.util.logging.Level");
                 }
 
-                return (J.MethodInvocation) new ParameterizedLogging(framework.getLoggerType() + " error(..)", false)
+                if (framework == LoggingFramework.SYSTEM) {
+                    maybeAddImport("java.lang.System.Logger.Level");
+                }
+
+                String methodPattern;
+                if (framework == LoggingFramework.SYSTEM) {
+                    methodPattern = framework.getLoggerType() + " log(..)";
+                } else {
+                    methodPattern = framework.getLoggerType() + " error(..)";
+                }
+
+                return (J.MethodInvocation) new ParameterizedLogging(methodPattern, false)
                         .getVisitor()
                         .visitNonNull(print, ctx, printCursor);
             }
@@ -202,6 +213,11 @@ public class SystemErrToLogging extends Recipe {
                         return JavaTemplate
                                 .builder("#{any(org.apache.logging.log4j.Logger)}.error(#{any(String)});")
                                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "log4j-api-2.+"))
+                                .build();
+                    case SYSTEM:
+                        return JavaTemplate
+                                .builder("#{any(java.lang.System.Logger)}.log(Level.ERROR, #{any(String)});")
+                                .imports("java.lang.System.Logger.Level")
                                 .build();
                     case JUL:
                     default:
