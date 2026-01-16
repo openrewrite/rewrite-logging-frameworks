@@ -171,7 +171,9 @@ public class ParameterizedLogging extends Recipe {
             private boolean isMarker(Expression expression) {
                 JavaType expressionType = expression.getType();
                 return TypeUtils.isAssignableTo("org.slf4j.Marker", expressionType) ||
-                       TypeUtils.isAssignableTo("org.apache.logging.log4j.Marker", expressionType);
+                       TypeUtils.isAssignableTo("org.apache.logging.log4j.Marker", expressionType) ||
+                       TypeUtils.isAssignableTo("java.lang.System.Logger.Level", expressionType) ||
+                       TypeUtils.isAssignableTo("java.util.logging.Level", expressionType);
             }
         });
     }
