@@ -46,10 +46,8 @@ public class LoggersNamedForEnclosingClass extends Recipe {
     @Getter
     final String description = "Ensure `LoggerFactory#getLogger(Class)` is called with the enclosing class as argument.";
 
-    @Override
-    public Duration getEstimatedEffortPerOccurrence() {
-        return Duration.ofMinutes(1);
-    }
+    @Getter
+    final Duration estimatedEffortPerOccurrence = Duration.ofMinutes(1);
 
     @Getter
     final Set<String> tags = new HashSet<>(Arrays.asList("RSPEC-S3416", "logging", "slf4j"));

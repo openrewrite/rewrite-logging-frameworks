@@ -61,10 +61,8 @@ public class CompleteExceptionLogging extends Recipe {
     @Getter
     final Set<String> tags = new HashSet<>(Arrays.asList("logging", "slf4j"));
 
-    @Override
-    public @Nullable Duration getEstimatedEffortPerOccurrence() {
-        return Duration.ofMinutes(2);
-    }
+    @Getter
+    final Duration estimatedEffortPerOccurrence = Duration.ofMinutes(2);
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
