@@ -42,7 +42,7 @@ class SystemErrToLoggingTest implements RewriteTest {
     void useSlf4j() {
         rewriteRun(
           spec -> spec.recipe(new SystemErrToLogging(null, "LOGGER", null)),
-          //language=java
+          // language=java
           java(
             """
               import org.slf4j.Logger;
@@ -78,10 +78,51 @@ class SystemErrToLoggingTest implements RewriteTest {
     }
 
     @Test
+    void useSystemLogger() {
+        rewriteRun(
+          spec -> spec.recipe(new SystemErrToLogging(null, "LOGGER", "SYSTEM")),
+          // language=java
+          java(
+            """
+              import java.lang.System.Logger;
+              import java.lang.System.Logger.Level;
+              class Test {
+                  int n;
+                  Logger logger;
+
+                  void test() {
+                      try {
+                      } catch(Throwable t) {
+                          System.err.println("Oh " + n + " no");
+                          t.printStackTrace();
+                      }
+                  }
+              }
+              """,
+            """
+              import java.lang.System.Logger;
+              import java.lang.System.Logger.Level;
+              class Test {
+                  int n;
+                  Logger logger;
+
+                  void test() {
+                      try {
+                      } catch(Throwable t) {
+                          logger.log(Level.ERROR, "Oh {} no", n, t);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void addLogger() {
         rewriteRun(
           spec -> spec.recipe(new SystemErrToLogging(true, "LOGGER", null)),
-          //language=java
+          // language=java
           java(
             """
               class Test {
@@ -117,7 +158,7 @@ class SystemErrToLoggingTest implements RewriteTest {
     void dontChangePrintStackTrace() {
         rewriteRun(
           spec -> spec.recipe(new SystemErrToLogging(true, "LOGGER", null)),
-          //language=java
+          // language=java
           java(
             """
               class Test {
@@ -137,7 +178,7 @@ class SystemErrToLoggingTest implements RewriteTest {
     void inRunnable() {
         rewriteRun(
           spec -> spec.recipe(new SystemErrToLogging(null, "LOGGER", null)),
-          //language=java
+          // language=java
           java(
             """
               import org.slf4j.Logger;
@@ -169,7 +210,7 @@ class SystemErrToLoggingTest implements RewriteTest {
         rewriteRun(
           spec -> spec.recipe(new SystemErrToLogging(null, null, null))
             .typeValidationOptions(TypeValidation.builder().identifiers(false).build()),
-          //language=java
+          // language=java
           java(
             """
               import lombok.extern.slf4j.Slf4j;
@@ -209,7 +250,7 @@ class SystemErrToLoggingTest implements RewriteTest {
     void switchCaseStatements() {
         rewriteRun(
           spec -> spec.recipe(new SystemErrToLogging(false, "logger", "SLF4J")),
-          //language=java
+          // language=java
           java(
             """
               class A {
@@ -246,7 +287,7 @@ class SystemErrToLoggingTest implements RewriteTest {
               }
               """
           ),
-          //language=java
+          // language=java
           java(
             """
               class B {
@@ -283,7 +324,7 @@ class SystemErrToLoggingTest implements RewriteTest {
               }
               """
           ),
-          //language=java
+          // language=java
           java(
             """
               class Test {
@@ -333,7 +374,7 @@ class SystemErrToLoggingTest implements RewriteTest {
     void switchCaseStatementsWithAdditionalMethods() {
         rewriteRun(
           spec -> spec.recipe(new SystemErrToLogging(false, "logger", "SLF4J")),
-          //language=java
+          // language=java
           java(
             """
               class A {
@@ -376,7 +417,7 @@ class SystemErrToLoggingTest implements RewriteTest {
               }
               """
           ),
-          //language=java
+          // language=java
           java(
             """
               class B {

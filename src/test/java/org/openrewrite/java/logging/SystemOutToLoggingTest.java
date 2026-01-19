@@ -162,4 +162,33 @@ class SystemOutToLoggingTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void useSystemLogger() {
+        rewriteRun(
+          spec -> spec.recipe(new SystemOutToLogging(true, "logger", "SYSTEM", "info")),
+          //language=java
+          java(
+            """
+              class Test {
+                  void test() {
+                      System.out.println("Hello World");
+                  }
+              }
+              """,
+            """
+              import java.lang.System.Logger;
+              import java.lang.System.Logger.Level;
+
+              class Test {
+                  private static final Logger logger = System.getLogger("Test");
+
+                  void test() {
+                      logger.log(Level.INFO, "Hello World");
+                  }
+              }
+              """
+          )
+        );
+    }
 }

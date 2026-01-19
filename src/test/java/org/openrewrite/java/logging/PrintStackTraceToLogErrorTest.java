@@ -147,6 +147,45 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
     }
 
     @Test
+    void useSystem() {
+        rewriteRun(
+          spec -> spec.recipe(new PrintStackTraceToLogError(null, "LOGGER", "system")),
+          //language=java
+          java(
+            """
+              import java.lang.System.Logger;
+
+              class Test {
+                  Logger logger;
+
+                  void test() {
+                      try {
+                      } catch(Throwable t) {
+                          t.printStackTrace();
+                      }
+                  }
+              }
+              """,
+            """
+              import java.lang.System.Logger;
+              import java.lang.System.Logger.Level;
+
+              class Test {
+                  Logger logger;
+
+                  void test() {
+                      try {
+                      } catch(Throwable t) {
+                          logger.log(Level.ERROR, "Exception", t);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void addLoggerForNonExistingInstance() {
         rewriteRun(
           spec -> spec.recipe(new PrintStackTraceToLogError(true, "LOGGER", null)),
@@ -184,122 +223,122 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
     @Test
     void addLoggerForExistingInstanceWithSameName() {
         rewriteRun(
-            spec -> spec.recipe(new PrintStackTraceToLogError(true, "LOGGER", null)),
-            //language=java
-            java(
-                """
-                  import org.slf4j.Logger;
-                  import org.slf4j.LoggerFactory;
-                  
-                  class Test {
-                      private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
-                      
-                      void test() {
-                          try {
-                          } catch(Throwable t) {
-                              t.printStackTrace();
-                          }
+          spec -> spec.recipe(new PrintStackTraceToLogError(true, "LOGGER", null)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Test {
+                  private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
+
+                  void test() {
+                      try {
+                      } catch(Throwable t) {
+                          t.printStackTrace();
                       }
                   }
-                  """,
-                """
-                  import org.slf4j.Logger;
-                  import org.slf4j.LoggerFactory;
-    
-                  class Test {
-                      private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
-    
-                      void test() {
-                          try {
-                          } catch(Throwable t) {
-                              LOGGER.error("Exception", t);
-                          }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Test {
+                  private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
+
+                  void test() {
+                      try {
+                      } catch(Throwable t) {
+                          LOGGER.error("Exception", t);
                       }
                   }
-                  """
-            )
+              }
+              """
+          )
         );
     }
 
     @Test
     void reusesLoggerForExistingInstanceWithDifferentName() {
         rewriteRun(
-            spec -> spec.recipe(new PrintStackTraceToLogError(true, "LOGGER", null)),
-            //language=java
-            java(
-                """
-                  import org.slf4j.Logger;
-                  import org.slf4j.LoggerFactory;
-                  
-                  class Test {
-                      private static final Logger FOO = LoggerFactory.getLogger(Test.class);
-                      
-                      void test() {
-                          try {
-                          } catch(Throwable t) {
-                              t.printStackTrace();
-                          }
+          spec -> spec.recipe(new PrintStackTraceToLogError(true, "LOGGER", null)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Test {
+                  private static final Logger FOO = LoggerFactory.getLogger(Test.class);
+
+                  void test() {
+                      try {
+                      } catch(Throwable t) {
+                          t.printStackTrace();
                       }
                   }
-                  """,
-                """
-                  import org.slf4j.Logger;
-                  import org.slf4j.LoggerFactory;
-    
-                  class Test {
-                      private static final Logger FOO = LoggerFactory.getLogger(Test.class);
-    
-                      void test() {
-                          try {
-                          } catch(Throwable t) {
-                              FOO.error("Exception", t);
-                          }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Test {
+                  private static final Logger FOO = LoggerFactory.getLogger(Test.class);
+
+                  void test() {
+                      try {
+                      } catch(Throwable t) {
+                          FOO.error("Exception", t);
                       }
                   }
-                  """
-            )
+              }
+              """
+          )
         );
     }
 
     @Test
     void ignoresExistingLoggerMethodCalls() {
         rewriteRun(
-            spec -> spec.recipe(new PrintStackTraceToLogError(true, "LOGGER", null)),
-            //language=java
-            java(
-                """
-                  import org.slf4j.Logger;
-                  import org.slf4j.LoggerFactory;
-                  
-                  class Test {
-                      private static final Logger FOO = LoggerFactory.getLogger(Test.class);
-                      
-                      void test() {
-                          try {
-                          } catch(Throwable t) {
-                              t.printStackTrace();
-                              FOO.error("Exception");
-                          }
+          spec -> spec.recipe(new PrintStackTraceToLogError(true, "LOGGER", null)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Test {
+                  private static final Logger FOO = LoggerFactory.getLogger(Test.class);
+
+                  void test() {
+                      try {
+                      } catch(Throwable t) {
+                          t.printStackTrace();
+                          FOO.error("Exception");
                       }
                   }
-                  """,
-                """
-                  import org.slf4j.Logger;
-                  import org.slf4j.LoggerFactory;
-    
-                  class Test {
-                      private static final Logger FOO = LoggerFactory.getLogger(Test.class);
-    
-                      void test() {
-                          try {
-                          } catch(Throwable t) {
-                              FOO.error("Exception", t);
-                              FOO.error("Exception");
-                          }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Test {
+                  private static final Logger FOO = LoggerFactory.getLogger(Test.class);
+
+                  void test() {
+                      try {
+                      } catch(Throwable t) {
+                          FOO.error("Exception", t);
+                          FOO.error("Exception");
                       }
                   }
-                  """
-            )
+              }
+              """
+          )
         );
     }
 
