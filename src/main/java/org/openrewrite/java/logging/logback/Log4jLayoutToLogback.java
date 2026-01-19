@@ -42,10 +42,8 @@ public class Log4jLayoutToLogback extends Recipe {
             "6. In logback-classic, layouts must implement the LifeCycle interface which includes a method called start(). The start() method is the equivalent of log4j's activateOptions() method. " +
             "For more details, see this page from logback: [`Migration from log4j`](http://logback.qos.ch/manual/migrationFromLog4j.html).";
 
-    @Override
-    public Duration getEstimatedEffortPerOccurrence() {
-        return Duration.ofMinutes(15);
-    }
+    @Getter
+    final Duration estimatedEffortPerOccurrence = Duration.ofMinutes(15);
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

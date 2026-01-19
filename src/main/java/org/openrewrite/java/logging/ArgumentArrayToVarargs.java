@@ -39,10 +39,8 @@ public class ArgumentArrayToVarargs extends Recipe {
     @Getter
     final String description = "For Logger methods that support varargs, convert any final explicit `Object[]` arguments into their unpacked values.";
 
-    @Override
-    public Duration getEstimatedEffortPerOccurrence() {
-        return Duration.ofMinutes(2);
-    }
+    @Getter
+    final Duration estimatedEffortPerOccurrence = Duration.ofMinutes(2);
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
