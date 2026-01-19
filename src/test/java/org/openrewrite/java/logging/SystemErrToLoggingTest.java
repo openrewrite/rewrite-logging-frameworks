@@ -73,7 +73,8 @@ class SystemErrToLoggingTest implements RewriteTest {
                       }
                   }
               }
-              """));
+              """
+          ));
     }
 
     @Test
@@ -112,7 +113,8 @@ class SystemErrToLoggingTest implements RewriteTest {
                       }
                   }
               }
-              """));
+              """
+          ));
     }
 
     @Test
@@ -146,7 +148,8 @@ class SystemErrToLoggingTest implements RewriteTest {
                       }
                   }
               }
-              """));
+              """
+          ));
     }
 
     @Test
@@ -164,7 +167,8 @@ class SystemErrToLoggingTest implements RewriteTest {
                       }
                   }
               }
-              """));
+              """
+          ));
     }
 
     @Test
@@ -192,7 +196,8 @@ class SystemErrToLoggingTest implements RewriteTest {
                       Runnable r = () -> logger.error("single");
                   }
               }
-              """));
+              """
+          ));
     }
 
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/114")
@@ -231,7 +236,8 @@ class SystemErrToLoggingTest implements RewriteTest {
                       }
                   }
               }
-              """));
+              """
+          ));
     }
 
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/192")
@@ -274,7 +280,8 @@ class SystemErrToLoggingTest implements RewriteTest {
                       }
                   }
               }
-              """),
+              """
+          ),
           // language=java
           java(
             """
@@ -310,7 +317,8 @@ class SystemErrToLoggingTest implements RewriteTest {
                       };
                   }
               }
-              """),
+              """
+          ),
           // language=java
           java(
             """
@@ -400,7 +408,8 @@ class SystemErrToLoggingTest implements RewriteTest {
                       return null;
                   }
               }
-              """),
+              """
+          ),
           // language=java
           java(
             """
