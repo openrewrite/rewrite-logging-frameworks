@@ -89,7 +89,7 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
         );
     }
 
-        public static AddLogger addSystemLogger(J.ClassDeclaration scope, String loggerName, @SuppressWarnings("unused") ExecutionContext ctx) {
+    public static AddLogger addSystemLogger(J.ClassDeclaration scope, String loggerName, @SuppressWarnings("unused") ExecutionContext ctx) {
         return new AddLogger(scope, "java.lang.System.Logger", "java.lang.System", loggerName, visitor ->
                 JavaTemplate
                         .builder(getModifiers(scope) + " Logger #{} = System.getLogger(\"#{}\");")

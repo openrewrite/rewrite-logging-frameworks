@@ -95,7 +95,7 @@ public class PrintStackTraceToLogError extends Recipe {
                 if (framework == LoggingFramework.SYSTEM) {
                     maybeAddImport("java.lang.System.Logger.Level");
                 }
-                
+
                 return framework.getErrorTemplate("\"Exception\"", ctx).apply(
                         new Cursor(getCursor().getParent(), m),
                         m.getCoordinates().replace(),

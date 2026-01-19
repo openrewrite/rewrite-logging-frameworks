@@ -53,9 +53,9 @@ public class ParameterizedLogging extends Recipe {
     String displayName = "Parameterize logging statements";
 
     String description = "Transform logging statements using concatenation for messages and variables into a parameterized format. " +
-               "For example, `logger.info(\"hi \" + userName)` becomes `logger.info(\"hi {}\", userName)`. This can " +
-               "significantly boost performance for messages that otherwise would be assembled with String concatenation. " +
-               "Particularly impactful when the log level is not enabled, as no work is done to assemble the message.";
+            "For example, `logger.info(\"hi \" + userName)` becomes `logger.info(\"hi {}\", userName)`. This can " +
+            "significantly boost performance for messages that otherwise would be assembled with String concatenation. " +
+            "Particularly impactful when the log level is not enabled, as no work is done to assemble the message.";
 
     Set<String> tags = new HashSet<>(Arrays.asList("RSPEC-S2629", "RSPEC-S3457"));
 
@@ -168,9 +168,9 @@ public class ParameterizedLogging extends Recipe {
             private boolean isMarker(Expression expression) {
                 JavaType expressionType = expression.getType();
                 return TypeUtils.isAssignableTo("org.slf4j.Marker", expressionType) ||
-                       TypeUtils.isAssignableTo("org.apache.logging.log4j.Marker", expressionType) ||
-                       TypeUtils.isAssignableTo("java.lang.System.Logger.Level", expressionType) ||
-                       TypeUtils.isAssignableTo("java.util.logging.Level", expressionType);
+                        TypeUtils.isAssignableTo("org.apache.logging.log4j.Marker", expressionType) ||
+                        TypeUtils.isAssignableTo("java.lang.System.Logger.Level", expressionType) ||
+                        TypeUtils.isAssignableTo("java.util.logging.Level", expressionType);
             }
         });
     }

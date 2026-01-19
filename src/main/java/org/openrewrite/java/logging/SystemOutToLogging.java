@@ -129,7 +129,7 @@ public class SystemOutToLogging extends Recipe {
                 if (framework == LoggingFramework.SYSTEM) {
                     maybeAddImport("java.lang.System.Logger.Level");
                 }
-                
+
                 return print;
             }
 
