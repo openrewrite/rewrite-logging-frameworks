@@ -34,8 +34,7 @@ class SystemErrToLoggingTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipe(new Log4jAppenderToLogback())
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "log4j-1.2.+", "slf4j-api-2.1.+",
-              "lombok-1.18.+"));
+            .classpathFromResources(new InMemoryExecutionContext(), "log4j-1.2.+", "slf4j-api-2.1.+", "lombok-1.18.+"));
     }
 
     @DocumentExample
@@ -74,7 +73,8 @@ class SystemErrToLoggingTest implements RewriteTest {
                   }
               }
               """
-          ));
+          )
+        );
     }
 
     @Test
@@ -114,7 +114,8 @@ class SystemErrToLoggingTest implements RewriteTest {
                   }
               }
               """
-          ));
+          )
+        );
     }
 
     @Test
@@ -149,7 +150,8 @@ class SystemErrToLoggingTest implements RewriteTest {
                   }
               }
               """
-          ));
+          )
+        );
     }
 
     @Test
@@ -168,7 +170,8 @@ class SystemErrToLoggingTest implements RewriteTest {
                   }
               }
               """
-          ));
+          )
+        );
     }
 
     @Test
@@ -197,7 +200,8 @@ class SystemErrToLoggingTest implements RewriteTest {
                   }
               }
               """
-          ));
+          )
+        );
     }
 
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/114")
@@ -237,7 +241,8 @@ class SystemErrToLoggingTest implements RewriteTest {
                   }
               }
               """
-          ));
+          )
+        );
     }
 
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/192")
@@ -359,7 +364,9 @@ class SystemErrToLoggingTest implements RewriteTest {
                               break;
                       }
                   }
-              }"""));
+              }"""
+          )
+        );
     }
 
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/192")
@@ -453,7 +460,8 @@ class SystemErrToLoggingTest implements RewriteTest {
                   }
               }
               """
-          ));
+          )
+        );
     }
 
 }
