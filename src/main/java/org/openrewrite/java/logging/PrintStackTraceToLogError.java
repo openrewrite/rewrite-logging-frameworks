@@ -51,7 +51,7 @@ public class PrintStackTraceToLogError extends Recipe {
 
     @Option(displayName = "Logging framework",
             description = "The logging framework to use.",
-            valid = {"SLF4J", "Log4J1", "Log4J2", "JUL", "COMMONS"},
+            valid = {"SLF4J", "Log4J1", "Log4J2", "JUL", "COMMONS", "SYSTEM"},
             required = false)
     @Nullable
     String loggingFramework;
@@ -92,6 +92,10 @@ public class PrintStackTraceToLogError extends Recipe {
                 if (framework == LoggingFramework.JUL) {
                     maybeAddImport("java.util.logging.Level");
                 }
+                if (framework == LoggingFramework.SYSTEM) {
+                    maybeAddImport("java.lang.System.Logger.Level");
+                }
+                
                 return framework.getErrorTemplate("\"Exception\"", ctx).apply(
                         new Cursor(getCursor().getParent(), m),
                         m.getCoordinates().replace(),

@@ -147,6 +147,45 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
     }
 
     @Test
+    void useSystem() {
+        rewriteRun(
+          spec -> spec.recipe(new PrintStackTraceToLogError(null, "LOGGER", "system")),
+          //language=java
+          java(
+            """
+              import java.lang.System.Logger;
+              
+              class Test {
+                  Logger logger;
+
+                  void test() {
+                      try {
+                      } catch(Throwable t) {
+                          t.printStackTrace();
+                      }
+                  }
+              }
+              """,
+            """
+              import java.lang.System.Logger;
+              import java.lang.System.Logger.Level;
+
+              class Test {
+                  Logger logger;
+
+                  void test() {
+                      try {
+                      } catch(Throwable t) {
+                          logger.log(Level.ERROR, "Exception", t);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void addLoggerForNonExistingInstance() {
         rewriteRun(
           spec -> spec.recipe(new PrintStackTraceToLogError(true, "LOGGER", null)),
