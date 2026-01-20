@@ -62,6 +62,15 @@ public class JulParameterizedArguments extends Recipe {
             return expression instanceof J.Literal && TypeUtils.isString(((J.Literal) expression).getType());
         }
 
+        /**
+         * Escapes special characters in a string so it can be safely used as content
+         * inside a Java string literal in a JavaTemplate.
+         */
+        private static String escapeForJavaStringLiteral(String s) {
+            // Order matters: escape backslashes first to avoid double-escaping
+            return s.replace("\\", "\\\\").replace("\"", "\\\"");
+        }
+
         private static @Nullable String getMethodIdentifier(Expression levelArgument) {
             String levelSimpleName = levelArgument instanceof J.FieldAccess ?
                     (((J.FieldAccess) levelArgument).getName().getSimpleName()) :
@@ -121,12 +130,13 @@ public class JulParameterizedArguments extends Recipe {
                             .withType(((JavaType.Array) requireNonNull(newArray.getType())).withElemType(JavaType.ShallowClass.build("java.lang.Object")));
                 }
 
+                String slf4jFormatString = escapeForJavaStringLiteral(originalFormatString.replaceAll("\\{\\d*}", "{}"));
                 J.MethodInvocation updatedMi = JavaTemplate.builder(newName + "(\"#{}\",#{anyArray(Object)})")
                         .build()
                         .apply(
                                 getCursor(),
                                 method.getCoordinates().replaceMethod(),
-                                originalFormatString.replaceAll("\\{\\d*}", "{}"),
+                                slf4jFormatString,
                                 updatedStringFormatArgument
                         );
 
