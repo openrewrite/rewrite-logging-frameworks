@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.logging.slf4j;
 
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -39,17 +40,13 @@ public class MatchIsLogLevelEnabledWithLogStatements extends Recipe {
     private static final MethodMatcher ENABLED_MATCHER = new MethodMatcher("org.slf4j.Logger is*Enabled()");
     private static final MethodMatcher LOG_MATCHER = new MethodMatcher("org.slf4j.Logger *(..)");
 
-    @Override
-    public String getDisplayName() {
-        return "Match `if (is*Enabled())` with logging statements";
-    }
+    @Getter
+    final String displayName = "Match `if (is*Enabled())` with logging statements";
 
-    @Override
-    public String getDescription() {
-        return "Change any `if (is*Enabled())` statements that do not match the maximum log level used in the `then` " +
-                "part to use the matching `is*Enabled()` method for that log level. " +
-                "This ensures that the logging condition is consistent with the actual logging statements.";
-    }
+    @Getter
+    final String description = "Change any `if (is*Enabled())` statements that do not match the maximum log level used in the `then` " +
+            "part to use the matching `is*Enabled()` method for that log level. " +
+            "This ensures that the logging condition is consistent with the actual logging statements.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

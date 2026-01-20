@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.logging;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -32,20 +33,14 @@ public class ArgumentArrayToVarargs extends Recipe {
     // Match logger methods that end with Object[] - but we'll verify if it's varargs later
     private static final MethodMatcher LOGGER_METHOD = new MethodMatcher("*..Log* *(.., Object[])");
 
-    @Override
-    public String getDisplayName() {
-        return "Unpack Logger method `new Object[] {...}` into varargs";
-    }
+    @Getter
+    final String displayName = "Unpack Logger method `new Object[] {...}` into varargs";
 
-    @Override
-    public String getDescription() {
-        return "For Logger methods that support varargs, convert any final explicit `Object[]` arguments into their unpacked values.";
-    }
+    @Getter
+    final String description = "For Logger methods that support varargs, convert any final explicit `Object[]` arguments into their unpacked values.";
 
-    @Override
-    public Duration getEstimatedEffortPerOccurrence() {
-        return Duration.ofMinutes(2);
-    }
+    @Getter
+    final Duration estimatedEffortPerOccurrence = Duration.ofMinutes(2);
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.logging.slf4j;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -48,20 +49,14 @@ public class Slf4jLogShouldBeConstant extends Recipe {
     private static final MethodMatcher STRING_VALUE_OF = new MethodMatcher("java.lang.String valueOf(..)");
     private static final MethodMatcher OBJECT_TO_STRING = new MethodMatcher("java.lang.Object toString()");
 
-    @Override
-    public String getDisplayName() {
-        return "SLF4J logging statements should begin with constants";
-    }
+    @Getter
+    final String displayName = "SLF4J logging statements should begin with constants";
 
-    @Override
-    public String getDescription() {
-        return "Logging statements shouldn't begin with `String#format`, calls to `toString()`, etc.";
-    }
+    @Getter
+    final String description = "Logging statements shouldn't begin with `String#format`, calls to `toString()`, etc.";
 
-    @Override
-    public Set<String> getTags() {
-        return new HashSet<>(Arrays.asList("logging", "slf4j"));
-    }
+    @Getter
+    final Set<String> tags = new HashSet<>(Arrays.asList("logging", "slf4j"));
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

@@ -15,7 +15,7 @@
  */
 package org.openrewrite.java.logging.slf4j;
 
-import org.jspecify.annotations.Nullable;
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -44,32 +44,24 @@ public class CompleteExceptionLogging extends Recipe {
     private static final MethodMatcher THROWABLE_GET_LOCALIZED_MESSAGE = new MethodMatcher("java.lang.Throwable getLocalizedMessage()");
 
 
-    @Override
-    public String getDisplayName() {
-        return "Enhances logging of exceptions by including the full stack trace in addition to the exception message";
-    }
+    @Getter
+    final String displayName = "Enhances logging of exceptions by including the full stack trace in addition to the exception message";
 
-    @Override
-    public String getDescription() {
-        return "It is a common mistake to call `Exception.getMessage()` when passing an exception into a log method. " +
-               "Not all exception types have useful messages, and even if the message is useful this omits the stack " +
-               "trace. Including a complete stack trace of the error along with the exception message in the log " +
-               "allows developers to better understand the context of the exception and identify the source of the " +
-               "error more quickly and accurately. \n" +
-               "If the method invocation includes any call to `Exception.getMessage()` or `Exception.getLocalizedMessage()` " +
-               "and not an exception is already passed as the last parameter to the log method, then we will append " +
-               "the exception as the last parameter in the log method.";
-    }
+    @Getter
+    final String description = "It is a common mistake to call `Exception.getMessage()` when passing an exception into a log method. " +
+            "Not all exception types have useful messages, and even if the message is useful this omits the stack " +
+            "trace. Including a complete stack trace of the error along with the exception message in the log " +
+            "allows developers to better understand the context of the exception and identify the source of the " +
+            "error more quickly and accurately. \n" +
+            "If the method invocation includes any call to `Exception.getMessage()` or `Exception.getLocalizedMessage()` " +
+            "and not an exception is already passed as the last parameter to the log method, then we will append " +
+            "the exception as the last parameter in the log method.";
 
-    @Override
-    public Set<String> getTags() {
-        return new HashSet<>(Arrays.asList("logging", "slf4j"));
-    }
+    @Getter
+    final Set<String> tags = new HashSet<>(Arrays.asList("logging", "slf4j"));
 
-    @Override
-    public @Nullable Duration getEstimatedEffortPerOccurrence() {
-        return Duration.ofMinutes(2);
-    }
+    @Getter
+    final Duration estimatedEffortPerOccurrence = Duration.ofMinutes(2);
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

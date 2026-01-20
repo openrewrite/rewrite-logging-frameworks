@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.logging.slf4j;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -35,15 +36,11 @@ public class StripToStringFromArguments extends Recipe {
 
     private static final MethodMatcher TO_STRING_MATCHER = new MethodMatcher("*..* toString()");
 
-    @Override
-    public String getDisplayName() {
-        return "Strip `toString()` from arguments";
-    }
+    @Getter
+    final String displayName = "Strip `toString()` from arguments";
 
-    @Override
-    public String getDescription() {
-        return "Remove `.toString()` from logger call arguments; SLF4J will automatically call `toString()` on an argument when not a string, and do so only if the log level is enabled.";
-    }
+    @Getter
+    final String description = "Remove `.toString()` from logger call arguments; SLF4J will automatically call `toString()` on an argument when not a string, and do so only if the log level is enabled.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

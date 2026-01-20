@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.logging.logback;
 
+import lombok.Getter;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
@@ -28,27 +29,21 @@ import java.time.Duration;
 import static java.util.Objects.requireNonNull;
 
 public class Log4jLayoutToLogback extends Recipe {
-    @Override
-    public String getDisplayName() {
-        return "Migrate Log4j 2.x Layout to logback-classic equivalents";
-    }
+    @Getter
+    final String displayName = "Migrate Log4j 2.x Layout to logback-classic equivalents";
 
-    @Override
-    public String getDescription() {
-        return "Migrates custom Log4j 2.x Layout components to `logback-classic`. This recipe operates on the following assumptions: " +
-               "1. A logback-classic layout must extend the `LayoutBase<ILoggingEvent>` class. " +
-               "2. log4j's `format()` is renamed to `doLayout()` in a logback-classic layout. " +
-               "3. LoggingEvent `getRenderedMessage()` is converted to LoggingEvent `getMessage()`. " +
-               "4. The log4j ignoresThrowable() method is not needed and has no equivalent in logback-classic. " +
-               "5. The activateOptions() method merits further discussion. In log4j, a layout will have its activateOptions() method invoked by log4j configurators, that is PropertyConfigurator or DOMConfigurator just after all the options of the layout have been set. Thus, the layout will have an opportunity to check that its options are coherent and if so, proceed to fully initialize itself. " +
-               "6. In logback-classic, layouts must implement the LifeCycle interface which includes a method called start(). The start() method is the equivalent of log4j's activateOptions() method. " +
-               "For more details, see this page from logback: [`Migration from log4j`](http://logback.qos.ch/manual/migrationFromLog4j.html).";
-    }
+    @Getter
+    final String description = "Migrates custom Log4j 2.x Layout components to `logback-classic`. This recipe operates on the following assumptions: " +
+            "1. A logback-classic layout must extend the `LayoutBase<ILoggingEvent>` class. " +
+            "2. log4j's `format()` is renamed to `doLayout()` in a logback-classic layout. " +
+            "3. LoggingEvent `getRenderedMessage()` is converted to LoggingEvent `getMessage()`. " +
+            "4. The log4j ignoresThrowable() method is not needed and has no equivalent in logback-classic. " +
+            "5. The activateOptions() method merits further discussion. In log4j, a layout will have its activateOptions() method invoked by log4j configurators, that is PropertyConfigurator or DOMConfigurator just after all the options of the layout have been set. Thus, the layout will have an opportunity to check that its options are coherent and if so, proceed to fully initialize itself. " +
+            "6. In logback-classic, layouts must implement the LifeCycle interface which includes a method called start(). The start() method is the equivalent of log4j's activateOptions() method. " +
+            "For more details, see this page from logback: [`Migration from log4j`](http://logback.qos.ch/manual/migrationFromLog4j.html).";
 
-    @Override
-    public Duration getEstimatedEffortPerOccurrence() {
-        return Duration.ofMinutes(15);
-    }
+    @Getter
+    final Duration estimatedEffortPerOccurrence = Duration.ofMinutes(15);
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

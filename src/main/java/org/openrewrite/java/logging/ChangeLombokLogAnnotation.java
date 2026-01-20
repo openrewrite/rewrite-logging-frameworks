@@ -16,6 +16,7 @@
 package org.openrewrite.java.logging;
 
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.Option;
 import org.openrewrite.Recipe;
@@ -29,15 +30,11 @@ import static java.util.stream.Collectors.toList;
 @AllArgsConstructor
 public class ChangeLombokLogAnnotation extends Recipe {
 
-    @Override
-    public String getDisplayName() {
-        return "Replace any Lombok log annotations with target logging framework annotation";
-    }
+    @Getter
+    final String displayName = "Replace any Lombok log annotations with target logging framework annotation";
 
-    @Override
-    public String getDescription() {
-        return "Replace Lombok annotations such as `@CommonsLog` and `@Log4j` with the target logging framework annotation, or `@Sl4fj` if not provided.";
-    }
+    @Getter
+    final String description = "Replace Lombok annotations such as `@CommonsLog` and `@Log4j` with the target logging framework annotation, or `@Sl4fj` if not provided.";
 
     @Option(displayName = "Logging framework",
             description = "The logging framework to use.",

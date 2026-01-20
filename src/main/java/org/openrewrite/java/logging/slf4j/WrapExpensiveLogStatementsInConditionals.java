@@ -16,6 +16,7 @@
 package org.openrewrite.java.logging.slf4j;
 
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.Value;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
@@ -44,18 +45,14 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
     private static final MethodMatcher isDebugEnabledMatcher = new MethodMatcher("org.slf4j.Logger isDebugEnabled()");
     private static final MethodMatcher isTraceEnabledMatcher = new MethodMatcher("org.slf4j.Logger isTraceEnabled()");
 
-    @Override
-    public String getDisplayName() {
-        return "Optimize log statements";
-    }
+    @Getter
+    final String displayName = "Optimize log statements";
 
-    @Override
-    public String getDescription() {
-        return "When trace, debug and info log statements use methods for constructing log messages, " +
-                "those methods are called regardless of whether the log level is enabled. " +
-                "This recipe optimizes these statements by either wrapping them in if-statements (SLF4J 1.x) " +
-                "or converting them to fluent API calls (SLF4J 2.0+) to ensure expensive methods are only called when necessary.";
-    }
+    @Getter
+    final String description = "When trace, debug and info log statements use methods for constructing log messages, " +
+            "those methods are called regardless of whether the log level is enabled. " +
+            "This recipe optimizes these statements by either wrapping them in if-statements (SLF4J 1.x) " +
+            "or converting them to fluent API calls (SLF4J 2.0+) to ensure expensive methods are only called when necessary.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
