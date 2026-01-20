@@ -16,6 +16,7 @@
 package org.openrewrite.java.logging.slf4j;
 
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.Issue;
@@ -294,5 +295,66 @@ class JulParameterizedArgumentsTest implements RewriteTest {
               """
           )
         );
+    }
+
+    @Nested
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/273")
+    class EscapedCharactersInFormatString {
+
+        @Test
+        void quotedParameters() {
+            rewriteRun(
+              // language=java
+              java(
+                """
+                  import java.util.logging.Level;
+                  import java.util.logging.Logger;
+
+                  class Test {
+                      void method(Logger logger, String param1) {
+                          logger.log(Level.SEVERE, "Log message with quoted parameter \\"{0}\\"", param1);
+                      }
+                  }
+                  """,
+                """
+                  import org.slf4j.Logger;
+
+                  class Test {
+                      void method(Logger logger, String param1) {
+                          logger.error("Log message with quoted parameter \\"{}\\"", param1);
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void backslashInFormatString() {
+            rewriteRun(
+              // language=java
+              java(
+                """
+                  import java.util.logging.Level;
+                  import java.util.logging.Logger;
+
+                  class Test {
+                      void method(Logger logger, String param1) {
+                          logger.log(Level.INFO, "Path: C:\\\\Users\\\\{0}", param1);
+                      }
+                  }
+                  """,
+                """
+                  import org.slf4j.Logger;
+
+                  class Test {
+                      void method(Logger logger, String param1) {
+                          logger.info("Path: C:\\\\Users\\\\{}", param1);
+                      }
+                  }
+                  """
+              )
+            );
+        }
     }
 }
