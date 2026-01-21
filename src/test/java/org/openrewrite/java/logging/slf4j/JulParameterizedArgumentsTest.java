@@ -297,8 +297,8 @@ class JulParameterizedArgumentsTest implements RewriteTest {
         );
     }
 
-    @Nested
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/273")
+    @Nested
     class EscapedCharactersInFormatString {
 
         @Test
