@@ -20,6 +20,8 @@ displayName: JBoss Logging Best Practices
 description: |-
   This recipe applies best practices for logging in JBoss applications.
   It includes converting argument arrays to varargs for better readability and performance.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - logging
   - jboss

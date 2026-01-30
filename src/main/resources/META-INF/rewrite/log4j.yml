@@ -21,6 +21,8 @@ displayName: Parameterize Log4j 2.x logging statements
 description: Use Log4j 2.x parameterized logging, which can significantly boost performance for messages that
   otherwise would be assembled with String concatenation. Particularly impactful when the log level is not enabled, as
   no work is done to assemble the message.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - logging
   - log4j
@@ -59,6 +61,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.log4j.Log4j1ToLog4j2
 displayName: Migrate Log4j 1.x to Log4j 2.x
 description: Migrates Log4j 1.x to Log4j 2.x.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - logging
   - log4j
@@ -146,6 +150,8 @@ displayName: Upgrade Log4j 2.x dependency version
 description: |-
   Upgrades the Log4j 2.x dependencies to the latest 2.x version.
   Mitigates the [Log4Shell and other Log4j2-related vulnerabilities](https://www.cisa.gov/news-events/cybersecurity-advisories/aa21-356a).
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - logging
   - log4j
@@ -164,6 +170,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.log4j.CommonsLoggingToLog4j
 displayName: Migrate JCL to Log4j 2.x API
 description: Transforms code written using Apache Commons Logging to use Log4j 2.x API.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - logging
   - commons-logging
@@ -190,6 +198,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.log4j.JulToLog4j
 displayName: Migrate JUL to Log4j 2.x API
 description: Transforms code written using `java.util.logging` to use Log4j 2.x API.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - logging
   - java-util-logging
@@ -233,6 +243,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.log4j.Slf4jToLog4j
 displayName: Migrate SLF4J to Log4j 2.x API
 description: Transforms code written using SLF4J to use Log4j 2.x API.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - logging
   - slf4j

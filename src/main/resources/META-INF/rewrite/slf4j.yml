@@ -19,6 +19,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.slf4j.Log4jToSlf4j
 displayName: Migrate Log4j to SLF4J
 description: Migrates usage of Apache Log4j to using SLF4J directly. Use of the traditional Log4j to SLF4J bridge can result in loss of performance, as the Log4j messages must be formatted before they can be passed to SLF4J. Note, this currently does not modify `log4j.properties` files.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - logging
   - slf4j
@@ -72,6 +74,8 @@ displayName: Parameterize SLF4J's logging statements
 description: Use SLF4J's parameterized logging, which can significantly boost performance for messages that
   otherwise would be assembled with String concatenation. Particularly impactful when the log level is not enabled, as
   no work is done to assemble the message.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - logging
   - slf4j
@@ -92,6 +96,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.slf4j.Log4j2ToSlf4j1
 displayName: Migrate Log4j 2.x to SLF4J 1.x
 description: Transforms usages of Log4j 2.x to leveraging SLF4J 1.x directly. Note, this currently does not modify `log4j.properties` files.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - logging
   - slf4j
@@ -118,6 +124,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.slf4j.Log4j1ToSlf4j1
 displayName: Migrate Log4j 1.x to SLF4J 1.x
 description: Transforms usages of Log4j 1.x to leveraging SLF4J 1.x directly. Note, this currently does not modify `log4j.properties` files.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - logging
   - slf4j
@@ -134,6 +142,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.slf4j.Slf4jBestPractices
 displayName: SLF4J best practices
 description: Applies best practices to logging with SLF4J.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - logging
   - slf4j
@@ -153,6 +163,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.slf4j.CommonsLogging1ToSlf4j1
 displayName: Migrate Apache Commons Logging 1.x to SLF4J 1.x
 description: Transforms usages of Apache Commons Logging 1.x to leveraging SLF4J 1.x directly.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - logging
   - slf4j
@@ -191,6 +203,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.slf4j.JulToSlf4j
 displayName: Migrate JUL to SLF4J
 description: Migrates usage of Java Util Logging (JUL) to using SLF4J directly.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - logging
   - java-util-logging
@@ -211,6 +225,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.slf4j.JBossLoggingToSlf4j
 displayName: Migrate JBoss Logging to SLF4J
 description: Migrates usage of the JBoss Logging facade to using SLF4J.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - logging
   - jboss
@@ -234,6 +250,7 @@ name: org.openrewrite.java.logging.slf4j.AddJBossLogManagerSlf4jProviderDependen
 displayName: Add JBoss LogManager's SLF4J provider
 description: When JBoss LogManager is the logging backend, add its SLF4J provider so we can migrate to SLF4J as a logging facade.
 preconditions:
+  - org.openrewrite.Singleton
   - org.openrewrite.java.dependencies.DependencyInsight:
       groupIdPattern: org.jboss.logmanager
       artifactIdPattern: jboss-logmanager
