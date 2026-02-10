@@ -193,6 +193,40 @@ class Log4j1ToLog4j2Test implements RewriteTest {
         );
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/276")
+    @Test
+    void isEnabledForToIsEnabled() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.apache.log4j.Logger;
+              import org.apache.log4j.Priority;
+
+              class Test {
+                  static void method(Logger logger) {
+                      if (logger.isEnabledFor(Priority.INFO)) {
+                          logger.info("Hello world");
+                      }
+                  }
+              }
+              """,
+            """
+              import org.apache.logging.log4j.Logger;
+              import org.apache.logging.log4j.Level;
+
+              class Test {
+                  static void method(Logger logger) {
+                      if (logger.isEnabled(Level.INFO)) {
+                          logger.info("Hello world");
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Test
     void categoryGetInstance() {
         //language=java
