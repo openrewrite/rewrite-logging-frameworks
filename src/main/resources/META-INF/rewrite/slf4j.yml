@@ -210,7 +210,7 @@ tags:
   - java-util-logging
   - slf4j
 recipeList:
-  - org.openrewrite.java.logging.slf4j.JulGetLoggerToLoggerFactoryRecipes
+  - org.openrewrite.java.logging.slf4j.JulGetLoggerToLoggerFactory
   - org.openrewrite.java.logging.slf4j.JulIsLoggableToIsEnabledRecipes
   - org.openrewrite.java.logging.slf4j.JulParameterizedArguments
   - org.openrewrite.java.logging.slf4j.JulToSlf4jLambdaSupplierRecipes
