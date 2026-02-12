@@ -15,47 +15,73 @@
  */
 package org.openrewrite.java.logging.slf4j;
 
-import com.google.errorprone.refaster.annotation.AfterTemplate;
-import com.google.errorprone.refaster.annotation.BeforeTemplate;
-import org.openrewrite.java.template.RecipeDescriptor;
-import org.slf4j.LoggerFactory;
+import lombok.EqualsAndHashCode;
+import lombok.Value;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
+import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
+import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.search.UsesMethod;
+import org.openrewrite.java.tree.Expression;
+import org.openrewrite.java.tree.J;
 
-import java.util.logging.Logger;
+@Value
+@EqualsAndHashCode(callSuper = false)
+public class JulGetLoggerToLoggerFactory extends Recipe {
 
-@RecipeDescriptor(
-        name = "Replace JUL Logger creation with SLF4J LoggerFactory",
-        description = "Replace calls to `Logger.getLogger` with `LoggerFactory.getLogger`."
-)
-public class JulGetLoggerToLoggerFactory {
-    @RecipeDescriptor(
-            name = "Replace JUL `Logger.getLogger(Some.class.getName())` with SLF4J's `LoggerFactory.getLogger(Some.class)`",
-            description = "Replace calls to `java.util.logging.Logger.getLogger(Some.class.getName())` with `org.slf4j.LoggerFactory.getLogger(Some.class)`."
-    )
-    public static class GetLoggerClassNameToLoggerFactory {
-        @BeforeTemplate
-        Logger before(Class<?> clazz) {
-            return Logger.getLogger(clazz.getName());
-        }
+    private static final MethodMatcher GET_LOGGER = new MethodMatcher("java.util.logging.Logger getLogger(java.lang.String)");
+    private static final MethodMatcher CLASS_GET_NAME = new MethodMatcher("java.lang.Class getName()");
+    private static final MethodMatcher CLASS_GET_CANONICAL_NAME = new MethodMatcher("java.lang.Class getCanonicalName()");
 
-        @AfterTemplate
-        org.slf4j.Logger after(Class<?> clazz) {
-            return LoggerFactory.getLogger(clazz);
-        }
+    @Override
+    public String getDisplayName() {
+        return "Replace JUL Logger creation with SLF4J LoggerFactory";
     }
 
-    @RecipeDescriptor(
-            name = "Replace JUL `Logger.getLogger(Some.class.getCanonicalName())` with SLF4J's `LoggerFactory.getLogger(Some.class)`",
-            description = "Replace calls to `java.util.logging.Logger.getLogger(Some.class.getCanonicalName())` with `org.slf4j.LoggerFactory.getLogger(Some.class)`."
-    )
-    public static class GetLoggerClassCanonicalNameToLoggerFactory {
-        @BeforeTemplate
-        Logger before(Class<?> clazz) {
-            return Logger.getLogger(clazz.getCanonicalName());
-        }
+    @Override
+    public String getDescription() {
+        return "Replace calls to `Logger.getLogger(Some.class.getName())` and " +
+               "`Logger.getLogger(Some.class.getCanonicalName())` with `LoggerFactory.getLogger(Some.class)`.";
+    }
 
-        @AfterTemplate
-        org.slf4j.Logger after(Class<?> clazz) {
-            return LoggerFactory.getLogger(clazz);
-        }
+    @Override
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
+        return Preconditions.check(new UsesMethod<>(GET_LOGGER), new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
+                if (!GET_LOGGER.matches(mi)) {
+                    return mi;
+                }
+
+                Expression arg = mi.getArguments().get(0);
+                if (!(arg instanceof J.MethodInvocation)) {
+                    return mi;
+                }
+
+                J.MethodInvocation argMethod = (J.MethodInvocation) arg;
+                if (!CLASS_GET_NAME.matches(argMethod) && !CLASS_GET_CANONICAL_NAME.matches(argMethod)) {
+                    return mi;
+                }
+
+                Expression classExpr = argMethod.getSelect();
+                if (classExpr == null) {
+                    return mi;
+                }
+
+                maybeAddImport("org.slf4j.LoggerFactory");
+                maybeRemoveImport("java.util.logging.Logger");
+
+                return JavaTemplate.builder("LoggerFactory.getLogger(#{any(java.lang.Class)})")
+                        .imports("org.slf4j.LoggerFactory")
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.+"))
+                        .build()
+                        .apply(getCursor(), mi.getCoordinates().replace(), classExpr);
+            }
+        });
     }
 }
