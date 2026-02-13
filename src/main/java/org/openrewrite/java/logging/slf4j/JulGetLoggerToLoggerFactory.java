@@ -37,16 +37,10 @@ public class JulGetLoggerToLoggerFactory extends Recipe {
     private static final MethodMatcher CLASS_GET_NAME = new MethodMatcher("java.lang.Class getName()");
     private static final MethodMatcher CLASS_GET_CANONICAL_NAME = new MethodMatcher("java.lang.Class getCanonicalName()");
 
-    @Override
-    public String getDisplayName() {
-        return "Replace JUL Logger creation with SLF4J LoggerFactory";
-    }
+    String displayName = "Replace JUL Logger creation with SLF4J LoggerFactory";
 
-    @Override
-    public String getDescription() {
-        return "Replace calls to `Logger.getLogger(Some.class.getName())` and " +
-               "`Logger.getLogger(Some.class.getCanonicalName())` with `LoggerFactory.getLogger(Some.class)`.";
-    }
+    String description = "Replace calls to `Logger.getLogger(Some.class.getName())` and " +
+            "`Logger.getLogger(Some.class.getCanonicalName())` with `LoggerFactory.getLogger(Some.class)`.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -73,8 +67,8 @@ public class JulGetLoggerToLoggerFactory extends Recipe {
                     return mi;
                 }
 
-                maybeAddImport("org.slf4j.LoggerFactory");
                 maybeRemoveImport("java.util.logging.Logger");
+                maybeAddImport("org.slf4j.LoggerFactory");
 
                 return JavaTemplate.builder("LoggerFactory.getLogger(#{any(java.lang.Class)})")
                         .imports("org.slf4j.LoggerFactory")
