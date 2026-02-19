@@ -37,7 +37,7 @@ class ParameterizedLoggingTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.parser(JavaParser.fromJavaVersion()
-          .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1.+", "log4j-api-2.+", "log4j-core-2.+", "lombok"));
+          .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2", "log4j-api-2.+", "log4j-core-2.+", "lombok"));
     }
 
     @DocumentExample
@@ -804,7 +804,7 @@ class ParameterizedLoggingTest implements RewriteTest {
         rewriteRun(
           spec -> spec
             .recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false))
-            .parser(KotlinParser.builder().classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1.+")),
+            .parser(KotlinParser.builder().classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2")),
           //language=kotlin
           kotlin(
             """

@@ -54,7 +54,7 @@ public enum LoggingFramework {
             case SLF4J:
                 return JavaTemplate
                         .builder("#{any(org.slf4j.Logger)}.error(" + message + ", #{any(java.lang.Throwable)})")
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.1.+"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2"))
                         .build();
             case Log4J1:
                 return JavaTemplate

@@ -33,7 +33,7 @@ class AddLoggerTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.parser(JavaParser.fromJavaVersion()
-          .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1.+"));
+          .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2"));
     }
 
     @DocumentExample
