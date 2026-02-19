@@ -34,7 +34,7 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
         rewriteRun(
           spec -> spec.recipe(new PrintStackTraceToLogError(null, "LOGGER", null))
             .parser(JavaParser.fromJavaVersion()
-              .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1.+", "lombok-1.18.+")),
+              .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2", "lombok-1.18.+")),
           //language=java
           java(
             """
@@ -401,7 +401,7 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
     void supportLombokLogAnnotations() {
         rewriteRun(
           spec -> spec.recipe(new PrintStackTraceToLogError(null, null, null))
-            .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1.+", "lombok-1.18.+"))
+            .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2", "lombok-1.18.+"))
             .typeValidationOptions(TypeValidation.builder().identifiers(false).build()),
           //language=java
           java(
