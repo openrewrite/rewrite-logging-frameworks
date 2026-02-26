@@ -26,7 +26,10 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -96,11 +99,6 @@ public class RemoveUnnecessaryLogLevelGuards extends Recipe {
             private boolean isArgumentSafe(Expression argument) {
                 if (argument instanceof J.Literal || argument instanceof J.Identifier || argument instanceof J.FieldAccess) {
                     return true;
-                }
-
-                if (argument instanceof J.Binary) {
-                    J.Binary binary = (J.Binary) argument;
-                    return isArgumentSafe(binary.getLeft()) && isArgumentSafe(binary.getRight());
                 }
 
                 if (argument instanceof J.Parentheses) {
