@@ -16,6 +16,7 @@
 package org.openrewrite.java.logging.slf4j;
 
 import lombok.Getter;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -53,13 +54,13 @@ public abstract class AbstractFormatToParameterizedLogging extends Recipe {
             public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation m = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
 
-                if (!isLoggerMethod(m)) {
+                if (!LOGGER_METHODS.contains(m.getSimpleName()) || m.getSelect() == null ||
+                        !TypeUtils.isOfClassType(m.getSelect().getType(), "org.slf4j.Logger")) {
                     return m;
                 }
 
                 List<Expression> args = m.getArguments();
                 int formatArgIndex = findFormatArgumentIndex(args);
-
                 if (formatArgIndex < 0 || formatArgIndex >= args.size()) {
                     return m;
                 }
@@ -69,7 +70,6 @@ public abstract class AbstractFormatToParameterizedLogging extends Recipe {
                     return m;
                 }
                 J.MethodInvocation formatCall = (J.MethodInvocation) formatArg;
-
                 if (!isFormatCall(formatCall)) {
                     return m;
                 }
@@ -109,37 +109,19 @@ public abstract class AbstractFormatToParameterizedLogging extends Recipe {
                 return m.withArguments(newArgs);
             }
 
-            private boolean isLoggerMethod(J.MethodInvocation m) {
-                String methodName = m.getSimpleName();
-                return LOGGER_METHODS.contains(methodName) && isSlf4jLogger(m.getSelect());
-            }
-
-            private boolean isSlf4jLogger(Expression select) {
-                if (select == null) {
-                    return false;
-                }
-                JavaType.FullyQualified type = TypeUtils.asFullyQualified(select.getType());
-                return type != null && "org.slf4j.Logger".equals(type.getFullyQualifiedName());
-            }
-
             private int findFormatArgumentIndex(List<Expression> args) {
                 if (args.isEmpty()) {
                     return -1;
                 }
 
-                if (isMarkerType(args.get(0))) {
+                if (TypeUtils.isOfClassType(args.get(0).getType(), "org.slf4j.Marker")) {
                     return 1;
                 }
 
                 return 0;
             }
 
-            private boolean isMarkerType(Expression expr) {
-                JavaType.FullyQualified type = TypeUtils.asFullyQualified(expr.getType());
-                return type != null && "org.slf4j.Marker".equals(type.getFullyQualifiedName());
-            }
-
-            private String extractFormatString(Expression expr) {
+            private @Nullable String extractFormatString(Expression expr) {
                 if (expr instanceof J.Literal) {
                     J.Literal literal = (J.Literal) expr;
                     if (literal.getValue() instanceof String) {

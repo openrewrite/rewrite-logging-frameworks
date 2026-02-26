@@ -257,7 +257,7 @@ public class ParameterizedLogging extends Recipe {
                 .replace("\\", "\\\\");
     }
 
-    private static String escapeDollarSign(@NonNull String value) {
+    private static String escapeDollarSign(String value) {
         return value.replaceAll("\\$", "\\\\\\$");
     }
 }
