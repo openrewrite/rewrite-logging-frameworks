@@ -182,6 +182,11 @@ class RemoveUnnecessaryLogLevelGuardsTest implements RewriteTest {
                       if (!LOGGER.isDebugEnabled()) {
                           doSomething();
                       }
+
+                      // string concatenation in guard
+                      if (LOGGER.isDebugEnabled()) {
+                          LOGGER.debug("Name: " + name);
+                      }
                   }
 
                   String computeExpensiveValue() {
