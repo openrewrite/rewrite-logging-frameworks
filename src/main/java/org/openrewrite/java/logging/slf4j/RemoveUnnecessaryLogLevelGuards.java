@@ -20,19 +20,22 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 
 import java.util.*;
-import java.util.stream.IntStream;
+
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 
 public class RemoveUnnecessaryLogLevelGuards extends Recipe {
 
     private static final Set<String> LOGGER_METHODS = new HashSet<>(Arrays.asList("trace", "debug", "info", "warn", "error"));
-
     private static final MethodMatcher IS_X_ENABLED = new MethodMatcher("org.slf4j.Logger is*Enabled(..)");
+    private static final MethodMatcher GET_MESSAGE_MATCHER = new MethodMatcher("java.lang.Throwable getMessage()");
 
     @Getter
     final String displayName = "Remove unnecessary log level guards";
@@ -50,111 +53,48 @@ public class RemoveUnnecessaryLogLevelGuards extends Recipe {
             @Override
             public J.Block visitBlock(J.Block block, ExecutionContext ctx) {
                 J.Block visited = super.visitBlock(block, ctx);
-
-                List<Statement> newStatements = new ArrayList<>();
-                boolean modified = false;
-
-                for (Statement stmt : visited.getStatements()) {
-                    if (!(stmt instanceof J.If) || !shouldRemoveGuard((J.If) stmt)) {
-                        newStatements.add(stmt);
-                    } else {
+                return visited.withStatements(ListUtils.flatMap(visited.getStatements(), stmt -> {
+                    if (stmt instanceof J.If && shouldRemoveGuard((J.If) stmt)) {
                         J.If ifStmt = (J.If) stmt;
-                        List<Statement> bodyStatements = extractStatements(ifStmt.getThenPart());
-
-                        Space ifIndent = computeIndentationOnly(ifStmt.getPrefix());
-
-                        IntStream.range(0, bodyStatements.size())
-                                .mapToObj(i -> (Statement) bodyStatements.get(i).withPrefix(i == 0 ? ifStmt.getPrefix() : ifIndent))
-                                .forEach(newStatements::add);
-                        modified = true;
+                        String ifStatementWhitespace = ifStmt.getPrefix().getWhitespace();
+                        String whitespace = ifStatementWhitespace.substring(ifStatementWhitespace.lastIndexOf('\n'));
+                        List<Statement> bodyStatements = ListUtils.map(extractStatements(ifStmt.getThenPart()), st -> st.withPrefix(Space.build(whitespace, emptyList())));
+                        return ListUtils.mapFirst(bodyStatements, first -> first.withPrefix(ifStmt.getPrefix()));
                     }
-                }
+                    return stmt;
 
-                if (modified) {
-                    return visited.withStatements(newStatements);
-                }
-                return visited;
+                }));
             }
 
             private boolean shouldRemoveGuard(J.If ifStatement) {
-                if (ifStatement.getElsePart() != null) {
-                    return false;
+                if (ifStatement.getElsePart() == null && IS_X_ENABLED.matches(ifStatement.getIfCondition().getTree())) {
+                    List<Statement> statements = extractStatements(ifStatement.getThenPart());
+                    for (Statement stmt : statements) {
+                        if (!(stmt instanceof J.MethodInvocation) ||
+                                !isValidLoggingCall((J.MethodInvocation) stmt)) {
+                            return false;
+                        }
+                    }
+                    return true;
                 }
-
-                Expression condition = ifStatement.getIfCondition().getTree();
-                if (!isLogLevelGuardCondition(condition)) {
-                    return false;
-                }
-
-                List<Statement> bodyStatements = extractStatements(ifStatement.getThenPart());
-                return allStatementsAreSafeLoggingCalls(bodyStatements);
-            }
-
-            private boolean isLogLevelGuardCondition(Expression condition) {
-                if (!(condition instanceof J.MethodInvocation)) {
-                    return false;
-                }
-                J.MethodInvocation method = (J.MethodInvocation) condition;
-
-                return IS_X_ENABLED.matches(method);
+                return false;
             }
 
             private List<Statement> extractStatements(Statement thenPart) {
-                if (thenPart instanceof J.Block) {
-                    return ((J.Block) thenPart).getStatements();
-                }
-                return Collections.singletonList(thenPart);
-            }
-
-            private Space computeIndentationOnly(Space prefix) {
-                String whitespace = prefix.getWhitespace();
-                int lastNewline = whitespace.lastIndexOf('\n');
-                if (lastNewline >= 0) {
-                    return Space.format("\n" + whitespace.substring(lastNewline + 1));
-                }
-                return Space.format(whitespace);
-            }
-
-            private boolean allStatementsAreSafeLoggingCalls(List<Statement> statements) {
-                if (statements.isEmpty()) {
-                    return false;
-                }
-
-                for (Statement stmt : statements) {
-                    if (!isSafeLoggingCall(stmt)) {
-                        return false;
-                    }
-                }
-                return true;
-            }
-
-            private boolean isSafeLoggingCall(Statement stmt) {
-                if (!(stmt instanceof J.MethodInvocation)) {
-                    return false;
-                }
-                return isValidLoggingCall((J.MethodInvocation) stmt);
+                return thenPart instanceof J.Block ? ((J.Block) thenPart).getStatements() : singletonList(thenPart);
             }
 
             private boolean isValidLoggingCall(J.MethodInvocation logCall) {
-                String methodName = logCall.getSimpleName();
-                if (!LOGGER_METHODS.contains(methodName)) {
+                if (!LOGGER_METHODS.contains(logCall.getSimpleName()) ||
+                        logCall.getSelect() == null ||
+                        !TypeUtils.isOfClassType(logCall.getSelect().getType(), "org.slf4j.Logger")) {
                     return false;
                 }
-
-                if (!isSlf4jLogger(logCall.getSelect())) {
-                    return false;
-                }
-
                 return logCall.getArguments().stream().allMatch(this::isArgumentSafe);
             }
 
-            private boolean isSlf4jLogger(Expression select) {
-                JavaType.FullyQualified type = TypeUtils.asFullyQualified(select.getType());
-                return type != null && "org.slf4j.Logger".equals(type.getFullyQualifiedName());
-            }
-
             private boolean isArgumentSafe(Expression argument) {
-                if (argument instanceof J.Literal || argument instanceof J.Identifier|| argument instanceof J.FieldAccess) {
+                if (argument instanceof J.Literal || argument instanceof J.Identifier || argument instanceof J.FieldAccess) {
                     return true;
                 }
 
@@ -171,27 +111,7 @@ public class RemoveUnnecessaryLogLevelGuards extends Recipe {
                     return false;
                 }
 
-                if (argument instanceof J.MethodInvocation) {
-                    return isSafeMethodInvocation((J.MethodInvocation) argument);
-                }
-
-                return false;
-            }
-
-            private boolean isSafeMethodInvocation(J.MethodInvocation method) {
-                String methodName = method.getSimpleName();
-
-                if (!"getMessage".equals(methodName)) {
-                    return false;
-                }
-
-                Expression select = method.getSelect();
-                if (select == null) {
-                    return false;
-                }
-
-                JavaType type = select.getType();
-                return TypeUtils.isAssignableTo("java.lang.Throwable", type);
+                return GET_MESSAGE_MATCHER.matches(argument);
             }
         });
     }
