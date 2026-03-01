@@ -74,7 +74,7 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
                         .contextSensitive()
                         .imports("org.slf4j.Logger", "org.slf4j.LoggerFactory")
                         .javaParser(JavaParser.fromJavaVersion()
-                                .classpathFromResources(ctx, "slf4j-api-2.1.+"))
+                                .classpathFromResources(ctx, "slf4j-api-2"))
                         .build()
         );
     }

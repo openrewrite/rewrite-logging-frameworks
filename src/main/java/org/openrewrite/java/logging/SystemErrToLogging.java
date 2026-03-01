@@ -201,7 +201,7 @@ public class SystemErrToLogging extends Recipe {
                     case SLF4J:
                         return JavaTemplate
                                 .builder("#{any(org.slf4j.Logger)}.error(#{any(String)});")
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.1.+"))
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2"))
                                 .build();
                     case Log4J1:
                         return JavaTemplate

@@ -151,6 +151,8 @@ recipeList:
   - org.openrewrite.java.logging.ArgumentArrayToVarargs
   - org.openrewrite.java.logging.slf4j.LoggersNamedForEnclosingClass
   - org.openrewrite.java.logging.slf4j.Slf4jLogShouldBeConstant
+  - org.openrewrite.java.logging.slf4j.StringFormatToParameterizedLogging
+  - org.openrewrite.java.logging.slf4j.MessageFormatToParameterizedLogging
   - org.openrewrite.java.logging.slf4j.ParameterizedLogging
   - org.openrewrite.java.logging.slf4j.CompleteExceptionLogging
   - org.openrewrite.java.logging.CatchBlockLogLevel
@@ -158,6 +160,7 @@ recipeList:
   - org.openrewrite.java.logging.slf4j.MatchIsLogLevelEnabledWithLogStatements
   - org.openrewrite.java.logging.slf4j.WrapExpensiveLogStatementsInConditionals
   - org.openrewrite.java.logging.slf4j.StripToStringFromArguments
+  - org.openrewrite.java.logging.slf4j.RemoveUnnecessaryLogLevelGuards
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.slf4j.CommonsLogging1ToSlf4j1

@@ -31,7 +31,7 @@ class SystemOutToLoggingTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.parser(JavaParser.fromJavaVersion()
-          .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1.+", "lombok-1.18.+"));
+          .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2", "lombok-1.18.+"));
     }
 
     @DocumentExample

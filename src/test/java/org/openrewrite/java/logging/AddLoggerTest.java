@@ -17,6 +17,7 @@ package org.openrewrite.java.logging;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.*;
@@ -33,7 +34,7 @@ class AddLoggerTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.parser(JavaParser.fromJavaVersion()
-          .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1.+"));
+          .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2"));
     }
 
     @DocumentExample
@@ -228,15 +229,11 @@ class AddLoggerTest implements RewriteTest {
             this.times = times;
         }
 
-        @Override
-        public String getDisplayName() {
-            return "Add logger to class";
-        }
+        @Getter
+        final String displayName = "Add logger to class";
 
-        @Override
-        public String getDescription() {
-            return "Test recipe.";
-        }
+        @Getter
+        final String description = "Test recipe.";
 
         @Override
         public TreeVisitor<?, ExecutionContext> getVisitor() {
