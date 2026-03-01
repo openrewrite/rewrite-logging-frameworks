@@ -342,6 +342,34 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
         );
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/281")
+    @Test
+    void doesNotReplacePrintStackTraceWithPrintWriterArgument() {
+        rewriteRun(
+          spec -> spec.recipe(new PrintStackTraceToLogError(null, "LOGGER", null))
+            .parser(JavaParser.fromJavaVersion()
+              .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1.+")),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              import java.io.PrintWriter;
+              import java.io.StringWriter;
+              class Test {
+                  Logger logger;
+
+                  String getStackTrace(Throwable t) {
+                      StringWriter sw = new StringWriter();
+                      PrintWriter pw = new PrintWriter(sw);
+                      t.printStackTrace(pw);
+                      return sw.toString();
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/64")
     @Test
     void addLoggerTwoStaticClass() {

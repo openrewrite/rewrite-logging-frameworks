@@ -25,8 +25,10 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.FindFieldsOfType;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.service.AnnotationService;
+import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Space;
+import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.Markers;
 
 import java.util.Set;
@@ -71,6 +73,18 @@ public class PrintStackTraceToLogError extends Recipe {
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
                 if (printStackTrace.matches(m)) {
+                    // Only transform no-arg calls or calls with System.err/System.out
+                    if (!m.getArguments().isEmpty() && !(m.getArguments().get(0) instanceof J.Empty)) {
+                        Expression arg = m.getArguments().get(0);
+                        if (!(arg instanceof J.FieldAccess)) {
+                            return m;
+                        }
+                        J.FieldAccess fa = (J.FieldAccess) arg;
+                        if (!TypeUtils.isOfClassType(fa.getTarget().getType(), "java.lang.System") ||
+                            (!"err".equals(fa.getSimpleName()) && !"out".equals(fa.getSimpleName()))) {
+                            return m;
+                        }
+                    }
                     Cursor classCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
                     AnnotationService annotationService = service(AnnotationService.class);
                     Set<J.VariableDeclarations> loggers = FindFieldsOfType.find(classCursor.getValue(), framework.getLoggerType());
