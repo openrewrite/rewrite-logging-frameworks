@@ -244,6 +244,14 @@ recipeList:
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: org.jboss.logging.Logger fatal(..)
       newMethodName: error
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.jboss.logging.Logger getLogger(java.lang.Class)
+      fullyQualifiedTargetTypeName: org.slf4j.LoggerFactory
+      returnType: org.slf4j.Logger
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.jboss.logging.Logger getLogger(java.lang.String)
+      fullyQualifiedTargetTypeName: org.slf4j.LoggerFactory
+      returnType: org.slf4j.Logger
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.jboss.logging.Logger
       newFullyQualifiedTypeName: org.slf4j.Logger
