@@ -87,7 +87,6 @@ class JBossLoggingToSlf4jTest implements RewriteTest {
         );
     }
 
-    @DocumentExample
     @Test
     void simpleLogCreationMapping() {
         rewriteRun(
