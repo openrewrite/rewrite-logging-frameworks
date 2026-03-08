@@ -87,6 +87,30 @@ class JBossLoggingToSlf4jTest implements RewriteTest {
         );
     }
 
+    @Test
+    void simpleLogCreationMapping() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.jboss.logging.Logger;
+
+              class A {
+                  Logger LOGGER = Logger.getLogger(A.class);
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class A {
+                  Logger LOGGER = LoggerFactory.getLogger(A.class);
+              }
+              """
+          )
+        );
+    }
+    
     @Nested
     class DependenciesTest {
         @Test
