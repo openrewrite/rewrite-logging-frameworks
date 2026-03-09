@@ -17,7 +17,6 @@ package org.openrewrite.java.logging;
 
 import lombok.EqualsAndHashCode;
 import lombok.Value;
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;

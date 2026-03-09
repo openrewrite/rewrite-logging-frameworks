@@ -110,7 +110,7 @@ class JBossLoggingToSlf4jTest implements RewriteTest {
           )
         );
     }
-    
+
     @Nested
     class DependenciesTest {
         @Test

@@ -1050,6 +1050,184 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.slf4j.MessageFormatToParameterizedLogging
+examples:
+- description: '`MessageFormatToParameterizedLoggingTest#replacePatterns`'
+  sources:
+  - before: |
+      import org.slf4j.Logger;
+      import org.slf4j.LoggerFactory;
+      import org.slf4j.Marker;
+      import org.slf4j.MarkerFactory;
+      import java.text.MessageFormat;
+
+      class Test {
+          private static final Logger logger = LoggerFactory.getLogger(Test.class);
+          private static final Marker marker = MarkerFactory.getMarker("TEST");
+
+          void method(String username, int count, String message) {
+              Exception exception = new Exception();
+
+              logger.trace(MessageFormat.format("Trace {0}", username));
+              logger.debug(MessageFormat.format("Debug {0}", username));
+              logger.info(MessageFormat.format("User {0} logged in", username));
+              logger.warn(MessageFormat.format("Warning {0}", username));
+              logger.error(MessageFormat.format("Error {0}", username));
+
+              logger.info(MessageFormat.format("User {0} has {1} items", username, count));
+              logger.info(MessageFormat.format("Values: {0}, {1}, {2}", "a", "b", "c"));
+
+              logger.info(marker, MessageFormat.format("Message {0}", message));
+              logger.error(MessageFormat.format("Failed: {0}", message), exception);
+              logger.error(marker, MessageFormat.format("Failed: {0}", message), exception);
+
+              logger.info(MessageFormat.format("User {0}"
+                      + " logged in", username));
+              logger.info(MessageFormat.format("isHTML"
+                      + " ''{0}'', body: {1}", username, message));
+              logger.info(MessageFormat.format("part1"
+                      + " part2"
+                      + " {0}", username));
+          }
+      }
+    after: |
+      import org.slf4j.Logger;
+      import org.slf4j.LoggerFactory;
+      import org.slf4j.Marker;
+      import org.slf4j.MarkerFactory;
+
+      class Test {
+          private static final Logger logger = LoggerFactory.getLogger(Test.class);
+          private static final Marker marker = MarkerFactory.getMarker("TEST");
+
+          void method(String username, int count, String message) {
+              Exception exception = new Exception();
+
+              logger.trace("Trace {}", username);
+              logger.debug("Debug {}", username);
+              logger.info("User {} logged in", username);
+              logger.warn("Warning {}", username);
+              logger.error("Error {}", username);
+
+              logger.info("User {} has {} items", username, count);
+              logger.info("Values: {}, {}, {}", "a", "b", "c");
+
+              logger.info(marker, "Message {}", message);
+              logger.error("Failed: {}", message, exception);
+              logger.error(marker, "Failed: {}", message, exception);
+
+              logger.info("User {} logged in", username);
+              logger.info("isHTML ''{}'', body: {}", username, message);
+              logger.info("part1 part2 {}", username);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.slf4j.RemoveUnnecessaryLogLevelGuards
+examples:
+- description: '`RemoveUnnecessaryLogLevelGuardsTest#replacePatterns`'
+  sources:
+  - before: |
+      import org.slf4j.Logger;
+      import org.slf4j.LoggerFactory;
+      import org.slf4j.Marker;
+      import org.slf4j.MarkerFactory;
+
+      class Test {
+          private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
+          private static final Marker MARKER = MarkerFactory.getMarker("TEST");
+
+          void test(String name, int count, Exception ex) {
+              // all log levels
+              if (LOGGER.isTraceEnabled()) {
+                  LOGGER.trace("Trace: {} count={}", name, count);
+              }
+              if (LOGGER.isDebugEnabled()) {
+                  LOGGER.debug("Debug: {} count={}", name, count);
+              }
+              if (LOGGER.isInfoEnabled()) {
+                  LOGGER.info("Info: {} count={}", name, count);
+              }
+              if (LOGGER.isWarnEnabled()) {
+                  LOGGER.warn("Warning: {} count={}", name, count);
+              }
+              if (LOGGER.isErrorEnabled()) {
+                  LOGGER.error("Error: {} count={}", name, count);
+              }
+
+              // multiple statements in guard
+              if (LOGGER.isDebugEnabled()) {
+                  LOGGER.debug("First message: {}", name);
+                  LOGGER.debug("Second message: {}", count);
+                  LOGGER.debug("Third message");
+              }
+
+              // guard with marker
+              if (LOGGER.isDebugEnabled(MARKER)) {
+                  LOGGER.debug(MARKER, "Message: {}", name);
+              }
+
+              // exception.getMessage() allowed
+              if (LOGGER.isDebugEnabled()) {
+                  LOGGER.debug("Error: {}", ex.getMessage());
+              }
+              if (LOGGER.isErrorEnabled()) {
+                  LOGGER.error("Failed: {}", ex.getMessage(), ex);
+              }
+
+              // single statement without braces
+              if (LOGGER.isDebugEnabled())
+                  LOGGER.debug("No braces: {}", name);
+
+              // mixed log levels in guard
+              if (LOGGER.isDebugEnabled()) {
+                  LOGGER.debug("Debug: {}", name);
+                  LOGGER.info("Also info: {}", name);
+              }
+          }
+      }
+    after: |
+      import org.slf4j.Logger;
+      import org.slf4j.LoggerFactory;
+      import org.slf4j.Marker;
+      import org.slf4j.MarkerFactory;
+
+      class Test {
+          private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
+          private static final Marker MARKER = MarkerFactory.getMarker("TEST");
+
+          void test(String name, int count, Exception ex) {
+              // all log levels
+              LOGGER.trace("Trace: {} count={}", name, count);
+              LOGGER.debug("Debug: {} count={}", name, count);
+              LOGGER.info("Info: {} count={}", name, count);
+              LOGGER.warn("Warning: {} count={}", name, count);
+              LOGGER.error("Error: {} count={}", name, count);
+
+              // multiple statements in guard
+              LOGGER.debug("First message: {}", name);
+              LOGGER.debug("Second message: {}", count);
+              LOGGER.debug("Third message");
+
+              // guard with marker
+              LOGGER.debug(MARKER, "Message: {}", name);
+
+              // exception.getMessage() allowed
+              LOGGER.debug("Error: {}", ex.getMessage());
+              LOGGER.error("Failed: {}", ex.getMessage(), ex);
+
+              // single statement without braces
+              LOGGER.debug("No braces: {}", name);
+
+              // mixed log levels in guard
+              LOGGER.debug("Debug: {}", name);
+              LOGGER.info("Also info: {}", name);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.slf4j.Slf4jBestPractices
 examples:
 - description: '`Slf4jBestPracticesTest#applyBestPractices`'
@@ -1097,6 +1275,99 @@ examples:
           Logger log;
           void method() {
               log.info(String.format("The first argument is '%d', and the second argument is '%.2f'.", 1, 2.3333));
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.slf4j.StringFormatToParameterizedLogging
+examples:
+- description: '`StringFormatToParameterizedLoggingTest#replacePatterns`'
+  sources:
+  - before: |
+      import org.slf4j.Logger;
+      import org.slf4j.LoggerFactory;
+      import org.slf4j.Marker;
+      import org.slf4j.MarkerFactory;
+
+      class Test {
+          private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
+          private static final Marker MARKER = MarkerFactory.getMarker("TEST");
+
+          void method(String username, int count, double value, String message) {
+              Exception exception = new Exception();
+
+              LOGGER.trace(String.format("Trace %s", username));
+              LOGGER.debug(String.format("Debug %s", username));
+              LOGGER.info(String.format("User %s logged in", username));
+              LOGGER.warn(String.format("Warning %s", username));
+              LOGGER.error(String.format("Error %s", username));
+
+              LOGGER.info(String.format("Count: %d", count));
+              LOGGER.info(String.format("Value: %f", value));
+              LOGGER.info(String.format("User %s has %d items", username, count));
+              LOGGER.info(String.format("User %s has %d items worth $%f", username, count, value));
+
+              LOGGER.info(String.format("String: %s", username));
+              LOGGER.info(String.format("Decimal: %d", count));
+              LOGGER.info(String.format("Hex: %x", count));
+              LOGGER.info(String.format("Octal: %o", count));
+              LOGGER.info(String.format("Float: %f", value));
+              LOGGER.info(String.format("Boolean: %b", true));
+              LOGGER.info(String.format("Char: %c", 'x'));
+
+              LOGGER.info(MARKER, String.format("Message %s", message));
+              LOGGER.error(String.format("Failed: %s", message), exception);
+              LOGGER.error(MARKER, String.format("Failed: %s", message), exception);
+
+              LOGGER.info(String.format("User %s"
+                      + " logged in", username));
+              LOGGER.info(String.format("isHTML"
+                      + " '%s', body: %s", username, message));
+              LOGGER.info(String.format("part1"
+                      + " part2"
+                      + " %s", username));
+          }
+      }
+    after: |
+      import org.slf4j.Logger;
+      import org.slf4j.LoggerFactory;
+      import org.slf4j.Marker;
+      import org.slf4j.MarkerFactory;
+
+      class Test {
+          private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
+          private static final Marker MARKER = MarkerFactory.getMarker("TEST");
+
+          void method(String username, int count, double value, String message) {
+              Exception exception = new Exception();
+
+              LOGGER.trace("Trace {}", username);
+              LOGGER.debug("Debug {}", username);
+              LOGGER.info("User {} logged in", username);
+              LOGGER.warn("Warning {}", username);
+              LOGGER.error("Error {}", username);
+
+              LOGGER.info("Count: {}", count);
+              LOGGER.info("Value: {}", value);
+              LOGGER.info("User {} has {} items", username, count);
+              LOGGER.info("User {} has {} items worth ${}", username, count, value);
+
+              LOGGER.info("String: {}", username);
+              LOGGER.info("Decimal: {}", count);
+              LOGGER.info("Hex: {}", count);
+              LOGGER.info("Octal: {}", count);
+              LOGGER.info("Float: {}", value);
+              LOGGER.info("Boolean: {}", true);
+              LOGGER.info("Char: {}", 'x');
+
+              LOGGER.info(MARKER, "Message {}", message);
+              LOGGER.error("Failed: {}", message, exception);
+              LOGGER.error(MARKER, "Failed: {}", message, exception);
+
+              LOGGER.info("User {} logged in", username);
+              LOGGER.info("isHTML '{}', body: {}", username, message);
+              LOGGER.info("part1 part2 {}", username);
           }
       }
     language: java
