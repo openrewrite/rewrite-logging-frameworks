@@ -241,7 +241,7 @@ class AddLoggerTest implements RewriteTest {
                 @Override
                 public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                     if (classDecl.getSimpleName().equals(simpleName)) {
-                        for (int i = 0; i < times; i++) {
+                        for (var i = 0; i < times; i++) {
                             doAfterVisit(AddLogger.addSlf4jLogger(classDecl, "LOGGER", ctx));
                         }
                     }

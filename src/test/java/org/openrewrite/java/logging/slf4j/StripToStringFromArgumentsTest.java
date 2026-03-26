@@ -77,7 +77,7 @@ class StripToStringFromArgumentsTest implements RewriteTest {
     @MethodSource
     @ParameterizedTest
     void stripToStringFromLogMethodArguments(String method, String arguments, String expectedArguments) {
-        String testTemplate = """
+        var testTemplate = """
                   import org.slf4j.Logger;
                   import org.slf4j.Marker;
 
