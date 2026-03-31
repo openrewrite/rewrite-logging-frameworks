@@ -131,14 +131,7 @@ public class JulParameterizedArguments extends Recipe {
                 }
 
                 String slf4jFormatString = escapeForJavaStringLiteral(originalFormatString.replaceAll("\\{\\d*}", "{}"));
-                J.MethodInvocation updatedMi = JavaTemplate.builder(newName + "(\"#{}\",#{anyArray(Object)})")
-                        .build()
-                        .apply(
-                                getCursor(),
-                                method.getCoordinates().replaceMethod(),
-                                slf4jFormatString,
-                                updatedStringFormatArgument
-                        );
+                J.MethodInvocation updatedMi = JavaTemplate.apply(newName + "(\"#{}\",#{anyArray(Object)})", getCursor(), method.getCoordinates().replaceMethod(), slf4jFormatString, updatedStringFormatArgument);
 
                 // In case of logger.log(Level.INFO, "Hello {0}, {0}", "foo")
                 if (!(stringFormatArgument instanceof J.NewArray) && originalIndices.size() > 1) {
