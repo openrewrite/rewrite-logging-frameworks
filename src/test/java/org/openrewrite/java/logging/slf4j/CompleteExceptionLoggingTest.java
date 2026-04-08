@@ -18,6 +18,7 @@ package org.openrewrite.java.logging.slf4j;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -375,6 +376,108 @@ class CompleteExceptionLoggingTest implements RewriteTest {
                       } catch (NumberFormatException e) {
                           logger.error("", e);
                           logger.warn("", e);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/141")
+    @Test
+    void exceptionConsumedByPlaceholder() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Test {
+                  Logger logger = LoggerFactory.getLogger(Test.class);
+                  void doSomething() {
+                      try {
+                          Integer num = Integer.valueOf("a");
+                      } catch (NumberFormatException e) {
+                          // Single placeholder filled by exception
+                          logger.error("An error occurred: {}", e);
+
+                          // Only a placeholder
+                          logger.error("{}", e);
+
+                          // Exception not filling placeholder — no change
+                          logger.error("An error occurred", e);
+                      }
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Test {
+                  Logger logger = LoggerFactory.getLogger(Test.class);
+                  void doSomething() {
+                      try {
+                          Integer num = Integer.valueOf("a");
+                      } catch (NumberFormatException e) {
+                          // Single placeholder filled by exception
+                          logger.error("An error occurred:", e);
+
+                          // Only a placeholder
+                          logger.error("", e);
+
+                          // Exception not filling placeholder — no change
+                          logger.error("An error occurred", e);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/141")
+    @Test
+    void exceptionConsumedByPlaceholderWithOtherArgs() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Test {
+                  Logger logger = LoggerFactory.getLogger(Test.class);
+                  void doSomething() {
+                      try {
+                          Integer num = Integer.valueOf("a");
+                      } catch (NumberFormatException e) {
+                          // Multiple args, exception fills last placeholder
+                          logger.error("User {} error: {}", "admin", e);
+
+                          // Exception is trailing (not filling placeholder) — no change
+                          logger.error("User {} error:", "admin", e);
+                      }
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Test {
+                  Logger logger = LoggerFactory.getLogger(Test.class);
+                  void doSomething() {
+                      try {
+                          Integer num = Integer.valueOf("a");
+                      } catch (NumberFormatException e) {
+                          // Multiple args, exception fills last placeholder
+                          logger.error("User {} error:", "admin", e);
+
+                          // Exception is trailing (not filling placeholder) — no change
+                          logger.error("User {} error:", "admin", e);
                       }
                   }
               }

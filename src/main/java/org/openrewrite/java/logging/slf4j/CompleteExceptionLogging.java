@@ -55,7 +55,10 @@ public class CompleteExceptionLogging extends Recipe {
             "error more quickly and accurately. \n" +
             "If the method invocation includes any call to `Exception.getMessage()` or `Exception.getLocalizedMessage()` " +
             "and not an exception is already passed as the last parameter to the log method, then we will append " +
-            "the exception as the last parameter in the log method.";
+            "the exception as the last parameter in the log method. " +
+            "Additionally, if an exception is passed directly as a format argument that fills a `{}` placeholder, " +
+            "the placeholder is removed so that the exception is treated as the trailing argument, ensuring the " +
+            "full stack trace is logged.";
 
     @Getter
     final Set<String> tags = new HashSet<>(Arrays.asList("logging", "slf4j"));
@@ -90,6 +93,27 @@ public class CompleteExceptionLogging extends Recipe {
                     boolean isLastParameterAnException = lastParameter instanceof J.Identifier &&
                                                          TypeUtils.isAssignableTo("java.lang.Throwable", lastParameter.getType());
                     if (isLastParameterAnException) {
+                        // Check if the exception is consumed by a format placeholder, e.g.
+                        // log.error("An error occurred: {}", e) — the {} is filled by e.toString()
+                        // and the stack trace is NOT logged. Fix by removing the last placeholder
+                        // so the exception becomes the trailing argument for stack trace logging.
+                        if (args.size() >= 2) {
+                            Expression firstParameter = args.get(0);
+                            if (isStringLiteral(firstParameter)) {
+                                String content = ((J.Literal) firstParameter).getValue().toString();
+                                int placeholderCount = countPlaceholders(content);
+                                int formatArgCount = args.size() - 1;
+                                if (placeholderCount >= formatArgCount) {
+                                    J.Literal literal = (J.Literal) firstParameter;
+                                    String newContent = removeLastPlaceholder(content);
+                                    String newValueSource = removeLastPlaceholder(
+                                            Objects.requireNonNull(literal.getValueSource()));
+                                    List<Expression> newArgs = new ArrayList<>(args);
+                                    newArgs.set(0, literal.withValue(newContent).withValueSource(newValueSource));
+                                    return autoFormat(method.withArguments(newArgs), ctx);
+                                }
+                            }
+                        }
                         return method;
                     }
 
@@ -147,6 +171,20 @@ public class CompleteExceptionLogging extends Recipe {
                 return method;
             }
         });
+    }
+
+    private static String removeLastPlaceholder(String s) {
+        int lastIdx = s.lastIndexOf("{}");
+        if (lastIdx < 0) {
+            return s;
+        }
+        String before = s.substring(0, lastIdx);
+        String after = s.substring(lastIdx + 2);
+        // Trim a trailing space before the placeholder when it's at the end of the content
+        if ((after.isEmpty() || "\"".equals(after)) && before.endsWith(" ")) {
+            before = before.substring(0, before.length() - 1);
+        }
+        return before + after;
     }
 
     private static int countPlaceholders(String message) {
