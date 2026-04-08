@@ -297,6 +297,39 @@ class JulParameterizedArgumentsTest implements RewriteTest {
         );
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/165")
+    @Test
+    void placeholderCountExceedsArgumentCount() {
+        rewriteRun(
+          // language=java
+          java(
+            """
+              import java.util.Arrays;
+              import java.util.logging.Level;
+              import java.util.logging.Logger;
+
+              class Test {
+                  void method(Logger logger, String[] a) {
+                      logger.log(Level.FINEST, "Elements for {0} are {1}", new Object[]{Arrays.asList(a)});
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              import java.util.Arrays;
+              import java.util.logging.Level;
+
+              class Test {
+                  void method(Logger logger, String[] a) {
+                      logger.log(Level.FINEST, "Elements for {0} are {1}", new Object[]{Arrays.asList(a)});
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/273")
     @Nested
     class EscapedCharactersInFormatString {

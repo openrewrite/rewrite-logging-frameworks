@@ -124,6 +124,9 @@ public class JulParameterizedArguments extends Recipe {
                 if (stringFormatArgument instanceof J.NewArray) {
                     J.NewArray newArray = (J.NewArray) stringFormatArgument;
                     List<Expression> arrayContent = newArray.getInitializer() == null ? emptyList() : newArray.getInitializer();
+                    if (originalIndices.stream().anyMatch(i -> i >= arrayContent.size())) {
+                        return method;
+                    }
                     updatedStringFormatArgument = newArray
                             .withInitializer(originalIndices.stream().map(arrayContent::get).collect(toList()))
                             // Also unpack `new String[]{ ... }`, as `ArgumentArrayToVarargs` requires `Object[]`
