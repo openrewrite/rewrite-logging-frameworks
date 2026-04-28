@@ -160,5 +160,72 @@ class CommonsLoggingToLog4jTest implements RewriteTest {
               )
             );
         }
+
+        @Test
+            // https://github.com/openrewrite/rewrite-logging-frameworks/issues/286
+        void nestedAnnotationsInListExpression() {
+            rewriteRun(
+              spec -> spec.parser(GroovyParser.builder().classpathFromResource(new InMemoryExecutionContext(), CLASSPATH)),
+              // language=groovy
+              groovy(
+                """
+                  package test
+
+                  import java.lang.annotation.*
+
+                  @Retention(RetentionPolicy.RUNTIME)
+                  @Target(ElementType.TYPE)
+                  @interface Tag {
+                      String value()
+                  }
+                  """
+              ),
+              // language=groovy
+              groovy(
+                """
+                  package test
+
+                  import java.lang.annotation.*
+
+                  @Retention(RetentionPolicy.RUNTIME)
+                  @Target(ElementType.TYPE)
+                  @interface Tags {
+                      Tag[] categories()
+                  }
+                  """
+              ),
+              // language=groovy
+              groovy(
+                """
+                  package test
+
+                  import groovy.transform.CompileStatic
+                  import org.apache.commons.logging.Log
+                  import org.apache.commons.logging.LogFactory
+
+                  @CompileStatic
+                  @Tags(categories = [@Tag("tag1"), @Tag("tag2")])
+                  class Main {
+                      Log logger = LogFactory.getLog("Hugo")
+                      Log uiLogger = LogFactory.getLog("Hugo2")
+                  }
+                  """,
+                """
+                  package test
+
+                  import groovy.transform.CompileStatic
+                  import org.apache.logging.log4j.LogManager
+                  import org.apache.logging.log4j.Logger
+
+                  @CompileStatic
+                  @Tags(categories = [@Tag("tag1"), @Tag("tag2")])
+                  class Main {
+                      Logger logger = LogManager.getLogger("Hugo")
+                      Logger uiLogger = LogManager.getLogger("Hugo2")
+                  }
+                  """
+              )
+            );
+        }
     }
 }
