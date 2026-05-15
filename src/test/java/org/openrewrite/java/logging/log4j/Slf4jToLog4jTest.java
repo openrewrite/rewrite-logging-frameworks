@@ -24,7 +24,6 @@ import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -187,7 +186,7 @@ class Slf4jToLog4jTest implements RewriteTest {
                 """,
               spec -> spec.after(actual -> {
                     Matcher matcher = VERSION_PATTERN.matcher(actual);
-                    List<String> versions = new ArrayList<>();
+                    var versions = new ArrayList<String>();
                     while (matcher.find()) {
                         versions.add(matcher.group(1));
                     }

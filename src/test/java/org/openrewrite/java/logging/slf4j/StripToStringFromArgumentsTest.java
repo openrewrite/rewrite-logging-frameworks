@@ -33,7 +33,7 @@ class StripToStringFromArgumentsTest implements RewriteTest {
     private static Stream<Arguments> stripToStringFromLogMethodArguments() {
         record TestCase(String originalArgs, String expectedArgs) {
         }
-        List<TestCase> cases = List.of(
+        var cases = List.of(
                 new TestCase(
                         "",
                         ""),
