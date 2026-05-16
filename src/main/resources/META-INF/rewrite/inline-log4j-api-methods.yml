@@ -27,7 +27,7 @@ description: >-
 preconditions:
   - org.openrewrite.Singleton
 recipeList:
-  # From org.apache.logging.log4j:log4j-api:2.25.2
+  # From org.apache.logging.log4j:log4j-api:2.26.0
   - org.openrewrite.java.InlineMethodCalls:
       methodPattern: 'org.apache.logging.log4j.message.ParameterizedMessage ParameterizedMessage(java.lang.String, java.lang.String[], java.lang.Throwable)'
       replacement: 'this(pattern, Arrays.stream(args).toArray(Object[]::new), throwable)'
