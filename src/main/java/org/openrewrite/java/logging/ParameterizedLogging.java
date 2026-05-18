@@ -99,6 +99,12 @@ public class ParameterizedLogging extends Recipe {
                             }
                         }
 
+                        // Nothing to parameterize when the message is just concatenated string literals;
+                        // skip to preserve the original formatting (e.g. line breaks between literals).
+                        if (concatenationArgs.isEmpty()) {
+                            return m;
+                        }
+
                         // Check if any of the concatenation arguments is a throwable
                         // If so, skip parameterization to preserve exception handling behavior
                         boolean hasThrowableInConcatenation = concatenationArgs.stream()

@@ -662,6 +662,29 @@ class ParameterizedLoggingTest implements RewriteTest {
         );
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/289")
+    @Test
+    void preserveNewlinesWhenMessageAlreadyParameterized() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger error(..)", false)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  static void method(Logger logger, java.util.UUID uid) {
+                      logger.error(
+                              "No SearchContext registered for database '{}'. Returning inert fallback. "
+                                      + "LibraryTab should register one via setSearchContext on open.",
+                              uid);
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/159")
     @Test
     void concatenationWithMarker() {
