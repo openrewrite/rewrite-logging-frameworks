@@ -50,10 +50,6 @@ dependencies {
     }
     testRuntimeOnly("ch.qos.logback:logback-classic:1.3.+")
 
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.14.2")
-    testImplementation("org.junit.jupiter:junit-jupiter-params:5.14.2")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.14.2")
-
     testImplementation("org.openrewrite:rewrite-kotlin")
     testImplementation("org.openrewrite:rewrite-maven")
     testImplementation("org.openrewrite:rewrite-gradle")
