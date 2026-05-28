@@ -107,6 +107,68 @@ class Log4j2ToSlf4j1Test implements RewriteTest {
     }
 
     @Test
+    void logLevelIsEnabled() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.apache.logging.log4j.Level;
+              import org.apache.logging.log4j.Logger;
+
+              class Test {
+                  static void method(Logger logger) {
+                      if (logger.isEnabled(Level.TRACE)) {
+                          logger.trace("trace");
+                      }
+                      if (logger.isEnabled(Level.DEBUG)) {
+                          logger.debug("debug");
+                      }
+                      if (logger.isEnabled(Level.INFO)) {
+                          logger.info("info");
+                      }
+                      if (logger.isEnabled(Level.WARN)) {
+                          logger.warn("warn");
+                      }
+                      if (logger.isEnabled(Level.ERROR)) {
+                          logger.error("error");
+                      }
+                      if (logger.isEnabled(Level.FATAL)) {
+                          logger.fatal("fatal");
+                      }
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  static void method(Logger logger) {
+                      if (logger.isTraceEnabled()) {
+                          logger.trace("trace");
+                      }
+                      if (logger.isDebugEnabled()) {
+                          logger.debug("debug");
+                      }
+                      if (logger.isInfoEnabled()) {
+                          logger.info("info");
+                      }
+                      if (logger.isWarnEnabled()) {
+                          logger.warn("warn");
+                      }
+                      if (logger.isErrorEnabled()) {
+                          logger.error("error");
+                      }
+                      if (logger.isErrorEnabled()) {
+                          logger.error("fatal");
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void changeLombokLogAnnotation() {
         //language=java
         rewriteRun(

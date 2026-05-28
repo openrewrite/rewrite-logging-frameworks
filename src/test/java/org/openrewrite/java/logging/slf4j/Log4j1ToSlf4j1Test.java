@@ -150,6 +150,50 @@ class Log4j1ToSlf4j1Test implements RewriteTest {
         );
     }
 
+    @Test
+    void logLevelIsEnabledFor() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.apache.log4j.Logger;
+              import org.apache.log4j.Priority;
+
+              class Test {
+                  static void method(Logger logger) {
+                      if (logger.isEnabledFor(Priority.INFO)) {
+                          logger.info("info");
+                      }
+                      if (logger.isEnabledFor(Priority.WARN)) {
+                          logger.warn("warn");
+                      }
+                      if (logger.isEnabledFor(Priority.ERROR)) {
+                          logger.error("error");
+                      }
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  static void method(Logger logger) {
+                      if (logger.isInfoEnabled()) {
+                          logger.info("info");
+                      }
+                      if (logger.isWarnEnabled()) {
+                          logger.warn("warn");
+                      }
+                      if (logger.isErrorEnabled()) {
+                          logger.error("error");
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-logging-frameworks/issues/47")
     @Test
     void migrateMDC() {
