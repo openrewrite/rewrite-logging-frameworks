@@ -26,6 +26,7 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.logging.ArgumentArrayToVarargs;
+import org.openrewrite.java.logging.internal.JavaStringEscapes;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 
@@ -60,15 +61,6 @@ public class JulParameterizedArguments extends Recipe {
 
         public static boolean isStringLiteral(Expression expression) {
             return expression instanceof J.Literal && TypeUtils.isString(((J.Literal) expression).getType());
-        }
-
-        /**
-         * Escapes special characters in a string so it can be safely used as content
-         * inside a Java string literal in a JavaTemplate.
-         */
-        private static String escapeForJavaStringLiteral(String s) {
-            // Order matters: escape backslashes first to avoid double-escaping
-            return s.replace("\\", "\\\\").replace("\"", "\\\"");
         }
 
         private static @Nullable String getMethodIdentifier(Expression levelArgument) {
@@ -133,7 +125,7 @@ public class JulParameterizedArguments extends Recipe {
                             .withType(((JavaType.Array) requireNonNull(newArray.getType())).withElemType(JavaType.ShallowClass.build("java.lang.Object")));
                 }
 
-                String slf4jFormatString = escapeForJavaStringLiteral(originalFormatString.replaceAll("\\{\\d*}", "{}"));
+                String slf4jFormatString = JavaStringEscapes.escapeJavaStringContent(originalFormatString.replaceAll("\\{\\d*}", "{}"));
                 J.MethodInvocation updatedMi = JavaTemplate.apply(newName + "(\"#{}\",#{anyArray(Object)})", getCursor(), method.getCoordinates().replaceMethod(), slf4jFormatString, updatedStringFormatArgument);
 
                 // In case of logger.log(Level.INFO, "Hello {0}, {0}", "foo")

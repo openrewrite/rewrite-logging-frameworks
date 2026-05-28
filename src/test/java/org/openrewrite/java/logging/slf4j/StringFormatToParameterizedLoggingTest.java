@@ -166,6 +166,47 @@ class StringFormatToParameterizedLoggingTest implements RewriteTest {
     }
 
     @Test
+    void escapeCharacters() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Test {
+                  private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
+
+                  void method(String username) {
+                      LOGGER.error(String.format("page:\\fnext:%s", username));
+                      LOGGER.error(String.format("bell:\\bend:%s", username));
+                      LOGGER.error(String.format("path C:\\\\temp %s", username));
+                      LOGGER.error(String.format("say \\"%s\\"", username));
+                      LOGGER.error(String.format("a\\nb\\tc\\"d %s", username));
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Test {
+                  private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
+
+                  void method(String username) {
+                      LOGGER.error("page:\\fnext:{}", username);
+                      LOGGER.error("bell:\\bend:{}", username);
+                      LOGGER.error("path C:\\\\temp {}", username);
+                      LOGGER.error("say \\"{}\\"", username);
+                      LOGGER.error("a\\nb\\tc\\"d {}", username);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void doNotReplaceInvalidPatterns() {
         //language=java
         rewriteRun(
