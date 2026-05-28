@@ -114,6 +114,10 @@ recipeList:
       # consider fixing issue in the future; this occurs when using Log4j1ToSlf4j1 todo
       methodPattern: org.apache.logging.log4j.Category fatal(..)
       newMethodName: error
+  # Convert `logger.isEnabled(Level.X)` level guards to SLF4J's `isXEnabled()` while the Log4j
+  # types are still present, so the Refaster templates can match. The ChangeType below then
+  # retypes any remaining Log4j Logger references.
+  - org.openrewrite.java.logging.slf4j.Log4j2IsEnabledToSlf4jRecipes
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.apache.logging.log4j.Logger
       newFullyQualifiedTypeName: org.slf4j.Logger
