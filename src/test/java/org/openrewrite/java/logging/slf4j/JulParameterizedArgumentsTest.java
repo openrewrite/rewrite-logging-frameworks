@@ -62,6 +62,42 @@ class JulParameterizedArgumentsTest implements RewriteTest {
     }
 
     @Test
+    void escapeCharacters() {
+        rewriteRun(
+          // language=java
+          java(
+            """
+              import java.util.logging.Level;
+              import java.util.logging.Logger;
+
+              class Test {
+                  void method(Logger logger, String param1) {
+                      logger.log(Level.INFO, "page:\\fnext:{0}", param1);
+                      logger.log(Level.INFO, "bell:\\bend:{0}", param1);
+                      logger.log(Level.INFO, "path C:\\\\temp {0}", param1);
+                      logger.log(Level.INFO, "say \\"{0}\\"", param1);
+                      logger.log(Level.INFO, "a\\nb\\tc\\"d {0}", param1);
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  void method(Logger logger, String param1) {
+                      logger.info("page:\\fnext:{}", param1);
+                      logger.info("bell:\\bend:{}", param1);
+                      logger.info("path C:\\\\temp {}", param1);
+                      logger.info("say \\"{}\\"", param1);
+                      logger.info("a\\nb\\tc\\"d {}", param1);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void parameterizedArgumentArray() {
         rewriteRun(
           // language=java
