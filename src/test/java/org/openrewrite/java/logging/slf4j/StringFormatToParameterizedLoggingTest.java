@@ -228,6 +228,7 @@ class StringFormatToParameterizedLoggingTest implements RewriteTest {
                       LOGGER.info(String.format("Order: %2$s %1$s", first, second));
                       LOGGER.info(String.format("Complete: 100%%"));
                       LOGGER.info(String.format("Line1%nLine2"));
+                      LOGGER.info(String.format(first + " completed"));
                   }
               }
               """
