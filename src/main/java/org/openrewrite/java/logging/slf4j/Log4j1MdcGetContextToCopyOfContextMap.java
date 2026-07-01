@@ -88,11 +88,14 @@ public class Log4j1MdcGetContextToCopyOfContextMap extends Recipe {
                     @Override
                     public J.Assignment visitAssignment(J.Assignment assignment, Set<JavaType.Variable> targets) {
                         if (assignment.getAssignment() instanceof J.MethodInvocation &&
-                            GET_CONTEXT.matches((J.MethodInvocation) assignment.getAssignment()) &&
-                            assignment.getVariable() instanceof J.Identifier) {
-                            JavaType.Variable fieldType = ((J.Identifier) assignment.getVariable()).getFieldType();
-                            if (fieldType != null) {
-                                targets.add(fieldType);
+                            GET_CONTEXT.matches((J.MethodInvocation) assignment.getAssignment())) {
+                            // The target is either a bare name (`v = ...`) or a field access (`this.f = ...`).
+                            J.Identifier name = assignment.getVariable() instanceof J.Identifier ?
+                                    (J.Identifier) assignment.getVariable() :
+                                    assignment.getVariable() instanceof J.FieldAccess ?
+                                            ((J.FieldAccess) assignment.getVariable()).getName() : null;
+                            if (name != null && name.getFieldType() != null) {
+                                targets.add(name.getFieldType());
                             }
                         }
                         return super.visitAssignment(assignment, targets);
@@ -126,13 +129,16 @@ public class Log4j1MdcGetContextToCopyOfContextMap extends Recipe {
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
                 // Sync the method type's parameter list with any parameter visitVariableDeclarations retyped to Map.
+                // Only touch entries still typed Hashtable in the method type whose source parameter is now Map,
+                // so unrelated Map parameters keep their original (parameterized) type attribution.
                 JavaType.Method methodType = m.getMethodType();
                 if (methodType != null && !methodType.getParameterTypes().isEmpty()) {
                     List<Statement> parameters = m.getParameters();
                     m = m.withMethodType(methodType.withParameterTypes(
                             ListUtils.map(methodType.getParameterTypes(), (i, parameterType) -> {
                                 Statement parameter = parameters.get(i);
-                                return parameter instanceof J.VariableDeclarations &&
+                                return TypeUtils.isOfClassType(parameterType, "java.util.Hashtable") &&
+                                       parameter instanceof J.VariableDeclarations &&
                                        TypeUtils.isOfClassType(((J.VariableDeclarations) parameter).getType(), "java.util.Map") ?
                                         MAP_TYPE : parameterType;
                             })));
@@ -163,7 +169,8 @@ public class Log4j1MdcGetContextToCopyOfContextMap extends Recipe {
                         return super.visitReturn(r, f);
                     }
 
-                    // Don't descend into lambdas or anonymous classes; their returns belong to those bodies.
+                    // Don't descend into lambdas, anonymous classes, or nested/local class declarations;
+                    // their returns belong to those bodies, not to this method's return type.
                     @Override
                     public J.Lambda visitLambda(J.Lambda lambda, AtomicBoolean f) {
                         return lambda;
@@ -172,6 +179,11 @@ public class Log4j1MdcGetContextToCopyOfContextMap extends Recipe {
                     @Override
                     public J.NewClass visitNewClass(J.NewClass newClass, AtomicBoolean f) {
                         return newClass;
+                    }
+
+                    @Override
+                    public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, AtomicBoolean f) {
+                        return classDecl;
                     }
                 }.visit(method.getBody(), found);
                 return found.get();

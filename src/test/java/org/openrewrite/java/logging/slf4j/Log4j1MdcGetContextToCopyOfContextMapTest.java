@@ -179,4 +179,120 @@ class Log4j1MdcGetContextToCopyOfContextMapTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void retypeFieldAssignedViaThis() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.apache.log4j.MDC;
+
+              import java.util.Hashtable;
+
+              class Test {
+                  Hashtable field;
+
+                  void init() {
+                      this.field = MDC.getContext();
+                  }
+              }
+              """,
+            """
+              import org.apache.log4j.MDC;
+
+              import java.util.Hashtable;
+              import java.util.Map;
+
+              class Test {
+                  Map<String, String> field;
+
+                  void init() {
+                      this.field = MDC.getCopyOfContextMap();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void returnInNestedClassDoesNotRetypeEnclosingMethod() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.apache.log4j.MDC;
+
+              import java.util.Hashtable;
+
+              class Test {
+                  Hashtable outer() {
+                      class Local {
+                          Hashtable inner() {
+                              return MDC.getContext();
+                          }
+                      }
+                      return new Hashtable();
+                  }
+              }
+              """,
+            """
+              import org.apache.log4j.MDC;
+
+              import java.util.Hashtable;
+              import java.util.Map;
+
+              class Test {
+                  Hashtable outer() {
+                      class Local {
+                          Map<String, String> inner() {
+                              return MDC.getCopyOfContextMap();
+                          }
+                      }
+                      return new Hashtable();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void unrelatedMapParameterIsLeftAlone() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.apache.log4j.MDC;
+
+              import java.util.Hashtable;
+              import java.util.Map;
+
+              class Test {
+                  void unrelated(Map<String, Integer> config) {
+                  }
+
+                  void uses() {
+                      Hashtable local = MDC.getContext();
+                  }
+              }
+              """,
+            """
+              import org.apache.log4j.MDC;
+
+              import java.util.Map;
+
+              class Test {
+                  void unrelated(Map<String, Integer> config) {
+                  }
+
+                  void uses() {
+                      Map<String, String> local = MDC.getCopyOfContextMap();
+                  }
+              }
+              """
+          )
+        );
+    }
 }
