@@ -51,11 +51,7 @@ public class StringFormatToParameterizedLogging extends AbstractFormatToParamete
 
     @Override
     protected boolean isValidFormatString(String format) {
-        if (COMPLEX_FORMAT_PATTERN.matcher(format).find()) {
-            return false;
-        }
-
-        return SIMPLE_FORMAT_SPECIFIER.matcher(format).find();
+        return !COMPLEX_FORMAT_PATTERN.matcher(format).find();
     }
 
     @Override
