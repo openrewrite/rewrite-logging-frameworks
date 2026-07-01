@@ -46,19 +46,15 @@ public class WrapLog4j1MdcPutValueInStringValueOf extends Recipe {
     @Getter
     final Duration estimatedEffortPerOccurrence = Duration.ofSeconds(10);
 
-    @Override
-    public String getDisplayName() {
-        return "Wrap Log4j 1.x `MDC.put` values in `String.valueOf(...)`";
-    }
+    @Getter
+    final String displayName = "Wrap Log4j 1.x `MDC.put` values in `String.valueOf(...)`";
 
-    @Override
-    public String getDescription() {
-        return "SLF4J `MDC.put(String, String)` requires a `String` value, but Log4j 1.x " +
-               "`MDC.put(String, Object)` accepts any object. Wrap non-`String` values in " +
-               "`String.valueOf(...)`, skipping values already typed `String`, `null` literals, and " +
-               "existing `String.valueOf(...)` calls. Does not change the `org.apache.log4j.MDC` type; " +
-               "compose with a `ChangeType` to complete the migration to `org.slf4j.MDC`.";
-    }
+    @Getter
+    final String description = "SLF4J `MDC.put(String, String)` requires a `String` value, but Log4j 1.x " +
+                               "`MDC.put(String, Object)` accepts any object. Wrap non-`String` values in " +
+                               "`String.valueOf(...)`, skipping values already typed `String`, `null` literals, and " +
+                               "existing `String.valueOf(...)` calls. Does not change the `org.apache.log4j.MDC` type; " +
+                               "compose with a `ChangeType` to complete the migration to `org.slf4j.MDC`.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

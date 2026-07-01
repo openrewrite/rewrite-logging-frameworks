@@ -61,23 +61,19 @@ public class Log4j1MdcGetContextToCopyOfContextMap extends Recipe {
     @Getter
     final Duration estimatedEffortPerOccurrence = Duration.ofSeconds(10);
 
-    @Override
-    public String getDisplayName() {
-        return "Convert Log4j 1.x `MDC.getContext()` to `getCopyOfContextMap()`";
-    }
+    @Getter
+    final String displayName = "Convert Log4j 1.x `MDC.getContext()` to `getCopyOfContextMap()`";
 
-    @Override
-    public String getDescription() {
-        return "Renames Log4j 1.x `org.apache.log4j.MDC.getContext()` (returns `Hashtable`) to " +
-               "`getCopyOfContextMap()` (returns `Map`) at every call site, and retypes any `Hashtable` " +
-               "declaration — local variable, field, method parameter, or method return type — that " +
-               "receives the result, whether initialized directly from the call, directly assigned it in " +
-               "a later statement, or returning it, to `Map<String, String>`, since `Map` is not " +
-               "assignable to `Hashtable`. Retyping a parameter or return type changes the method's " +
-               "signature; overriding methods are left unchanged to avoid breaking the override, so they " +
-               "need a manual fix. Does not change the `org.apache.log4j.MDC` type; compose with a " +
-               "`ChangeType` to complete the migration.";
-    }
+    @Getter
+    final String description = "Renames Log4j 1.x `org.apache.log4j.MDC.getContext()` (returns `Hashtable`) to " +
+                               "`getCopyOfContextMap()` (returns `Map`) at every call site, and retypes any `Hashtable` " +
+                               "declaration — local variable, field, method parameter, or method return type — that " +
+                               "receives the result, whether initialized directly from the call, directly assigned it in " +
+                               "a later statement, or returning it, to `Map<String, String>`, since `Map` is not " +
+                               "assignable to `Hashtable`. Retyping a parameter or return type changes the method's " +
+                               "signature; overriding methods are left unchanged to avoid breaking the override, so they " +
+                               "need a manual fix. Does not change the `org.apache.log4j.MDC` type; compose with a " +
+                               "`ChangeType` to complete the migration.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
