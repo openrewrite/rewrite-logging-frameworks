@@ -135,6 +135,9 @@ public abstract class AbstractFormatToParameterizedLogging extends Recipe {
                     if (binary.getOperator() == J.Binary.Type.Addition) {
                         String left = extractFormatString(binary.getLeft());
                         String right = extractFormatString(binary.getRight());
+                        if (left == null || right == null) {
+                            return null;
+                        }
                         return left + right;
                     }
                 }

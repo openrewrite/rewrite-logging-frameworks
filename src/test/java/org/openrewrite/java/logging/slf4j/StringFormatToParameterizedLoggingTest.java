@@ -71,6 +71,8 @@ class StringFormatToParameterizedLoggingTest implements RewriteTest {
                       LOGGER.info(String.format("Boolean: %b", true));
                       LOGGER.info(String.format("Char: %c", 'x'));
 
+                      LOGGER.info(String.format("Just a plain message"));
+
                       LOGGER.info(MARKER, String.format("Message %s", message));
                       LOGGER.error(String.format("Failed: %s", message), exception);
                       LOGGER.error(MARKER, String.format("Failed: %s", message), exception);
@@ -116,6 +118,8 @@ class StringFormatToParameterizedLoggingTest implements RewriteTest {
                       LOGGER.info("Float: {}", value);
                       LOGGER.info("Boolean: {}", true);
                       LOGGER.info("Char: {}", 'x');
+
+                      LOGGER.info("Just a plain message");
 
                       LOGGER.info(MARKER, "Message {}", message);
                       LOGGER.error("Failed: {}", message, exception);
@@ -224,6 +228,7 @@ class StringFormatToParameterizedLoggingTest implements RewriteTest {
                       LOGGER.info(String.format("Order: %2$s %1$s", first, second));
                       LOGGER.info(String.format("Complete: 100%%"));
                       LOGGER.info(String.format("Line1%nLine2"));
+                      LOGGER.info(String.format(first + " completed"));
                   }
               }
               """
