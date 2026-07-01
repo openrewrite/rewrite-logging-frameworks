@@ -84,13 +84,9 @@ public class Log4j1MdcGetContextToCopyOfContextMap extends Recipe {
         return Preconditions.check(new UsesMethod<>(GET_CONTEXT), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-                // Delegate the rename to the stock ChangeMethodName, which keeps the method's name and
-                // type metadata consistent. It matches while the receiver is still org.apache.log4j.MDC.
+                // Delegate the rename to the stock ChangeMethodName while the receiver is still org.apache.log4j.MDC.
                 doAfterVisit(new ChangeMethodName(GET_CONTEXT_PATTERN, "getCopyOfContextMap", null, null).getVisitor());
-                // A variable declared separately and assigned the result later (e.g. `Hashtable h; h =
-                // MDC.getContext();`) is not caught by an initializer check, but its declaration still has
-                // to be retyped or the renamed call won't compile. Pre-scan the file for those targets so
-                // visitVariableDeclarations can retype them, whether they are locals, fields, or parameters.
+                // Pre-scan for declarations assigned the result in a later statement so visitVariableDeclarations can retype them.
                 Set<JavaType.Variable> assignedFromGetContext = new HashSet<>();
                 new JavaIsoVisitor<Set<JavaType.Variable>>() {
                     @Override
@@ -113,17 +109,12 @@ public class Log4j1MdcGetContextToCopyOfContextMap extends Recipe {
             @Override
             public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
                 J.VariableDeclarations mv = super.visitVariableDeclarations(multiVariable, ctx);
-                // getContext() returns Hashtable but getCopyOfContextMap() returns Map; a Hashtable-typed
-                // declaration that receives the result would no longer compile, so retype the declaration.
-                // The rename applies to every getContext() call, so any declaration with even one variable
-                // initialized or assigned from it must be retyped, including multi-variable declarations.
+                // Retype a Hashtable declaration that receives the result, since getCopyOfContextMap() returns Map.
                 if (TypeUtils.isOfClassType(mv.getType(), "java.util.Hashtable") &&
                     !isOverriddenMethodParameter() && retypeFromGetContext(mv)) {
                     maybeAddImport("java.util.Map");
                     maybeRemoveImport("java.util.Hashtable");
-                    // Replace only the type expression so modifiers, annotations, variable names,
-                    // initializers, and surrounding formatting are preserved. Each variable's own type
-                    // attribution is retyped to Map too, so the Hashtable import is seen as unused.
+                    // Replace only the type expression to preserve formatting, and retype each variable's attribution to Map.
                     mv = mv.withTypeExpression(mapStringString(mv.getTypeExpression().getPrefix()))
                             .withVariables(ListUtils.map(mv.getVariables(), nv -> {
                                 JavaType.Variable variableType = nv.getVariableType() == null ? null :
@@ -138,9 +129,7 @@ public class Log4j1MdcGetContextToCopyOfContextMap extends Recipe {
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
-                // visitVariableDeclarations may have retyped a parameter from Hashtable to Map; sync the
-                // method type's parameter list so no stale Hashtable reference is left behind (which would
-                // otherwise keep the Hashtable import alive and leave the signature type inconsistent).
+                // Sync the method type's parameter list with any parameter visitVariableDeclarations retyped to Map.
                 JavaType.Method methodType = m.getMethodType();
                 if (methodType != null && !methodType.getParameterTypes().isEmpty()) {
                     List<Statement> parameters = m.getParameters();
@@ -152,9 +141,7 @@ public class Log4j1MdcGetContextToCopyOfContextMap extends Recipe {
                                         MAP_TYPE : parameterType;
                             })));
                 }
-                // A Hashtable return type whose method returns getContext() would no longer compile after
-                // the rename, so retype it to Map<String, String> too. Overriding methods are excluded:
-                // widening their return type would violate covariant-return rules against the supertype.
+                // Retype a Hashtable return type that returns getContext() to Map, except on overriding methods (covariant-return rules).
                 methodType = m.getMethodType();
                 if (m.getReturnTypeExpression() != null &&
                     TypeUtils.isOfClassType(m.getReturnTypeExpression().getType(), "java.util.Hashtable") &&
@@ -180,8 +167,7 @@ public class Log4j1MdcGetContextToCopyOfContextMap extends Recipe {
                         return super.visitReturn(r, f);
                     }
 
-                    // Returns inside nested lambdas or anonymous classes belong to those bodies,
-                    // not to this method's return type, so don't descend into them.
+                    // Don't descend into lambdas or anonymous classes; their returns belong to those bodies.
                     @Override
                     public J.Lambda visitLambda(J.Lambda lambda, AtomicBoolean f) {
                         return lambda;
@@ -196,8 +182,7 @@ public class Log4j1MdcGetContextToCopyOfContextMap extends Recipe {
             }
 
             private boolean isOverriddenMethodParameter() {
-                // Retyping a parameter of an overriding method would break the override against a
-                // supertype whose signature is not changed here, so leave those parameters alone.
+                // Leave parameters of overriding methods alone, since retyping would break the override.
                 Object parent = getCursor().getParentTreeCursor().getValue();
                 if (!(parent instanceof J.MethodDeclaration)) {
                     return false;
