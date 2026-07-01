@@ -221,4 +221,62 @@ class Log4j1ToSlf4j1Test implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void migrateMdcPutWithNonStringValueWrapsInStringValueOf() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.apache.log4j.MDC;
+
+              class Test {
+                  static void method(Object value) {
+                      MDC.put("key", value);
+                  }
+              }
+              """,
+            """
+              import org.slf4j.MDC;
+
+              class Test {
+                  static void method(Object value) {
+                      MDC.put("key", String.valueOf(value));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void migrateMdcGetContextRetypesHashtableReceiverToMap() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.apache.log4j.MDC;
+
+              import java.util.Hashtable;
+
+              class Test {
+                  static void method() {
+                      Hashtable context = MDC.getContext();
+                  }
+              }
+              """,
+            """
+              import org.slf4j.MDC;
+
+              import java.util.Map;
+
+              class Test {
+                  static void method() {
+                      Map<String, String> context = MDC.getCopyOfContextMap();
+                  }
+              }
+              """
+          )
+        );
+    }
 }
