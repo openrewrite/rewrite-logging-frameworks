@@ -73,7 +73,7 @@ public class WrapLog4j1MdcPutValueInStringValueOf extends Recipe {
                                 .build()
                                 .<Expression>apply(new Cursor(getCursor(), value), value.getCoordinates().replace(), value)
                                 .withPrefix(value.getPrefix());
-                        m = m.withArguments(ListUtils.mapLast(m.getArguments(), arg -> wrapped));
+                        return m.withArguments(ListUtils.mapLast(m.getArguments(), arg -> wrapped));
                     }
                 }
                 return m;
