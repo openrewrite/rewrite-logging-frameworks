@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+    <suppress until="2026-08-01Z">
+        <notes><![CDATA[
+            False positive. log4j:log4j 1.2.17 is a deliberate dependency of
+            rewrite-logging-frameworks — the recipes reference Log4j 1.x types in order to
+            detect and migrate legacy Log4j 1.x usage. It is not used as a logging backend at
+            runtime and is not on any deployed runtime classpath, so the Log4j 1.x CVEs
+            (SocketServer/SocketAppender deserialization, JMSAppender, XML config, etc.) are
+            not reachable. Kept only in this repo where the dependency is intentional, rather
+            than in the shared plugin suppressions.
+            Added: 2026-07-03
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/log4j/log4j@.*$</packageUrl>
+        <cve>CVE-2022-23307</cve>
+        <cve>CVE-2022-23305</cve>
+        <cve>CVE-2022-23302</cve>
+        <cve>CVE-2019-17571</cve>
+        <cve>CVE-2020-9493</cve>
+        <cve>CVE-2023-26464</cve>
+        <cve>CVE-2021-4104</cve>
+    </suppress>
+</suppressions>
