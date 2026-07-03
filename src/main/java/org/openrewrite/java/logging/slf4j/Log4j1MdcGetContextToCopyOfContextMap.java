@@ -83,8 +83,7 @@ public class Log4j1MdcGetContextToCopyOfContextMap extends Recipe {
                 // Delegate the rename to the stock ChangeMethodName while the receiver is still org.apache.log4j.MDC.
                 doAfterVisit(new ChangeMethodName(GET_CONTEXT_PATTERN, "getCopyOfContextMap", null, null).getVisitor());
                 // Pre-scan for declarations assigned the result in a later statement so visitVariableDeclarations can retype them.
-                Set<JavaType.Variable> assignedFromGetContext = new HashSet<>();
-                new JavaIsoVisitor<Set<JavaType.Variable>>() {
+                Set<JavaType.Variable> assignedFromGetContext = new JavaIsoVisitor<Set<JavaType.Variable>>() {
                     @Override
                     public J.Assignment visitAssignment(J.Assignment assignment, Set<JavaType.Variable> targets) {
                         if (assignment.getAssignment() instanceof J.MethodInvocation &&
@@ -100,7 +99,7 @@ public class Log4j1MdcGetContextToCopyOfContextMap extends Recipe {
                         }
                         return super.visitAssignment(assignment, targets);
                     }
-                }.visit(cu, assignedFromGetContext);
+                }.reduce(cu, new HashSet<>());
                 getCursor().putMessage(ASSIGNED_TARGETS_KEY, assignedFromGetContext);
                 return super.visitCompilationUnit(cu, ctx);
             }
@@ -114,7 +113,7 @@ public class Log4j1MdcGetContextToCopyOfContextMap extends Recipe {
                     maybeAddImport("java.util.Map");
                     maybeRemoveImport("java.util.Hashtable");
                     // Replace only the type expression to preserve formatting, and retype each variable's attribution to Map.
-                    mv = mv.withTypeExpression(mapStringString(mv.getTypeExpression().getPrefix()))
+                    return mv.withTypeExpression(mapStringString(mv.getTypeExpression().getPrefix()))
                             .withVariables(ListUtils.map(mv.getVariables(), nv -> {
                                 JavaType.Variable variableType = nv.getVariableType() == null ? null :
                                         nv.getVariableType().withType(MAP_TYPE);
@@ -127,39 +126,42 @@ public class Log4j1MdcGetContextToCopyOfContextMap extends Recipe {
 
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
-                J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
-                // Sync the method type's parameter list with any parameter visitVariableDeclarations retyped to Map.
-                // Only touch entries still typed Hashtable in the method type whose source parameter is now Map,
-                // so unrelated Map parameters keep their original (parameterized) type attribution.
-                JavaType.Method methodType = m.getMethodType();
-                if (methodType != null && !methodType.getParameterTypes().isEmpty()) {
-                    List<Statement> parameters = m.getParameters();
-                    m = m.withMethodType(methodType.withParameterTypes(
-                            ListUtils.map(methodType.getParameterTypes(), (i, parameterType) -> {
-                                Statement parameter = parameters.get(i);
-                                return TypeUtils.isOfClassType(parameterType, "java.util.Hashtable") &&
-                                       parameter instanceof J.VariableDeclarations &&
-                                       TypeUtils.isOfClassType(((J.VariableDeclarations) parameter).getType(), "java.util.Map") ?
-                                        MAP_TYPE : parameterType;
-                            })));
-                }
+                J.MethodDeclaration m = syncRetypedParameters(super.visitMethodDeclaration(method, ctx));
                 // Retype a Hashtable return type that returns getContext() to Map, except on overriding methods (covariant-return rules).
-                methodType = m.getMethodType();
+                JavaType.Method methodType = m.getMethodType();
                 if (m.getReturnTypeExpression() != null &&
                     TypeUtils.isOfClassType(m.getReturnTypeExpression().getType(), "java.util.Hashtable") &&
                     methodType != null && !TypeUtils.isOverride(methodType) &&
                     returnsGetContext(m)) {
                     maybeAddImport("java.util.Map");
                     maybeRemoveImport("java.util.Hashtable");
-                    m = m.withReturnTypeExpression(mapStringString(m.getReturnTypeExpression().getPrefix()))
+                    return m.withReturnTypeExpression(mapStringString(m.getReturnTypeExpression().getPrefix()))
                             .withMethodType(methodType.withReturnType(MAP_TYPE));
                 }
                 return m;
             }
 
+            // Sync the method type's parameter list with any parameter visitVariableDeclarations retyped to Map.
+            // Only touch entries still typed Hashtable in the method type whose source parameter is now Map,
+            // so unrelated Map parameters keep their original (parameterized) type attribution.
+            private J.MethodDeclaration syncRetypedParameters(J.MethodDeclaration m) {
+                JavaType.Method methodType = m.getMethodType();
+                if (methodType == null || methodType.getParameterTypes().isEmpty()) {
+                    return m;
+                }
+                List<Statement> parameters = m.getParameters();
+                return m.withMethodType(methodType.withParameterTypes(
+                        ListUtils.map(methodType.getParameterTypes(), (i, parameterType) -> {
+                            Statement parameter = parameters.get(i);
+                            return TypeUtils.isOfClassType(parameterType, "java.util.Hashtable") &&
+                                   parameter instanceof J.VariableDeclarations &&
+                                   TypeUtils.isOfClassType(((J.VariableDeclarations) parameter).getType(), "java.util.Map") ?
+                                    MAP_TYPE : parameterType;
+                        })));
+            }
+
             private boolean returnsGetContext(J.MethodDeclaration method) {
-                AtomicBoolean found = new AtomicBoolean();
-                new JavaIsoVisitor<AtomicBoolean>() {
+                return method.getBody() != null && new JavaIsoVisitor<AtomicBoolean>() {
                     @Override
                     public J.Return visitReturn(J.Return r, AtomicBoolean f) {
                         if (r.getExpression() instanceof J.MethodInvocation &&
@@ -185,8 +187,7 @@ public class Log4j1MdcGetContextToCopyOfContextMap extends Recipe {
                     public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, AtomicBoolean f) {
                         return classDecl;
                     }
-                }.visit(method.getBody(), found);
-                return found.get();
+                }.reduce(method.getBody(), new AtomicBoolean()).get();
             }
 
             private boolean isOverriddenMethodParameter() {
