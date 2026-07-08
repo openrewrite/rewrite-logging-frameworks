@@ -69,9 +69,7 @@ public class WrapLog4j1MdcPutValueInStringValueOf extends Recipe {
                             J.Literal.isLiteralValue(value, null) ||
                             (value instanceof J.MethodInvocation && STRING_VALUE_OF.matches((J.MethodInvocation) value));
                     if (!alreadyOk) {
-                        Expression wrapped = JavaTemplate.builder("String.valueOf(#{any()})")
-                                .build()
-                                .<Expression>apply(new Cursor(getCursor(), value), value.getCoordinates().replace(), value)
+                        Expression wrapped = JavaTemplate.apply("String.valueOf(#{any()})", new Cursor(getCursor(), value), value.getCoordinates().replace(), value)
                                 .withPrefix(value.getPrefix());
                         return m.withArguments(ListUtils.mapLast(m.getArguments(), arg -> wrapped));
                     }

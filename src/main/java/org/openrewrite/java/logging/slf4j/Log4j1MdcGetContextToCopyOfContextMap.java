@@ -110,8 +110,8 @@ public class Log4j1MdcGetContextToCopyOfContextMap extends Recipe {
                 // Retype a Hashtable declaration that receives the result, since getCopyOfContextMap() returns Map.
                 if (TypeUtils.isOfClassType(mv.getType(), "java.util.Hashtable") &&
                     !isOverriddenMethodParameter() && retypeFromGetContext(mv)) {
-                    maybeAddImport("java.util.Map");
                     maybeRemoveImport("java.util.Hashtable");
+                    maybeAddImport("java.util.Map");
                     // Replace only the type expression to preserve formatting, and retype each variable's attribution to Map.
                     return mv.withTypeExpression(mapStringString(mv.getTypeExpression().getPrefix()))
                             .withVariables(ListUtils.map(mv.getVariables(), nv -> {
@@ -133,8 +133,8 @@ public class Log4j1MdcGetContextToCopyOfContextMap extends Recipe {
                     TypeUtils.isOfClassType(m.getReturnTypeExpression().getType(), "java.util.Hashtable") &&
                     methodType != null && !TypeUtils.isOverride(methodType) &&
                     returnsGetContext(m)) {
-                    maybeAddImport("java.util.Map");
                     maybeRemoveImport("java.util.Hashtable");
+                    maybeAddImport("java.util.Map");
                     return m.withReturnTypeExpression(mapStringString(m.getReturnTypeExpression().getPrefix()))
                             .withMethodType(methodType.withReturnType(MAP_TYPE));
                 }

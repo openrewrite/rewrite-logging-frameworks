@@ -123,12 +123,10 @@ class Log4j1MdcGetContextToCopyOfContextMapTest implements RewriteTest {
         );
     }
 
-    /**
-     * Known limitation, kept as a separate test so the documented behavior is pinned: the parameters and
-     * return type of an overriding method are renamed but not retyped, because changing them would break
-     * the override against the supertype (whose signature this recipe does not touch). The body then
-     * needs a manual fix; this is preferable to silently breaking the override.
-     */
+    /// Known limitation, kept as a separate test so the documented behavior is pinned: the parameters and
+    /// return type of an overriding method are renamed but not retyped, because changing them would break
+    /// the override against the supertype (whose signature this recipe does not touch). The body then
+    /// needs a manual fix; this is preferable to silently breaking the override.
     @Test
     void overriddenSignatureIsRenamedButNotRetyped() {
         //language=java

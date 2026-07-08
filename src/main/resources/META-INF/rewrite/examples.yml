@@ -963,6 +963,66 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.slf4j.Log4j1MdcGetContextToCopyOfContextMap
+examples:
+- description: '`Log4j1MdcGetContextToCopyOfContextMapTest#replacePatterns`'
+  sources:
+  - before: |
+      import org.apache.log4j.MDC;
+
+      import java.util.Hashtable;
+
+      class Test {
+          Hashtable field = MDC.getContext();
+
+          static void method() {
+              Hashtable local = MDC.getContext();
+              final Hashtable finalLocal = MDC.getContext();
+              Hashtable<String, String> parameterized = MDC.getContext();
+              Hashtable a = MDC.getContext(), b = a;
+              Hashtable assignedLater;
+              assignedLater = MDC.getContext();
+              Hashtable other = new Hashtable();
+          }
+
+          Hashtable returnsContext() {
+              return MDC.getContext();
+          }
+
+          static void reassignParam(Hashtable param) {
+              param = MDC.getContext();
+          }
+      }
+    after: |
+      import org.apache.log4j.MDC;
+
+      import java.util.Hashtable;
+      import java.util.Map;
+
+      class Test {
+          Map<String, String> field = MDC.getCopyOfContextMap();
+
+          static void method() {
+              Map<String, String> local = MDC.getCopyOfContextMap();
+              final Map<String, String> finalLocal = MDC.getCopyOfContextMap();
+              Map<String, String> parameterized = MDC.getCopyOfContextMap();
+              Map<String, String> a = MDC.getCopyOfContextMap(), b = a;
+              Map<String, String> assignedLater;
+              assignedLater = MDC.getCopyOfContextMap();
+              Hashtable other = new Hashtable();
+          }
+
+          Map<String, String> returnsContext() {
+              return MDC.getCopyOfContextMap();
+          }
+
+          static void reassignParam(Map<String, String> param) {
+              param = MDC.getCopyOfContextMap();
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.slf4j.Log4j1ToSlf4j1
 examples:
 - description: '`Log4j1ToSlf4j1Test#useLoggerFactory`'
@@ -979,6 +1039,43 @@ examples:
 
       class Test {
           Logger logger0 = LoggerFactory.getLogger(Test.class);
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.slf4j.Log4j1ToSlf4jMdc
+examples:
+- description: '`Log4j1ToSlf4jMdcTest#replacePatterns`'
+  sources:
+  - before: |
+      import org.apache.log4j.MDC;
+
+      import java.util.Hashtable;
+
+      class Test {
+          void method(Object value, String text) {
+              MDC.put("obj", value);
+              MDC.put("text", text);
+              MDC.put("literal", "v");
+              Hashtable context = MDC.getContext();
+              MDC.remove("obj");
+              MDC.clear();
+          }
+      }
+    after: |
+      import org.slf4j.MDC;
+
+      import java.util.Map;
+
+      class Test {
+          void method(Object value, String text) {
+              MDC.put("obj", String.valueOf(value));
+              MDC.put("text", text);
+              MDC.put("literal", "v");
+              Map<String, String> context = MDC.getCopyOfContextMap();
+              MDC.remove("obj");
+              MDC.clear();
+          }
       }
     language: java
 ---
@@ -1442,6 +1539,53 @@ examples:
 
           String expensiveOp() {
               return "expensive";
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.slf4j.WrapLog4j1MdcPutValueInStringValueOf
+examples:
+- description: '`WrapLog4j1MdcPutValueInStringValueOfTest#replacePatterns`'
+  sources:
+  - before: |
+      import org.apache.log4j.MDC;
+
+      import java.util.Map;
+      import java.util.function.Supplier;
+
+      class Test {
+          void method(Map<String, String> map, Object obj, Throwable t, Supplier<String> supplier, int count) {
+              MDC.put("map", map);
+              MDC.put("obj", obj);
+              MDC.put("throwable", t);
+              MDC.put("supplier", supplier);
+              MDC.put("count", count);
+              MDC.put("call", compute());
+          }
+
+          Object compute() {
+              return new Object();
+          }
+      }
+    after: |
+      import org.apache.log4j.MDC;
+
+      import java.util.Map;
+      import java.util.function.Supplier;
+
+      class Test {
+          void method(Map<String, String> map, Object obj, Throwable t, Supplier<String> supplier, int count) {
+              MDC.put("map", String.valueOf(map));
+              MDC.put("obj", String.valueOf(obj));
+              MDC.put("throwable", String.valueOf(t));
+              MDC.put("supplier", String.valueOf(supplier));
+              MDC.put("count", String.valueOf(count));
+              MDC.put("call", String.valueOf(compute()));
+          }
+
+          Object compute() {
+              return new Object();
           }
       }
     language: java
