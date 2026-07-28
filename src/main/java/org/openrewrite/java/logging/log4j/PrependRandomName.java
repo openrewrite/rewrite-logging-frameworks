@@ -34,7 +34,7 @@ public class PrependRandomName extends Recipe {
     private final int seed;
 
     @JsonIgnore
-    private transient final RandomNameGenerator randomName;
+    private final transient RandomNameGenerator randomName;
 
     public PrependRandomName(int seed) {
         this.seed = seed;

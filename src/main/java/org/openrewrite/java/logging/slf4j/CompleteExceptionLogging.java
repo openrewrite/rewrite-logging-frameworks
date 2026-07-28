@@ -155,11 +155,10 @@ public class CompleteExceptionLogging extends Recipe {
                         if (isStringLiteral(firstParameter)) {
                             String content = ((J.Literal) firstParameter).getValue().toString();
                             int placeholderCount = countPlaceholders(content);
-                            if (placeholderCount >= (args.size() - 1)) {
-                                // it means the last `Throwable#getMessage()` call is counted for placeholder intentionally,
-                            } else {
+                            if (placeholderCount < (args.size() - 1)) {
                                 // remove the last arg
                                 args.remove(args.size() - 1);
+                                // it means the last `Throwable#getMessage()` call is counted for placeholder intentionally,
                             }
                         }
                     }

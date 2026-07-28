@@ -321,7 +321,7 @@ private static class OptimizeLogStatementsVisitor extends JavaVisitor<ExecutionC
         private final List<Statement> statements = new ArrayList<>();
         private final List<Statement> logStatementsCache = new ArrayList<>();
         private AccumulatorKind accumulatorKind = AccumulatorKind.NONE;
-        private J.@Nullable If ifCache = null;
+        private J.@Nullable If ifCache;
 
         public StatementAccumulator(Function<J, J> formatter) {
             this.formatter = formatter;
