@@ -53,18 +53,20 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
             "This recipe optimizes these statements by either wrapping them in if-statements (SLF4J 1.x) " +
             "or converting them to fluent API calls (SLF4J 2.0+) to ensure expensive methods are only called when necessary.";
 
-    @Option(displayName = "Use `setMessage`",
-            description = "Pass the message template to `setMessage(..)` ahead of the arguments, instead of to `log(..)` " +
-                          "after the arguments, when converting to the SLF4J 2.0+ fluent API. Defaults to `false`.",
+    @Option(displayName = "Message method",
+            description = "The SLF4J 2.0+ fluent API method that takes the message template: `SET_MESSAGE` passes it to " +
+                          "`setMessage(..)` ahead of the arguments, `LOG` passes it to `log(..)` after the arguments. " +
+                          "Defaults to `LOG`.",
+            valid = {"SET_MESSAGE", "LOG"},
             required = false)
     @Nullable
-    Boolean useSetMessage;
+    String messageMethod;
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(
                 or(new UsesMethod<>(infoMatcher), new UsesMethod<>(debugMatcher), new UsesMethod<>(traceMatcher)),
-                new OptimizeLogStatementsVisitor(Boolean.TRUE.equals(useSetMessage)));
+                new OptimizeLogStatementsVisitor("SET_MESSAGE".equals(messageMethod)));
     }
 
 
@@ -137,7 +139,7 @@ private static class OptimizeLogStatementsVisitor extends JavaVisitor<ExecutionC
             }
 
             Expression messageTemplate = args.get(0);
-            boolean expensiveMessage = args.size() == 1 && isExpensiveArgument(messageTemplate);
+            boolean expensiveMessage = isExpensiveArgument(messageTemplate);
             int lastArgument = hasTrailingCause(args) ? args.size() - 1 : args.size();
 
             StringBuilder templateStr = new StringBuilder();
@@ -190,7 +192,12 @@ private static class OptimizeLogStatementsVisitor extends JavaVisitor<ExecutionC
         private int countPlaceholders(String message) {
             int count = 0;
             for (int i = message.indexOf("{}"); i != -1; i = message.indexOf("{}", i + 2)) {
-                if (i == 0 || message.charAt(i - 1) != '\\') {
+                // Only an odd number of preceding backslashes escapes the placeholder
+                int backslashes = 0;
+                for (int j = i - 1; j >= 0 && message.charAt(j) == '\\'; j--) {
+                    backslashes++;
+                }
+                if (backslashes % 2 == 0) {
                     count++;
                 }
             }
