@@ -16,7 +16,6 @@
 package org.openrewrite.java.logging.slf4j;
 
 import lombok.EqualsAndHashCode;
-import lombok.Getter;
 import lombok.Value;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
@@ -34,6 +33,8 @@ import static java.util.stream.Collectors.toList;
 import static org.openrewrite.Preconditions.or;
 import static org.openrewrite.Tree.randomId;
 
+@EqualsAndHashCode(callSuper = false)
+@Value
 public class WrapExpensiveLogStatementsInConditionals extends Recipe {
 
     // Only matching up to INFO, as WARN and ERROR are rarely disabled
@@ -45,242 +46,244 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
     private static final MethodMatcher isDebugEnabledMatcher = new MethodMatcher("org.slf4j.Logger isDebugEnabled()");
     private static final MethodMatcher isTraceEnabledMatcher = new MethodMatcher("org.slf4j.Logger isTraceEnabled()");
 
-    @Getter
-    final String displayName = "Optimize log statements";
+    String displayName = "Optimize log statements";
 
-    @Getter
-    final String description = "When trace, debug and info log statements use methods for constructing log messages, " +
+    String description = "When trace, debug and info log statements use methods for constructing log messages, " +
             "those methods are called regardless of whether the log level is enabled. " +
             "This recipe optimizes these statements by either wrapping them in if-statements (SLF4J 1.x) " +
             "or converting them to fluent API calls (SLF4J 2.0+) to ensure expensive methods are only called when necessary.";
 
+    @Option(displayName = "Message method",
+            description = "The SLF4J 2.0+ fluent API method that takes the message template: `SET_MESSAGE` passes it to " +
+                          "`setMessage(..)` ahead of the arguments, `LOG` passes it to `log(..)` after the arguments. " +
+                          "Defaults to `LOG`.",
+            valid = {"SET_MESSAGE", "LOG"},
+            required = false)
+    @Nullable
+    String messageMethod;
+
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
+        boolean useSetMessage = "SET_MESSAGE".equals(messageMethod);
         return Preconditions.check(
                 or(new UsesMethod<>(infoMatcher), new UsesMethod<>(debugMatcher), new UsesMethod<>(traceMatcher)),
-                new OptimizeLogStatementsVisitor());
+                new JavaVisitor<ExecutionContext>() {
+
+                    final Set<UUID> visitedBlocks = new HashSet<>();
+
+                    @Override
+                    public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+                        J j = super.visitCompilationUnit(cu, ctx);
+                        if (j != cu && !visitedBlocks.isEmpty()) {
+                            doAfterVisit(new MergeLogStatementsInCheck(visitedBlocks));
+                        }
+                        return j;
+                    }
+
+                    @Override
+                    public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                        J.MethodInvocation m = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
+                        if (m.getSelect() != null &&
+                                (infoMatcher.matches(m) || debugMatcher.matches(m) || traceMatcher.matches(m)) &&
+                                !isInIfStatementWithLogLevelCheck(getCursor(), m) &&
+                                !isAlreadyUsingFluentApi(getCursor()) &&
+                                isAnyArgumentExpensive(m)) {
+
+                            // Check if we should use fluent API (SLF4J 2.0+) or if-statements (SLF4J 1.x)
+                            if (supportsFluentApi(m)) {
+                                return convertToFluentApi(m, ctx);
+                            }
+                            // Use the traditional if-statement approach for SLF4J 1.x
+                            J container = getCursor().getParentTreeCursor().getValue();
+                            if (container instanceof J.Block) {
+                                UUID id = container.getId();
+                                J.If if_ = ((J.If) JavaTemplate
+                                        .builder("if(#{logger:any(org.slf4j.Logger)}.is#{}Enabled()) {}")
+                                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-1.+"))
+                                        .build()
+                                        .apply(getCursor(), m.getCoordinates().replace(),
+                                                m.getSelect(), StringUtils.capitalize(m.getSimpleName())))
+                                        .withThenPart(m.withPrefix(m.getPrefix().withWhitespace("\n" + m.getPrefix().getWhitespace().replace("\n", ""))))
+                                        .withPrefix(m.getPrefix().withComments(emptyList()));
+                                visitedBlocks.add(id);
+                                return if_;
+                            }
+                        }
+                        return m;
+                    }
+
+                    private J.MethodInvocation convertToFluentApi(J.MethodInvocation m, ExecutionContext ctx) {
+                        List<Expression> args = m.getArguments();
+                        if (args.isEmpty()) {
+                            return m;
+                        }
+
+                        Expression messageTemplate = args.get(0);
+                        boolean expensiveMessage = isExpensiveArgument(messageTemplate);
+                        int lastArgument = hasTrailingCause(args) ? args.size() - 1 : args.size();
+
+                        StringBuilder templateStr = new StringBuilder();
+                        templateStr.append("#{logger:any(org.slf4j.Logger)}.at")
+                                .append(StringUtils.capitalize(m.getSimpleName())).append("()");
+                        List<Object> templateArgs = new ArrayList<>();
+                        //noinspection DataFlowIssue
+                        templateArgs.add(m.getSelect());
+
+                        if (useSetMessage) {
+                            templateStr.append(expensiveMessage ? ".setMessage(() -> #{any()})" : ".setMessage(#{any()})");
+                            templateArgs.add(messageTemplate);
+                        }
+
+                        // Use a supplier lambda for expensive arguments, and the value itself for cheap ones
+                        for (int i = 1; i < lastArgument; i++) {
+                            Expression arg = args.get(i);
+                            templateStr.append(isExpensiveArgument(arg) ? ".addArgument(() -> #{any()})" : ".addArgument(#{any()})");
+                            templateArgs.add(arg);
+                        }
+                        if (lastArgument < args.size()) {
+                            templateStr.append(".setCause(#{any()})");
+                            templateArgs.add(args.get(args.size() - 1));
+                        }
+
+                        if (useSetMessage) {
+                            templateStr.append(".log()");
+                        } else {
+                            templateStr.append(expensiveMessage ? ".log(() -> #{any()})" : ".log(#{any()})");
+                            templateArgs.add(messageTemplate);
+                        }
+
+                        return JavaTemplate
+                                .builder(templateStr.toString())
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.+"))
+                                .build()
+                                .apply(getCursor(), m.getCoordinates().replace(), templateArgs.toArray());
+                    }
+                });
     }
 
-
-private static class OptimizeLogStatementsVisitor extends JavaVisitor<ExecutionContext> {
-
-        final Set<UUID> visitedBlocks = new HashSet<>();
-
-        private boolean supportsFluentApi(J.MethodInvocation logMethod) {
-            // Check if the logger type supports fluent API by looking for atInfo/atDebug/atTrace methods
-            if (logMethod.getSelect() == null || logMethod.getMethodType() == null) {
-                return false;
-            }
-
-            JavaType.FullyQualified loggerType = TypeUtils.asFullyQualified(logMethod.getMethodType().getDeclaringType());
-            if (loggerType == null) {
-                return false;
-            }
-
-            // Check if the logger type has the fluent API methods (introduced in SLF4J 2.0)
-            return loggerType.getMethods().stream()
-                    .anyMatch(m -> "atInfo".equals(m.getName()) ||
-                                  "atDebug".equals(m.getName()) ||
-                                  "atTrace".equals(m.getName()));
-        }
-
-        @Override
-        public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-            J.MethodInvocation m = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
-            if (m.getSelect() != null &&
-                    (infoMatcher.matches(m) || debugMatcher.matches(m) || traceMatcher.matches(m)) &&
-                    !isInIfStatementWithLogLevelCheck(getCursor(), m) &&
-                    !isAlreadyUsingFluentApi(getCursor()) &&
-                    isAnyArgumentExpensive(m)) {
-
-                // Check if we should use fluent API (SLF4J 2.0+) or if-statements (SLF4J 1.x)
-                if (supportsFluentApi(m)) {
-                    return convertToFluentApi(m, ctx);
-                }
-                // Use the traditional if-statement approach for SLF4J 1.x
-                J container = getCursor().getParentTreeCursor().getValue();
-                if (container instanceof J.Block) {
-                    UUID id = container.getId();
-                    J.If if_ = ((J.If) JavaTemplate
-                            .builder("if(#{logger:any(org.slf4j.Logger)}.is#{}Enabled()) {}")
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-1.+"))
-                            .build()
-                            .apply(getCursor(), m.getCoordinates().replace(),
-                                    m.getSelect(), StringUtils.capitalize(m.getSimpleName())))
-                            .withThenPart(m.withPrefix(m.getPrefix().withWhitespace("\n" + m.getPrefix().getWhitespace().replace("\n", ""))))
-                            .withPrefix(m.getPrefix().withComments(emptyList()));
-                    visitedBlocks.add(id);
-                    return if_;
-                }
-            }
-            return m;
-        }
-
-        private J.MethodInvocation convertToFluentApi(J.MethodInvocation m, ExecutionContext ctx) {
-            String logLevel = m.getSimpleName();
-            String fluentLevel = "at" + StringUtils.capitalize(logLevel);
-
-            List<Expression> args = m.getArguments();
-            if (!args.isEmpty()) {
-                if (args.size() > 1) {
-                    // First argument is the message template
-                    Expression messageTemplate = args.get(0);
-
-                    // Build fluent API with addArgument() calls for each parameter
-                    StringBuilder templateStr = new StringBuilder();
-                    templateStr.append("#{logger:any(org.slf4j.Logger)}.").append(fluentLevel).append("()");
-
-                    // Add each parameter as an argument
-                    // Use lambda for expensive operations, direct value for cheap ones
-                    List<Object> templateArgs = new ArrayList<>();
-                    //noinspection DataFlowIssue
-                    templateArgs.add(m.getSelect());
-
-                    for (int i = 1; i < args.size(); i++) {
-                        Expression arg = args.get(i);
-                        if (isExpensiveArgument(arg)) {
-                            // Use supplier lambda for expensive operations
-                            templateStr.append(".addArgument(() -> #{any()})");
-                        } else {
-                            // Use direct value for cheap operations
-                            templateStr.append(".addArgument(#{any()})");
-                        }
-                        templateArgs.add(arg);
-                    }
-                    templateStr.append(".log(#{any()})");
-                    templateArgs.add(messageTemplate);
-
-                    JavaTemplate template = JavaTemplate
-                            .builder(templateStr.toString())
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.+"))
-                            .build();
-
-                    return template.apply(getCursor(), m.getCoordinates().replace(), templateArgs.toArray());
-                }
-                // Simple case with just a message
-                Expression arg = args.get(0);
-                if (isExpensiveArgument(arg)) {
-                    // Use supplier lambda for expensive message
-                    JavaTemplate template = JavaTemplate
-                            .builder("#{logger:any(org.slf4j.Logger)}.#{}().log(() -> #{any()})")
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.+"))
-                            .build();
-
-                    //noinspection DataFlowIssue
-                    return template.apply(getCursor(), m.getCoordinates().replace(),
-                            m.getSelect(), fluentLevel, arg);
-                }
-                // Use direct value for cheap message
-                JavaTemplate template = JavaTemplate
-                        .builder("#{logger:any(org.slf4j.Logger)}.#{}().log(#{any()})")
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.+"))
-                        .build();
-
-                //noinspection DataFlowIssue
-                return template.apply(getCursor(), m.getCoordinates().replace(),
-                        m.getSelect(), fluentLevel, arg);
-            }
-            return m;
-        }
-
-        private boolean isExpensiveArgument(Expression arg) {
-            return !(arg instanceof J.MethodInvocation && isSimpleGetter((J.MethodInvocation) arg) ||
-                    arg instanceof J.Literal ||
-                    arg instanceof J.Identifier ||
-                    arg instanceof J.FieldAccess ||
-                    arg instanceof J.Binary && isOnlyLiterals((J.Binary) arg));
-        }
-
-        private boolean isAlreadyUsingFluentApi(Cursor cursor) {
-            // Check if we're already in a fluent API chain
-            J.MethodInvocation parent = cursor.firstEnclosing(J.MethodInvocation.class);
-            if (parent != null && "log".equals(parent.getSimpleName())) {
-                Expression select = parent.getSelect();
-                if (select instanceof J.MethodInvocation) {
-                    J.MethodInvocation selectMethod = (J.MethodInvocation) select;
-                    return "addArgument".equals(selectMethod.getSimpleName()) ||
-                           "addParameter".equals(selectMethod.getSimpleName()) ||
-                           selectMethod.getSimpleName().startsWith("at");
-                }
-            }
+    private static boolean supportsFluentApi(J.MethodInvocation logMethod) {
+        // Check if the logger type supports fluent API by looking for atInfo/atDebug/atTrace methods
+        if (logMethod.getSelect() == null || logMethod.getMethodType() == null) {
             return false;
         }
 
-        @Override
-        public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-            J j = super.visitCompilationUnit(cu, ctx);
-            if (j != cu && !visitedBlocks.isEmpty()) {
-                doAfterVisit(new MergeLogStatementsInCheck(visitedBlocks));
-            }
-            return j;
-        }
-
-        private boolean isInIfStatementWithLogLevelCheck(Cursor cursor, J.MethodInvocation m) {
-            J.If enclosingIf = cursor.firstEnclosing(J.If.class);
-            if (enclosingIf == null) {
-                return false;
-            }
-            List<J> sideEffects = enclosingIf.getIfCondition().getSideEffects();
-            return (infoMatcher.matches(m) && sideEffects.stream().allMatch(e -> e instanceof J.MethodInvocation && isInfoEnabledMatcher.matches((J.MethodInvocation) e))) ||
-                    (debugMatcher.matches(m) && sideEffects.stream().allMatch(e -> e instanceof J.MethodInvocation && isDebugEnabledMatcher.matches((J.MethodInvocation) e))) ||
-                    (traceMatcher.matches(m) && sideEffects.stream().allMatch(e -> e instanceof J.MethodInvocation && isTraceEnabledMatcher.matches((J.MethodInvocation) e)));
-        }
-
-        private boolean isAnyArgumentExpensive(J.MethodInvocation m) {
-            return m
-                    .getArguments()
-                    .stream()
-                    .anyMatch(arg ->
-                            !(arg instanceof J.MethodInvocation && isSimpleGetter((J.MethodInvocation) arg) ||
-                                    arg instanceof J.Literal ||
-                                    arg instanceof J.Identifier ||
-                                    arg instanceof J.FieldAccess ||
-                                    arg instanceof J.Binary && isOnlyLiterals((J.Binary) arg))
-                    );
-        }
-
-        private static boolean isSimpleGetter(J.MethodInvocation mi) {
-            if (mi.getMethodType() == null ||
-                    !mi.getMethodType().getParameterNames().isEmpty() ||
-                    mi.getMethodType().hasFlags(Flag.Static) ||
-                    !(mi.getSelect() == null || mi.getSelect() instanceof J.Identifier)) {
-                return false;
-            }
-            // Consider it a simple getter if it follows getter naming convention
-            if ((mi.getSimpleName().startsWith("get") && mi.getSimpleName().length() > 3) ||
-                    (mi.getSimpleName().startsWith("is") && mi.getSimpleName().length() > 2)) {
-                return true;
-            }
-            // Also consider record component accessors as simple getters
-            return mi.getMethodType().getDeclaringType().getKind() == JavaType.FullyQualified.Kind.Record;
-        }
-
-        private static boolean isOnlyLiterals(J.Binary binary) {
-            return isLiteralOrBinary(binary.getLeft()) && isLiteralOrBinary(binary.getRight());
-        }
-
-        private static boolean isLiteralOrBinary(J expression) {
-            return expression instanceof J.Literal ||
-                    isSimpleBooleanGetter(expression) ||
-                    isBooleanIdentifier(expression) ||
-                    expression instanceof J.Binary && isOnlyLiterals((J.Binary) expression);
-        }
-
-        private static boolean isSimpleBooleanGetter(J expression) {
-            if (expression instanceof J.MethodInvocation) {
-                J.MethodInvocation mi = (J.MethodInvocation) expression;
-                return isSimpleGetter(mi) && mi.getMethodType() != null && isTypeBoolean(mi.getMethodType().getReturnType());
-            }
+        JavaType.FullyQualified loggerType = TypeUtils.asFullyQualified(logMethod.getMethodType().getDeclaringType());
+        if (loggerType == null) {
             return false;
         }
 
-        private static boolean isBooleanIdentifier(J expression) {
-            return expression instanceof J.Identifier && isTypeBoolean(((J.Identifier) expression).getType());
-        }
+        // Check if the logger type has the fluent API methods (introduced in SLF4J 2.0)
+        return loggerType.getMethods().stream()
+                .anyMatch(m -> "atInfo".equals(m.getName()) ||
+                              "atDebug".equals(m.getName()) ||
+                              "atTrace".equals(m.getName()));
+    }
 
-        private static boolean isTypeBoolean(@Nullable JavaType type) {
-            return type == JavaType.Primitive.Boolean || TypeUtils.isAssignableTo("java.lang.Boolean", type);
+    /**
+     * SLF4J only treats a trailing {@link Throwable} as the cause when it is not consumed by a placeholder.
+     */
+    private static boolean hasTrailingCause(List<Expression> args) {
+        if (args.size() < 2 || !TypeUtils.isAssignableTo("java.lang.Throwable", args.get(args.size() - 1).getType())) {
+            return false;
         }
+        Object message = args.get(0) instanceof J.Literal ? ((J.Literal) args.get(0)).getValue() : null;
+        return message instanceof String && countPlaceholders((String) message) <= args.size() - 2;
+    }
+
+    private static int countPlaceholders(String message) {
+        int count = 0;
+        for (int i = message.indexOf("{}"); i != -1; i = message.indexOf("{}", i + 2)) {
+            // Only an odd number of preceding backslashes escapes the placeholder
+            int backslashes = 0;
+            for (int j = i - 1; j >= 0 && message.charAt(j) == '\\'; j--) {
+                backslashes++;
+            }
+            if (backslashes % 2 == 0) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static boolean isAlreadyUsingFluentApi(Cursor cursor) {
+        // Check if we're already in a fluent API chain
+        J.MethodInvocation parent = cursor.firstEnclosing(J.MethodInvocation.class);
+        if (parent != null && "log".equals(parent.getSimpleName())) {
+            Expression select = parent.getSelect();
+            if (select instanceof J.MethodInvocation) {
+                J.MethodInvocation selectMethod = (J.MethodInvocation) select;
+                return "addArgument".equals(selectMethod.getSimpleName()) ||
+                       "addParameter".equals(selectMethod.getSimpleName()) ||
+                       selectMethod.getSimpleName().startsWith("at");
+            }
+        }
+        return false;
+    }
+
+    private static boolean isInIfStatementWithLogLevelCheck(Cursor cursor, J.MethodInvocation m) {
+        J.If enclosingIf = cursor.firstEnclosing(J.If.class);
+        if (enclosingIf == null) {
+            return false;
+        }
+        List<J> sideEffects = enclosingIf.getIfCondition().getSideEffects();
+        return (infoMatcher.matches(m) && sideEffects.stream().allMatch(e -> e instanceof J.MethodInvocation && isInfoEnabledMatcher.matches((J.MethodInvocation) e))) ||
+                (debugMatcher.matches(m) && sideEffects.stream().allMatch(e -> e instanceof J.MethodInvocation && isDebugEnabledMatcher.matches((J.MethodInvocation) e))) ||
+                (traceMatcher.matches(m) && sideEffects.stream().allMatch(e -> e instanceof J.MethodInvocation && isTraceEnabledMatcher.matches((J.MethodInvocation) e)));
+    }
+
+    private static boolean isAnyArgumentExpensive(J.MethodInvocation m) {
+        return m.getArguments().stream().anyMatch(WrapExpensiveLogStatementsInConditionals::isExpensiveArgument);
+    }
+
+    private static boolean isExpensiveArgument(Expression arg) {
+        return !(arg instanceof J.MethodInvocation && isSimpleGetter((J.MethodInvocation) arg) ||
+                arg instanceof J.Literal ||
+                arg instanceof J.Identifier ||
+                arg instanceof J.FieldAccess ||
+                arg instanceof J.Binary && isOnlyLiterals((J.Binary) arg));
+    }
+
+    private static boolean isSimpleGetter(J.MethodInvocation mi) {
+        if (mi.getMethodType() == null ||
+                !mi.getMethodType().getParameterNames().isEmpty() ||
+                mi.getMethodType().hasFlags(Flag.Static) ||
+                !(mi.getSelect() == null || mi.getSelect() instanceof J.Identifier)) {
+            return false;
+        }
+        // Consider it a simple getter if it follows getter naming convention
+        if ((mi.getSimpleName().startsWith("get") && mi.getSimpleName().length() > 3) ||
+                (mi.getSimpleName().startsWith("is") && mi.getSimpleName().length() > 2)) {
+            return true;
+        }
+        // Also consider record component accessors as simple getters
+        return mi.getMethodType().getDeclaringType().getKind() == JavaType.FullyQualified.Kind.Record;
+    }
+
+    private static boolean isOnlyLiterals(J.Binary binary) {
+        return isLiteralOrBinary(binary.getLeft()) && isLiteralOrBinary(binary.getRight());
+    }
+
+    private static boolean isLiteralOrBinary(J expression) {
+        return expression instanceof J.Literal ||
+                isSimpleBooleanGetter(expression) ||
+                isBooleanIdentifier(expression) ||
+                expression instanceof J.Binary && isOnlyLiterals((J.Binary) expression);
+    }
+
+    private static boolean isSimpleBooleanGetter(J expression) {
+        if (expression instanceof J.MethodInvocation) {
+            J.MethodInvocation mi = (J.MethodInvocation) expression;
+            return isSimpleGetter(mi) && mi.getMethodType() != null && isTypeBoolean(mi.getMethodType().getReturnType());
+        }
+        return false;
+    }
+
+    private static boolean isBooleanIdentifier(J expression) {
+        return expression instanceof J.Identifier && isTypeBoolean(((J.Identifier) expression).getType());
+    }
+
+    private static boolean isTypeBoolean(@Nullable JavaType type) {
+        return type == JavaType.Primitive.Boolean || TypeUtils.isAssignableTo("java.lang.Boolean", type);
     }
 
     @EqualsAndHashCode(callSuper = false)

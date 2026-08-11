@@ -16,6 +16,7 @@
 package org.openrewrite.java.logging.slf4j;
 
 import lombok.Getter;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -43,6 +44,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
 import static org.openrewrite.Tree.randomId;
 
 public class Log4j1MdcGetContextToCopyOfContextMap extends Recipe {
@@ -82,22 +84,27 @@ public class Log4j1MdcGetContextToCopyOfContextMap extends Recipe {
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
                 // Delegate the rename to the stock ChangeMethodName while the receiver is still org.apache.log4j.MDC.
                 doAfterVisit(new ChangeMethodName(GET_CONTEXT_PATTERN, "getCopyOfContextMap", null, null).getVisitor());
-                // Pre-scan for declarations assigned the result in a later statement so visitVariableDeclarations can retype them.
+                // Pre-scan for declarations that receive the result, so the other visit methods can retype them
+                // and recognize a `return` of such a declaration.
                 Set<JavaType.Variable> assignedFromGetContext = new JavaIsoVisitor<Set<JavaType.Variable>>() {
                     @Override
                     public J.Assignment visitAssignment(J.Assignment assignment, Set<JavaType.Variable> targets) {
-                        if (assignment.getAssignment() instanceof J.MethodInvocation &&
-                            GET_CONTEXT.matches((J.MethodInvocation) assignment.getAssignment())) {
+                        if (isGetContext(assignment.getAssignment())) {
                             // The target is either a bare name (`v = ...`) or a field access (`this.f = ...`).
-                            J.Identifier name = assignment.getVariable() instanceof J.Identifier ?
-                                    (J.Identifier) assignment.getVariable() :
-                                    assignment.getVariable() instanceof J.FieldAccess ?
-                                            ((J.FieldAccess) assignment.getVariable()).getName() : null;
-                            if (name != null && name.getFieldType() != null) {
-                                targets.add(name.getFieldType());
+                            JavaType.Variable target = variableOf(assignment.getVariable());
+                            if (target != null) {
+                                targets.add(target);
                             }
                         }
                         return super.visitAssignment(assignment, targets);
+                    }
+
+                    @Override
+                    public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, Set<JavaType.Variable> targets) {
+                        if (isGetContext(variable.getInitializer()) && variable.getVariableType() != null) {
+                            targets.add(variable.getVariableType());
+                        }
+                        return super.visitVariable(variable, targets);
                     }
                 }.reduce(cu, new HashSet<>());
                 getCursor().putMessage(ASSIGNED_TARGETS_KEY, assignedFromGetContext);
@@ -161,11 +168,13 @@ public class Log4j1MdcGetContextToCopyOfContextMap extends Recipe {
             }
 
             private boolean returnsGetContext(J.MethodDeclaration method) {
+                Set<JavaType.Variable> retypedTargets = getCursor().getNearestMessage(ASSIGNED_TARGETS_KEY, emptySet());
                 return method.getBody() != null && new JavaIsoVisitor<AtomicBoolean>() {
                     @Override
                     public J.Return visitReturn(J.Return r, AtomicBoolean f) {
-                        if (r.getExpression() instanceof J.MethodInvocation &&
-                            GET_CONTEXT.matches((J.MethodInvocation) r.getExpression())) {
+                        // Either the call itself, or a declaration that visitVariableDeclarations retypes to Map.
+                        JavaType.Variable returned = variableOf(r.getExpression());
+                        if (isGetContext(r.getExpression()) || returned != null && retypedTargets.contains(returned)) {
                             f.set(true);
                         }
                         return super.visitReturn(r, f);
@@ -201,18 +210,29 @@ public class Log4j1MdcGetContextToCopyOfContextMap extends Recipe {
             }
 
             private boolean retypeFromGetContext(J.VariableDeclarations mv) {
-                Set<JavaType.Variable> assignedTargets = getCursor().getNearestMessage(ASSIGNED_TARGETS_KEY);
+                Set<JavaType.Variable> assignedTargets = getCursor().getNearestMessage(ASSIGNED_TARGETS_KEY, emptySet());
                 for (J.VariableDeclarations.NamedVariable nv : mv.getVariables()) {
-                    boolean initializedFromGetContext = nv.getInitializer() instanceof J.MethodInvocation &&
-                            GET_CONTEXT.matches((J.MethodInvocation) nv.getInitializer());
-                    if (initializedFromGetContext ||
-                        (assignedTargets != null && assignedTargets.contains(nv.getVariableType()))) {
+                    if (assignedTargets.contains(nv.getVariableType())) {
                         return true;
                     }
                 }
                 return false;
             }
         });
+    }
+
+    private static boolean isGetContext(@Nullable Expression expression) {
+        return expression instanceof J.MethodInvocation && GET_CONTEXT.matches((J.MethodInvocation) expression);
+    }
+
+    /**
+     * The {@link JavaType.Variable} a bare name ({@code v}) or field access ({@code this.f}) resolves to.
+     */
+    private static JavaType.@Nullable Variable variableOf(@Nullable Expression expression) {
+        if (expression instanceof J.FieldAccess) {
+            expression = ((J.FieldAccess) expression).getName();
+        }
+        return expression instanceof J.Identifier ? ((J.Identifier) expression).getFieldType() : null;
     }
 
     /**

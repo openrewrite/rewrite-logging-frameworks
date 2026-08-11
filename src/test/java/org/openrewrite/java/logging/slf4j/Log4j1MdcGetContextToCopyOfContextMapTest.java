@@ -99,6 +99,40 @@ class Log4j1MdcGetContextToCopyOfContextMapTest implements RewriteTest {
     }
 
     @Test
+    void retypeReturnTypeOfMethodReturningRetypedLocal() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.apache.log4j.MDC;
+
+              import java.util.Hashtable;
+
+              class Test {
+                  Hashtable via() {
+                      Hashtable context = MDC.getContext();
+                      return context;
+                  }
+              }
+              """,
+            """
+              import org.apache.log4j.MDC;
+
+              import java.util.Hashtable;
+              import java.util.Map;
+
+              class Test {
+                  Map<String, String> via() {
+                      Map<String, String> context = MDC.getCopyOfContextMap();
+                      return context;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void doNotReplaceInvalidPatterns() {
         //language=java
         rewriteRun(

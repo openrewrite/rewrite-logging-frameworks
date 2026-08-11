@@ -222,13 +222,14 @@ class StringFormatToParameterizedLoggingTest implements RewriteTest {
               class Test {
                   private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
 
-                  void method(double value, int number, String first, String second) {
+                  void method(double value, int number, String first, String second, Exception exception) {
                       LOGGER.info(String.format("Value: %.2f", value));
                       LOGGER.info(String.format("Width: %5d", number));
                       LOGGER.info(String.format("Order: %2$s %1$s", first, second));
                       LOGGER.info(String.format("Complete: 100%%"));
                       LOGGER.info(String.format("Line1%nLine2"));
                       LOGGER.info(String.format(first + " completed"));
+                      LOGGER.error(String.format("Response body: {}"), exception);
                   }
               }
               """

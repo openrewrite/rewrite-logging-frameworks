@@ -51,7 +51,8 @@ public class StringFormatToParameterizedLogging extends AbstractFormatToParamete
 
     @Override
     protected boolean isValidFormatString(String format) {
-        return !COMPLEX_FORMAT_PATTERN.matcher(format).find();
+        // A literal `{}` would turn into an SLF4J placeholder once the `String.format` wrapper is dropped
+        return !format.contains("{}") && !COMPLEX_FORMAT_PATTERN.matcher(format).find();
     }
 
     @Override

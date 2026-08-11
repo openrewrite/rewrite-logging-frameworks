@@ -30,7 +30,7 @@ class WrapExpensiveLogStatementsInConditionalsSlf4j2Test implements RewriteTest 
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.recipe(new WrapExpensiveLogStatementsInConditionals())
+        spec.recipe(new WrapExpensiveLogStatementsInConditionals(null))
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2"));
     }
@@ -211,6 +211,159 @@ class WrapExpensiveLogStatementsInConditionalsSlf4j2Test implements RewriteTest 
 
                   String computeValue() {
                       return "value";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void setCauseForTrailingThrowable() {
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger logger, Exception e) {
+                      logger.debug("An error occurred while processing value {}", computeValue(), e);
+                  }
+
+                  String computeValue() {
+                      return "value" + hashCode();
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger logger, Exception e) {
+                      logger.atDebug().addArgument(() -> computeValue()).setCause(e).log("An error occurred while processing value {}");
+                  }
+
+                  String computeValue() {
+                      return "value" + hashCode();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepThrowableAsArgumentWhenConsumedByPlaceholder() {
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger logger, Exception e) {
+                      logger.debug("Processing {} failed with {}", computeValue(), e);
+                  }
+
+                  String computeValue() {
+                      return "value" + hashCode();
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger logger, Exception e) {
+                      logger.atDebug().addArgument(() -> computeValue()).addArgument(e).log("Processing {} failed with {}");
+                  }
+
+                  String computeValue() {
+                      return "value" + hashCode();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void expensiveMessageAlongsideArgumentsIsSupplied() {
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger logger, Exception e, String value) {
+                      logger.debug(buildMessage(), value);
+                      logger.debug(buildMessage(), e);
+                  }
+
+                  String buildMessage() {
+                      return "message" + hashCode();
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger logger, Exception e, String value) {
+                      logger.atDebug().addArgument(value).log(() -> buildMessage());
+                      logger.atDebug().addArgument(e).log(() -> buildMessage());
+                  }
+
+                  String buildMessage() {
+                      return "message" + hashCode();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void useSetMessage() {
+        rewriteRun(
+          spec -> spec.recipe(new WrapExpensiveLogStatementsInConditionals("SET_MESSAGE")),
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger logger, Exception e) {
+                      logger.debug("Value was {}", computeValue());
+                      logger.debug("An error occurred while processing value {}", computeValue(), e);
+                      logger.info(expensiveOp());
+                      logger.info(expensiveOp(), computeValue());
+                  }
+
+                  String computeValue() {
+                      return "value" + hashCode();
+                  }
+
+                  String expensiveOp() {
+                      return "expensive" + hashCode();
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger logger, Exception e) {
+                      logger.atDebug().setMessage("Value was {}").addArgument(() -> computeValue()).log();
+                      logger.atDebug().setMessage("An error occurred while processing value {}").addArgument(() -> computeValue()).setCause(e).log();
+                      logger.atInfo().setMessage(() -> expensiveOp()).log();
+                      logger.atInfo().setMessage(() -> expensiveOp()).addArgument(() -> computeValue()).log();
+                  }
+
+                  String computeValue() {
+                      return "value" + hashCode();
+                  }
+
+                  String expensiveOp() {
+                      return "expensive" + hashCode();
                   }
               }
               """
