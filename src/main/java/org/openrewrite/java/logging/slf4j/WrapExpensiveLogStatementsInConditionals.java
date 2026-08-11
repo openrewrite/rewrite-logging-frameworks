@@ -16,7 +16,6 @@
 package org.openrewrite.java.logging.slf4j;
 
 import lombok.EqualsAndHashCode;
-import lombok.Getter;
 import lombok.Value;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
@@ -34,6 +33,8 @@ import static java.util.stream.Collectors.toList;
 import static org.openrewrite.Preconditions.or;
 import static org.openrewrite.Tree.randomId;
 
+@EqualsAndHashCode(callSuper = false)
+@Value
 public class WrapExpensiveLogStatementsInConditionals extends Recipe {
 
     // Only matching up to INFO, as WARN and ERROR are rarely disabled
@@ -45,26 +46,36 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
     private static final MethodMatcher isDebugEnabledMatcher = new MethodMatcher("org.slf4j.Logger isDebugEnabled()");
     private static final MethodMatcher isTraceEnabledMatcher = new MethodMatcher("org.slf4j.Logger isTraceEnabled()");
 
-    @Getter
-    final String displayName = "Optimize log statements";
+    String displayName = "Optimize log statements";
 
-    @Getter
-    final String description = "When trace, debug and info log statements use methods for constructing log messages, " +
+    String description = "When trace, debug and info log statements use methods for constructing log messages, " +
             "those methods are called regardless of whether the log level is enabled. " +
             "This recipe optimizes these statements by either wrapping them in if-statements (SLF4J 1.x) " +
             "or converting them to fluent API calls (SLF4J 2.0+) to ensure expensive methods are only called when necessary.";
+
+    @Option(displayName = "Use `setMessage`",
+            description = "Pass the message template to `setMessage(..)` ahead of the arguments, instead of to `log(..)` " +
+                          "after the arguments, when converting to the SLF4J 2.0+ fluent API. Defaults to `false`.",
+            required = false)
+    @Nullable
+    Boolean useSetMessage;
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(
                 or(new UsesMethod<>(infoMatcher), new UsesMethod<>(debugMatcher), new UsesMethod<>(traceMatcher)),
-                new OptimizeLogStatementsVisitor());
+                new OptimizeLogStatementsVisitor(Boolean.TRUE.equals(useSetMessage)));
     }
 
 
 private static class OptimizeLogStatementsVisitor extends JavaVisitor<ExecutionContext> {
 
         final Set<UUID> visitedBlocks = new HashSet<>();
+        private final boolean useSetMessage;
+
+        private OptimizeLogStatementsVisitor(boolean useSetMessage) {
+            this.useSetMessage = useSetMessage;
+        }
 
         private boolean supportsFluentApi(J.MethodInvocation logMethod) {
             // Check if the logger type supports fluent API by looking for atInfo/atDebug/atTrace methods
@@ -121,66 +132,69 @@ private static class OptimizeLogStatementsVisitor extends JavaVisitor<ExecutionC
             String fluentLevel = "at" + StringUtils.capitalize(logLevel);
 
             List<Expression> args = m.getArguments();
-            if (!args.isEmpty()) {
-                if (args.size() > 1) {
-                    // First argument is the message template
-                    Expression messageTemplate = args.get(0);
-
-                    // Build fluent API with addArgument() calls for each parameter
-                    StringBuilder templateStr = new StringBuilder();
-                    templateStr.append("#{logger:any(org.slf4j.Logger)}.").append(fluentLevel).append("()");
-
-                    // Add each parameter as an argument
-                    // Use lambda for expensive operations, direct value for cheap ones
-                    List<Object> templateArgs = new ArrayList<>();
-                    //noinspection DataFlowIssue
-                    templateArgs.add(m.getSelect());
-
-                    for (int i = 1; i < args.size(); i++) {
-                        Expression arg = args.get(i);
-                        if (isExpensiveArgument(arg)) {
-                            // Use supplier lambda for expensive operations
-                            templateStr.append(".addArgument(() -> #{any()})");
-                        } else {
-                            // Use direct value for cheap operations
-                            templateStr.append(".addArgument(#{any()})");
-                        }
-                        templateArgs.add(arg);
-                    }
-                    templateStr.append(".log(#{any()})");
-                    templateArgs.add(messageTemplate);
-
-                    JavaTemplate template = JavaTemplate
-                            .builder(templateStr.toString())
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.+"))
-                            .build();
-
-                    return template.apply(getCursor(), m.getCoordinates().replace(), templateArgs.toArray());
-                }
-                // Simple case with just a message
-                Expression arg = args.get(0);
-                if (isExpensiveArgument(arg)) {
-                    // Use supplier lambda for expensive message
-                    JavaTemplate template = JavaTemplate
-                            .builder("#{logger:any(org.slf4j.Logger)}.#{}().log(() -> #{any()})")
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.+"))
-                            .build();
-
-                    //noinspection DataFlowIssue
-                    return template.apply(getCursor(), m.getCoordinates().replace(),
-                            m.getSelect(), fluentLevel, arg);
-                }
-                // Use direct value for cheap message
-                JavaTemplate template = JavaTemplate
-                        .builder("#{logger:any(org.slf4j.Logger)}.#{}().log(#{any()})")
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.+"))
-                        .build();
-
-                //noinspection DataFlowIssue
-                return template.apply(getCursor(), m.getCoordinates().replace(),
-                        m.getSelect(), fluentLevel, arg);
+            if (args.isEmpty()) {
+                return m;
             }
-            return m;
+
+            Expression messageTemplate = args.get(0);
+            boolean expensiveMessage = args.size() == 1 && isExpensiveArgument(messageTemplate);
+            int lastArgument = hasTrailingCause(args) ? args.size() - 1 : args.size();
+
+            StringBuilder templateStr = new StringBuilder();
+            templateStr.append("#{logger:any(org.slf4j.Logger)}.").append(fluentLevel).append("()");
+            List<Object> templateArgs = new ArrayList<>();
+            //noinspection DataFlowIssue
+            templateArgs.add(m.getSelect());
+
+            if (useSetMessage) {
+                templateStr.append(expensiveMessage ? ".setMessage(() -> #{any()})" : ".setMessage(#{any()})");
+                templateArgs.add(messageTemplate);
+            }
+
+            // Use a supplier lambda for expensive arguments, and the value itself for cheap ones
+            for (int i = 1; i < lastArgument; i++) {
+                Expression arg = args.get(i);
+                templateStr.append(isExpensiveArgument(arg) ? ".addArgument(() -> #{any()})" : ".addArgument(#{any()})");
+                templateArgs.add(arg);
+            }
+            if (lastArgument < args.size()) {
+                templateStr.append(".setCause(#{any()})");
+                templateArgs.add(args.get(args.size() - 1));
+            }
+
+            if (useSetMessage) {
+                templateStr.append(".log()");
+            } else {
+                templateStr.append(expensiveMessage ? ".log(() -> #{any()})" : ".log(#{any()})");
+                templateArgs.add(messageTemplate);
+            }
+
+            return JavaTemplate
+                    .builder(templateStr.toString())
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.+"))
+                    .build()
+                    .apply(getCursor(), m.getCoordinates().replace(), templateArgs.toArray());
+        }
+
+        /**
+         * SLF4J only treats a trailing {@link Throwable} as the cause when it is not consumed by a placeholder.
+         */
+        private boolean hasTrailingCause(List<Expression> args) {
+            if (args.size() < 2 || !TypeUtils.isAssignableTo("java.lang.Throwable", args.get(args.size() - 1).getType())) {
+                return false;
+            }
+            Object message = args.get(0) instanceof J.Literal ? ((J.Literal) args.get(0)).getValue() : null;
+            return message instanceof String && countPlaceholders((String) message) <= args.size() - 2;
+        }
+
+        private int countPlaceholders(String message) {
+            int count = 0;
+            for (int i = message.indexOf("{}"); i != -1; i = message.indexOf("{}", i + 2)) {
+                if (i == 0 || message.charAt(i - 1) != '\\') {
+                    count++;
+                }
+            }
+            return count;
         }
 
         private boolean isExpensiveArgument(Expression arg) {

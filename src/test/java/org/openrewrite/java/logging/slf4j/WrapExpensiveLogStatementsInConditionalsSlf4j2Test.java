@@ -30,7 +30,7 @@ class WrapExpensiveLogStatementsInConditionalsSlf4j2Test implements RewriteTest 
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.recipe(new WrapExpensiveLogStatementsInConditionals())
+        spec.recipe(new WrapExpensiveLogStatementsInConditionals(null))
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2"));
     }
@@ -211,6 +211,121 @@ class WrapExpensiveLogStatementsInConditionalsSlf4j2Test implements RewriteTest 
 
                   String computeValue() {
                       return "value";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void setCauseForTrailingThrowable() {
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger logger, Exception e) {
+                      logger.debug("An error occurred while processing value {}", computeValue(), e);
+                  }
+
+                  String computeValue() {
+                      return "value" + hashCode();
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger logger, Exception e) {
+                      logger.atDebug().addArgument(() -> computeValue()).setCause(e).log("An error occurred while processing value {}");
+                  }
+
+                  String computeValue() {
+                      return "value" + hashCode();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepThrowableAsArgumentWhenConsumedByPlaceholder() {
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger logger, Exception e) {
+                      logger.debug("Processing {} failed with {}", computeValue(), e);
+                  }
+
+                  String computeValue() {
+                      return "value" + hashCode();
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger logger, Exception e) {
+                      logger.atDebug().addArgument(() -> computeValue()).addArgument(e).log("Processing {} failed with {}");
+                  }
+
+                  String computeValue() {
+                      return "value" + hashCode();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void useSetMessage() {
+        rewriteRun(
+          spec -> spec.recipe(new WrapExpensiveLogStatementsInConditionals(true)),
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger logger, Exception e) {
+                      logger.debug("Value was {}", computeValue());
+                      logger.debug("An error occurred while processing value {}", computeValue(), e);
+                      logger.info(expensiveOp());
+                  }
+
+                  String computeValue() {
+                      return "value" + hashCode();
+                  }
+
+                  String expensiveOp() {
+                      return "expensive" + hashCode();
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger logger, Exception e) {
+                      logger.atDebug().setMessage("Value was {}").addArgument(() -> computeValue()).log();
+                      logger.atDebug().setMessage("An error occurred while processing value {}").addArgument(() -> computeValue()).setCause(e).log();
+                      logger.atInfo().setMessage(() -> expensiveOp()).log();
+                  }
+
+                  String computeValue() {
+                      return "value" + hashCode();
+                  }
+
+                  String expensiveOp() {
+                      return "expensive" + hashCode();
                   }
               }
               """

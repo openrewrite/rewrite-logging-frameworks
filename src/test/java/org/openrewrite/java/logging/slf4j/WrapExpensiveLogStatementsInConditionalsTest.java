@@ -31,7 +31,7 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.recipe(new WrapExpensiveLogStatementsInConditionals())
+        spec.recipe(new WrapExpensiveLogStatementsInConditionals(null))
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-1.7.+"));
     }
