@@ -1477,6 +1477,8 @@ type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.slf4j.WrapExpensiveLogStatementsInConditionals
 examples:
 - description: '`WrapExpensiveLogStatementsInConditionalsSlf4j2Test#convertToFluentApiWithExpensiveArgument`'
+  parameters:
+  - 'null'
   sources:
   - before: |
       import org.slf4j.Logger;
@@ -1514,6 +1516,8 @@ examples:
       }
     language: java
 - description: '`WrapExpensiveLogStatementsInConditionalsTest#documentationExample`'
+  parameters:
+  - 'null'
   sources:
   - before: |
       import org.slf4j.Logger;
