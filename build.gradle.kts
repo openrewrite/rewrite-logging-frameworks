@@ -45,9 +45,6 @@ dependencies {
         exclude("io.github.eisop","dataflow-errorprone")
     }
 
-    compileOnly("log4j:log4j:1.+") {
-        because("log4j 1 has critical vulnerabilities but we need the type for the refaster recipe during compilation")
-    }
     testRuntimeOnly("ch.qos.logback:logback-classic:1.3.+")
 
     testImplementation("org.openrewrite:rewrite-kotlin")
