@@ -21,6 +21,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static java.util.Collections.singletonList;
+import static java.util.Collections.unmodifiableList;
+
 /**
  * The subset of Janino expressions from the removed {@code <if condition="...">} attribute that has an exact
  * equivalent among the {@code ch.qos.logback.core.boolex} conditions.
@@ -176,7 +179,7 @@ final class JaninoCondition {
                 skipWhitespace();
                 if (!consume(operator)) {
                     return operands.size() == 1 ? first :
-                            new JaninoCondition(type, null, null, Collections.unmodifiableList(operands));
+                            new JaninoCondition(type, null, null, unmodifiableList(operands));
                 }
                 JaninoCondition next = type == Type.OR ? parseBinary(Type.AND) : parseUnary();
                 if (next == null) {
@@ -195,7 +198,7 @@ final class JaninoCondition {
                 position++;
                 JaninoCondition operand = parseUnary();
                 return operand == null ? null :
-                        new JaninoCondition(Type.NOT, null, null, Collections.singletonList(operand));
+                        new JaninoCondition(Type.NOT, null, null, singletonList(operand));
             }
             return parsePrimary();
         }

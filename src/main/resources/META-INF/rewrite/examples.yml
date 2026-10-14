@@ -608,6 +608,40 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.logging.logback.ConditionAttributeToConditionElement
+examples:
+- description: '`ConditionAttributeToConditionElementTest#propertyEquality`'
+  parameters:
+  - 'null'
+  sources:
+  - before: |
+      <configuration>
+          <if condition='property("pretty").equals("false")'>
+              <then>
+                  <root level="INFO">
+                      <appender-ref ref="STDOUT"/>
+                  </root>
+              </then>
+          </if>
+      </configuration>
+    after: |
+      <configuration>
+          <condition class="ch.qos.logback.core.boolex.PropertyEqualityCondition">
+              <key>pretty</key>
+              <value>false</value>
+          </condition>
+          <if>
+              <then>
+                  <root level="INFO">
+                      <appender-ref ref="STDOUT"/>
+                  </root>
+              </then>
+          </if>
+      </configuration>
+    path: logback.xml
+    language: xml
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.logging.logback.ConfigureLoggerLevel
 examples:
 - description: '`ConfigureLoggerLevelTest#editExistingLogger`'

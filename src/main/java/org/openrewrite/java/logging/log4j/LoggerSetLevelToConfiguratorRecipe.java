@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.logging.log4j;
 
+import lombok.Getter;
 import org.jspecify.annotations.NullMarked;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -28,22 +29,15 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.template.internal.AbstractRefasterJavaVisitor;
 import org.openrewrite.java.tree.J;
 
-
-import static org.openrewrite.java.template.internal.AbstractRefasterJavaVisitor.EmbeddingOption.*;
+import static org.openrewrite.java.template.internal.AbstractRefasterJavaVisitor.EmbeddingOption.SHORTEN_NAMES;
 
 @NullMarked
 public class LoggerSetLevelToConfiguratorRecipe extends Recipe {
-    @Override
-    public String getDisplayName() {
-        //language=markdown
-        return "Convert Log4j `Logger.setLevel` to Log4j2 `Configurator.setLevel`";
-    }
+    @Getter
+    final String displayName = "Convert Log4j `Logger.setLevel` to Log4j2 `Configurator.setLevel`";
 
-    @Override
-    public String getDescription() {
-        //language=markdown
-        return "Converts `org.apache.log4j.Logger.setLevel` to `org.apache.logging.log4j.core.config.Configurator.setLevel`.";
-    }
+    @Getter
+    final String description = "Converts `org.apache.log4j.Logger.setLevel` to `org.apache.logging.log4j.core.config.Configurator.setLevel`.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
