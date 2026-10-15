@@ -100,5 +100,64 @@ class ChangeLogLevelTest implements RewriteTest {
         );
     }
 
+    @Test
+    void allStatementsWithoutStartsWith() {
+        rewriteRun(
+          spec -> spec.recipe(new ChangeLogLevel(ChangeLogLevel.Level.INFO, ChangeLogLevel.Level.DEBUG, null)),
+          //language=java
+          java(
+            """
+            import org.slf4j.Logger;
 
+            class Test {
+                void test(Logger log, String message, Object value) {
+                    log.info(message);
+                    log.info(String.valueOf(value));
+                }
+            }
+            """,
+            """
+            import org.slf4j.Logger;
+
+            class Test {
+                void test(Logger log, String message, Object value) {
+                    log.debug(message);
+                    log.debug(String.valueOf(value));
+                }
+            }
+            """
+          )
+        );
+    }
+
+    @Test
+    void startsWithAfterMarker() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+            import org.slf4j.Logger;
+            import org.slf4j.Marker;
+
+            class Test {
+                void test(Logger log, Marker marker) {
+                    log.info(marker, "LaunchDarkly Hello");
+                    log.info(marker, "Other Hello");
+                }
+            }
+            """,
+            """
+            import org.slf4j.Logger;
+            import org.slf4j.Marker;
+
+            class Test {
+                void test(Logger log, Marker marker) {
+                    log.debug(marker, "LaunchDarkly Hello");
+                    log.info(marker, "Other Hello");
+                }
+            }
+            """
+          )
+        );
+    }
 }
