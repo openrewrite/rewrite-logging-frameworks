@@ -133,6 +133,45 @@ class RemoveUnnecessaryLogLevelGuardsTest implements RewriteTest {
     }
 
     @Test
+    void guardPrecededByTrailingComment() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Test {
+                  private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
+
+                  void test(String name, int count) {
+                      int events = count * 2; // requested events
+                      if (LOGGER.isDebugEnabled()) {
+                          LOGGER.debug("Name: {}", name);
+                          LOGGER.debug("Events: {}", events);
+                      }
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Test {
+                  private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
+
+                  void test(String name, int count) {
+                      int events = count * 2; // requested events
+                      LOGGER.debug("Name: {}", name);
+                      LOGGER.debug("Events: {}", events);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void doNotReplaceInvalidPatterns() {
         //language=java
         rewriteRun(
