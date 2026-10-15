@@ -72,7 +72,7 @@ public class PrintStackTraceToLogError extends Recipe {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
-                if (printStackTrace.matches(m)) {
+                if (printStackTrace.matches(m) && m.getSelect() != null) {
                     // Only transform no-arg calls or calls with System.err/System.out
                     if (!m.getArguments().isEmpty() && !(m.getArguments().get(0) instanceof J.Empty)) {
                         Expression arg = m.getArguments().get(0);
