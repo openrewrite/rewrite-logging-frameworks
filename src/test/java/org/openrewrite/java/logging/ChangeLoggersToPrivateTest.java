@@ -217,4 +217,69 @@ class ChangeLoggersToPrivateTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void keepLoggerUsedByOtherClasses() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              public class Base {
+                  protected static final Logger LOG = LoggerFactory.getLogger(Base.class);
+                  public static final Logger SHARED = LoggerFactory.getLogger("shared");
+              }
+              """
+          ),
+          java(
+            """
+              class Sub extends Base {
+                  void method() {
+                      LOG.info("inherited");
+                      Base.SHARED.info("shared");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void changeLoggerOnlyUsedByNestedClass() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              public class Outer {
+                  protected static final Logger LOG = LoggerFactory.getLogger(Outer.class);
+
+                  static class Inner {
+                      void method() {
+                          LOG.info("nested");
+                      }
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              public class Outer {
+                  private static final Logger LOG = LoggerFactory.getLogger(Outer.class);
+
+                  static class Inner {
+                      void method() {
+                          LOG.info("nested");
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
 }
