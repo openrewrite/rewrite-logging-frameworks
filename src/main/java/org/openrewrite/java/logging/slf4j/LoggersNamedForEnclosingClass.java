@@ -21,19 +21,20 @@ import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavadocVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
-import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.Javadoc;
+import org.openrewrite.java.tree.*;
+import org.openrewrite.marker.Markers;
 
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
+import static org.openrewrite.Tree.randomId;
 
 public class LoggersNamedForEnclosingClass extends Recipe {
 
@@ -84,27 +85,44 @@ public class LoggersNamedForEnclosingClass extends Recipe {
 
                 String enclosingClazzName = firstEnclosingClass.getSimpleName() + ".class";
                 Expression firstArgument = mi.getArguments().get(0);
-                if (firstArgument instanceof J.FieldAccess) {
+                if (isThisClass(firstArgument) || firstArgument instanceof J.MethodInvocation &&
+                                                  "getClass".equals(((J.MethodInvocation) firstArgument).getName().toString())) {
+                    if (firstEnclosingClass.hasModifier(J.Modifier.Type.Final)) {
+                        return replaceMethodArgument(mi, firstEnclosingClass);
+                    }
+                } else if (firstArgument instanceof J.FieldAccess) {
                     String argumentClazzName = ((J.FieldAccess) firstArgument).toString();
                     if (argumentClazzName.endsWith(".class") && !enclosingClazzName.equals(argumentClazzName)) {
                         if (firstArgument.getType() instanceof JavaType.Parameterized) {
                             maybeRemoveImport(((JavaType.Parameterized) firstArgument.getType()).getTypeParameters().get(0).toString());
                         }
-                        return replaceMethodArgument(mi, enclosingClazzName);
-                    }
-                } else if (firstArgument instanceof J.MethodInvocation &&
-                           "getClass".equals(((J.MethodInvocation) firstArgument).getName().toString())) {
-                    if (firstEnclosingClass.hasModifier(J.Modifier.Type.Final)) {
-                        return replaceMethodArgument(mi, enclosingClazzName);
+                        return replaceMethodArgument(mi, firstEnclosingClass);
                     }
                 }
 
                 return mi;
             }
 
-            private J.MethodInvocation replaceMethodArgument(J.MethodInvocation mi, String enclosingClazzName) {
-                return JavaTemplate.builder("#{}").contextSensitive().build()
-                        .apply(getCursor(), mi.getCoordinates().replaceArguments(), enclosingClazzName);
+            private boolean isThisClass(Expression argument) {
+                return argument instanceof J.FieldAccess &&
+                       "class".equals(((J.FieldAccess) argument).getSimpleName()) &&
+                       ((J.FieldAccess) argument).getTarget() instanceof J.Identifier &&
+                       "this".equals(((J.Identifier) ((J.FieldAccess) argument).getTarget()).getSimpleName());
+            }
+
+            private J.MethodInvocation replaceMethodArgument(J.MethodInvocation mi, J.ClassDeclaration enclosingClass) {
+                JavaType.FullyQualified classType = enclosingClass.getType();
+                JavaType classLiteralType = classType == null ? null :
+                        new JavaType.Parameterized(null, JavaType.ShallowClass.build("java.lang.Class"), singletonList(classType));
+                Expression argument = mi.getArguments().get(0);
+                J.FieldAccess classLiteral = new J.FieldAccess(
+                        randomId(),
+                        argument.getPrefix(),
+                        Markers.EMPTY,
+                        new J.Identifier(randomId(), Space.EMPTY, Markers.EMPTY, emptyList(), enclosingClass.getSimpleName(), classType, null),
+                        JLeftPadded.build(new J.Identifier(randomId(), Space.EMPTY, Markers.EMPTY, emptyList(), "class", classLiteralType, null)),
+                        classLiteralType);
+                return mi.withArguments(singletonList(classLiteral));
             }
         });
     }

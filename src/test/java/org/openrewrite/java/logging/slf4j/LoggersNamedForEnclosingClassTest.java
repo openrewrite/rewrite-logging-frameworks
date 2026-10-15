@@ -19,11 +19,13 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
+import org.openrewrite.groovy.GroovyParser;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.SourceSpec;
 
+import static org.openrewrite.groovy.Assertions.groovy;
 import static org.openrewrite.java.Assertions.java;
 
 class LoggersNamedForEnclosingClassTest implements RewriteTest {
@@ -243,6 +245,69 @@ class LoggersNamedForEnclosingClassTest implements RewriteTest {
                   static { // We've seen this pattern to quickly change a log level of a different class
                       ((Logger) LoggerFactory.getLogger(A.class)).setLevel(Level.DEBUG);
                   }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void groovyClassLiteralInCommandChain() {
+        rewriteRun(
+          spec -> spec.parser(GroovyParser.builder().classpathFromResource(new InMemoryExecutionContext(), "slf4j-api-2")),
+          //language=groovy
+          groovy(
+            """
+              import org.slf4j.LoggerFactory
+              class WrongClass {}
+              class A {
+                  void method(Exception e) {
+                      LoggerFactory.getLogger(WrongClass.class).error e.getMessage()
+                  }
+              }
+              """,
+            """
+              import org.slf4j.LoggerFactory
+              class WrongClass {}
+              class A {
+                  void method(Exception e) {
+                      LoggerFactory.getLogger(A.class).error e.getMessage()
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void groovyThisClassOnNonFinalClass() {
+        rewriteRun(
+          spec -> spec.parser(GroovyParser.builder().classpathFromResource(new InMemoryExecutionContext(), "slf4j-api-2")),
+          //language=groovy
+          groovy(
+            """
+              import org.slf4j.LoggerFactory
+              class A {
+                  void method(Exception e) {
+                      LoggerFactory.getLogger(this.class).error e.getMessage()
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void groovyThisClassInFieldOnNonFinalClass() {
+        rewriteRun(
+          spec -> spec.parser(GroovyParser.builder().classpathFromResource(new InMemoryExecutionContext(), "slf4j-api-2")),
+          //language=groovy
+          groovy(
+            """
+              import org.slf4j.Logger
+              import org.slf4j.LoggerFactory
+              class A {
+                  Logger log = LoggerFactory.getLogger(this.class)
               }
               """
           )
