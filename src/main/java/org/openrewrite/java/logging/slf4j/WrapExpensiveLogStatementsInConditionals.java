@@ -73,6 +73,16 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
                     final Set<UUID> visitedBlocks = new HashSet<>();
 
                     @Override
+                    protected JavadocVisitor<ExecutionContext> getJavadocVisitor() {
+                        return new JavadocVisitor<ExecutionContext>(this) {
+                            @Override
+                            public Javadoc visitDocComment(Javadoc.DocComment javadoc, ExecutionContext ctx) {
+                                return javadoc;
+                            }
+                        };
+                    }
+
+                    @Override
                     public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
                         J j = super.visitCompilationUnit(cu, ctx);
                         if (j != cu && !visitedBlocks.isEmpty()) {
