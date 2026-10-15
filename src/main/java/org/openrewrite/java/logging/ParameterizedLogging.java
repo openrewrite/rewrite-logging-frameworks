@@ -22,7 +22,6 @@ import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaTemplate;
-import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
@@ -37,6 +36,8 @@ import java.util.*;
 @EqualsAndHashCode(callSuper = false)
 @Value
 public class ParameterizedLogging extends Recipe {
+    private static final MethodMatcher TO_STRING = new MethodMatcher("*..* toString()");
+
     @Option(displayName = "Method pattern",
             description = "A method used to find matching statements to parameterize.",
             example = "org.slf4j.Logger info(..)")
@@ -66,7 +67,6 @@ public class ParameterizedLogging extends Recipe {
                 Preconditions.not(new GroovyFileChecker<>()));
         return Preconditions.check(preconditions, new JavaIsoVisitor<ExecutionContext>() {
             private final MethodMatcher matcher = new MethodMatcher(methodPattern, true);
-            private final RemoveToStringVisitor removeToStringVisitor = new RemoveToStringVisitor();
 
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
@@ -78,7 +78,7 @@ public class ParameterizedLogging extends Recipe {
                         return m;
                     }
                     Expression logMsg = m.getArguments().get(logMsgIndex);
-                    if (logMsg instanceof J.Binary) {
+                    if (isStringConcatenation(logMsg)) {
                         StringBuilder messageBuilder = new StringBuilder();
                         List<Expression> newArgList = new ArrayList<>();
                         List<Expression> concatenationArgs = new ArrayList<>();
@@ -88,7 +88,7 @@ public class ParameterizedLogging extends Recipe {
                         // First, process all arguments
                         for (int index = 0; index < m.getArguments().size(); index++) {
                             Expression arg = m.getArguments().get(index);
-                            if (index == logMsgIndex && arg instanceof J.Binary) {
+                            if (index == logMsgIndex) {
                                 MessageAndArguments literalAndArgs = concatenationToLiteral(arg, new MessageAndArguments("", new ArrayList<>()));
                                 concatenationArgs.addAll(literalAndArgs.arguments);
                             } else if (index == m.getArguments().size() - 1 &&
@@ -119,7 +119,7 @@ public class ParameterizedLogging extends Recipe {
                             if (index > 0) {
                                 messageBuilder.append(", ");
                             }
-                            if (index == logMsgIndex && message instanceof J.Binary) {
+                            if (index == logMsgIndex) {
                                 messageBuilder.append("\"");
                                 MessageAndArguments literalAndArgs = concatenationToLiteral(message, new MessageAndArguments("", new ArrayList<>()));
                                 messageBuilder.append(literalAndArgs.message);
@@ -157,7 +157,7 @@ public class ParameterizedLogging extends Recipe {
                                 .apply(new Cursor(getCursor().getParent(), m), m.getCoordinates().replaceArguments(), m.getArguments().toArray());
                     }
                     if (Boolean.TRUE.equals(removeToString)) {
-                        m = m.withArguments(ListUtils.map(m.getArguments(), arg -> (Expression) removeToStringVisitor.visitNonNull(arg, ctx, getCursor())));
+                        m = m.withArguments(ListUtils.map(m.getArguments(), (index, arg) -> index > logMsgIndex ? removeToString(arg) : arg));
                     }
                 }
 
@@ -178,21 +178,20 @@ public class ParameterizedLogging extends Recipe {
         });
     }
 
-    private static class RemoveToStringVisitor extends JavaVisitor<ExecutionContext> {
-        private final MethodMatcher TO_STRING = new MethodMatcher("*..* toString()");
-
-        @Override
-        public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-            if (getCursor().getNearestMessage("DO_NOT_REMOVE", Boolean.FALSE)) {
-                return method;
+    private static Expression removeToString(Expression arg) {
+        if (arg instanceof J.MethodInvocation && TO_STRING.matches((J.MethodInvocation) arg)) {
+            Expression select = ((J.MethodInvocation) arg).getSelect();
+            if (select != null && !TypeUtils.isAssignableTo("java.lang.Throwable", select.getType())) {
+                return select.withPrefix(arg.getPrefix());
             }
-            if (TO_STRING.matches(method.getSelect())) {
-                getCursor().putMessage("DO_NOT_REMOVE", Boolean.TRUE);
-            } else if (TO_STRING.matches(method) && method.getSelect() != null) {
-                return method.getSelect().withPrefix(method.getPrefix());
-            }
-            return super.visitMethodInvocation(method, ctx);
         }
+        return arg;
+    }
+
+    private static boolean isStringConcatenation(Expression expression) {
+        return expression instanceof J.Binary &&
+                ((J.Binary) expression).getOperator() == J.Binary.Type.Addition &&
+                TypeUtils.isString(expression.getType());
     }
 
     private static final class MessageAndArguments {
@@ -214,7 +213,7 @@ public class ParameterizedLogging extends Recipe {
         }
 
         J.Binary concat = (J.Binary) message;
-        if (concat.getLeft() instanceof J.Binary && ((J.Binary) concat.getLeft()).getOperator() == J.Binary.Type.Addition) {
+        if (isStringConcatenation(concat.getLeft())) {
             concatenationToLiteral(concat.getLeft(), result);
         } else if (concat.getLeft() instanceof J.Literal) {
             J.Literal left = (J.Literal) concat.getLeft();
@@ -226,7 +225,7 @@ public class ParameterizedLogging extends Recipe {
             result.previousMessageWasStringLiteral = false;
         }
 
-        if (concat.getRight() instanceof J.Binary && ((J.Binary) concat.getRight()).getOperator() == J.Binary.Type.Addition) {
+        if (isStringConcatenation(concat.getRight())) {
             concatenationToLiteral(concat.getRight(), result);
         } else if (concat.getRight() instanceof J.Literal) {
             J.Literal right = (J.Literal) concat.getRight();
@@ -251,13 +250,16 @@ public class ParameterizedLogging extends Recipe {
     }
 
     private static @Nullable Object getLiteralValue(J.Literal literal) {
-        if (literal.getValueSource() == null || literal.getType() != JavaType.Primitive.String) {
+        String valueSource = literal.getValueSource();
+        if (valueSource == null ||
+                (literal.getType() != JavaType.Primitive.String && literal.getType() != JavaType.Primitive.Char)) {
             return literal.getValue();
         }
-        return literal
-                .getValueSource()
-                .substring(1, literal.getValueSource().length() - 1)
-                .replace("\\", "\\\\");
+        String content = valueSource.substring(1, valueSource.length() - 1);
+        if (literal.getType() == JavaType.Primitive.Char && "\"".equals(content)) {
+            content = "\\\"";
+        }
+        return content.replace("\\", "\\\\");
     }
 
     private static String escapeDollarSign(String value) {

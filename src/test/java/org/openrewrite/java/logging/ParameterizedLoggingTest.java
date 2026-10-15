@@ -1141,4 +1141,120 @@ class ParameterizedLoggingTest implements RewriteTest {
             )
         );
     }
+
+    @Test
+    void numericAdditionBeforeStringIsSingleArgument() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  void method(Logger logger, int a, int b) {
+                      logger.info(a + b + " items");
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  void method(Logger logger, int a, int b) {
+                      logger.info("{} items", a + b);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void escapedCharLiterals() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", false)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  void method(Logger logger, String a, String b) {
+                      logger.info("a" + '\\n' + a + '"' + b);
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  void method(Logger logger, String a, String b) {
+                      logger.info("a\\n{}\\"{}", a, b);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removeToStringOnlyFromTopLevelArguments() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", true)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              import java.util.Map;
+
+              class Test {
+                  void method(Logger logger, Map<String, String> map, Object key, Object value) {
+                      logger.info("Entry " + map.get(key.toString()) + " " + value.toString());
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import java.util.Map;
+
+              class Test {
+                  void method(Logger logger, Map<String, String> map, Object key, Object value) {
+                      logger.info("Entry {} {}", map.get(key.toString()), value);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removeToStringKeepsMessageAndThrowable() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.slf4j.Logger info(..)", true)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  void method(Logger logger, StringBuilder sb, Exception e) {
+                      logger.info(sb.toString());
+                      logger.info("Failure " + e.toString());
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  void method(Logger logger, StringBuilder sb, Exception e) {
+                      logger.info(sb.toString());
+                      logger.info("Failure {}", e.toString());
+                  }
+              }
+              """
+          )
+        );
+    }
 }
