@@ -714,4 +714,28 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void ignoreLoggerMethodReferencesInJavadoc() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  Logger log;
+
+                  /**
+                   * @see org.slf4j.Logger#debug(java.lang.String, java.lang.Object...)
+                   * @see org.slf4j.Logger#info(String, Object[])
+                   */
+                  void m(String s) {
+                      log.debug(s);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
