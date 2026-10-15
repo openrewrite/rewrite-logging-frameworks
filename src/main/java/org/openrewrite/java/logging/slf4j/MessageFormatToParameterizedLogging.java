@@ -54,7 +54,7 @@ public class MessageFormatToParameterizedLogging extends AbstractFormatToParamet
 
     @Override
     protected boolean isValidFormatString(String pattern) {
-        if (COMPLEX_PLACEHOLDER.matcher(pattern).find()) {
+        if (COMPLEX_PLACEHOLDER.matcher(pattern).find() || pattern.replace("''", "").indexOf('\'') >= 0) {
             return false;
         }
 
@@ -98,6 +98,6 @@ public class MessageFormatToParameterizedLogging extends AbstractFormatToParamet
 
     @Override
     protected String convertToSlf4jTemplate(String pattern) {
-        return pattern.replaceAll("\\{\\d+}", "{}");
+        return pattern.replaceAll("\\{\\d+}", "{}").replace("''", "'");
     }
 }

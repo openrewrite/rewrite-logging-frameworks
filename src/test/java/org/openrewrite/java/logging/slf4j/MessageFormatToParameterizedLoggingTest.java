@@ -103,7 +103,7 @@ class MessageFormatToParameterizedLoggingTest implements RewriteTest {
                       logger.error(marker, "Failed: {}", message, exception);
 
                       logger.info("User {} logged in", username);
-                      logger.info("isHTML ''{}'', body: {}", username, message);
+                      logger.info("isHTML '{}', body: {}", username, message);
                       logger.info("part1 part2 {}", username);
                   }
               }
@@ -164,6 +164,7 @@ class MessageFormatToParameterizedLoggingTest implements RewriteTest {
                       logger.info(MessageFormat.format("Value: {0,number,currency}", value));
                       logger.info(MessageFormat.format("Date: {0,date,short}", date));
                       logger.info(MessageFormat.format("Order: {2} {0} {1}", a, b, c));
+                      logger.info(MessageFormat.format("Quoted '{0}' and {1}", a, b));
                   }
               }
               """

@@ -111,6 +111,12 @@ public class JulParameterizedArguments extends Recipe {
 
                 String originalFormatString = requireNonNull((String) ((J.Literal) messageArgument).getValue());
                 List<Integer> originalIndices = originalLoggedArgumentIndices(originalFormatString);
+                if (!originalIndices.isEmpty()) {
+                    if (originalFormatString.replace("''", "").indexOf('\'') >= 0) {
+                        return method;
+                    }
+                    originalFormatString = originalFormatString.replace("''", "'");
+                }
 
                 Expression updatedStringFormatArgument = stringFormatArgument;
                 if (stringFormatArgument instanceof J.NewArray) {
