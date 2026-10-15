@@ -60,8 +60,8 @@ public class RemoveUnnecessaryLogLevelGuards extends Recipe {
                 return visited.withStatements(ListUtils.flatMap(visited.getStatements(), stmt -> {
                     if (stmt instanceof J.If && shouldRemoveGuard((J.If) stmt)) {
                         J.If ifStmt = (J.If) stmt;
-                        String ifStatementWhitespace = ifStmt.getPrefix().getWhitespace();
-                        String whitespace = ifStatementWhitespace.substring(ifStatementWhitespace.lastIndexOf('\n'));
+                        String ifStatementWhitespace = ifStmt.getPrefix().getLastWhitespace();
+                        String whitespace = ifStatementWhitespace.substring(Math.max(0, ifStatementWhitespace.lastIndexOf('\n')));
                         List<Statement> bodyStatements = ListUtils.map(extractStatements(ifStmt.getThenPart()), st -> st.withPrefix(Space.build(whitespace, emptyList())));
                         return ListUtils.mapFirst(bodyStatements, first -> first.withPrefix(ifStmt.getPrefix()));
                     }
