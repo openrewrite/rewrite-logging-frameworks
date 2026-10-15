@@ -464,4 +464,26 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void unqualifiedPrintStackTraceInThrowable() {
+        rewriteRun(
+          spec -> spec.recipe(new PrintStackTraceToLogError(null, "LOGGER", null))
+            .parser(JavaParser.fromJavaVersion()
+              .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2")),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              class MyException extends RuntimeException {
+                  private static Logger logger;
+
+                  void report() {
+                      printStackTrace();
+                  }
+              }
+              """
+          )
+        );
+    }
 }

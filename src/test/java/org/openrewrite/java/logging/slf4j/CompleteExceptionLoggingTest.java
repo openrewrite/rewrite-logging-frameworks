@@ -485,4 +485,24 @@ class CompleteExceptionLoggingTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void keepUnqualifiedGetMessageInsideThrowable() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class MyException extends RuntimeException {
+                  Logger logger;
+                  void report() {
+                      logger.error(getMessage());
+                      logger.error("Failure: {}", getLocalizedMessage());
+                  }
+              }
+              """
+          )
+        );
+    }
 }
