@@ -90,12 +90,6 @@ class RemoveUnnecessaryLogLevelGuardsTest implements RewriteTest {
                       // single statement without braces
                       if (LOGGER.isDebugEnabled())
                           LOGGER.debug("No braces: {}", name);
-
-                      // mixed log levels in guard
-                      if (LOGGER.isDebugEnabled()) {
-                          LOGGER.debug("Debug: {}", name);
-                          LOGGER.info("Also info: {}", name);
-                      }
                   }
               }
               """,
@@ -131,10 +125,6 @@ class RemoveUnnecessaryLogLevelGuardsTest implements RewriteTest {
 
                       // single statement without braces
                       LOGGER.debug("No braces: {}", name);
-
-                      // mixed log levels in guard
-                      LOGGER.debug("Debug: {}", name);
-                      LOGGER.info("Also info: {}", name);
                   }
               }
               """
@@ -153,8 +143,25 @@ class RemoveUnnecessaryLogLevelGuardsTest implements RewriteTest {
 
               class Test {
                   private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
+                  private static final Logger AUDIT = LoggerFactory.getLogger("audit");
 
                   void test(String name, boolean extraCondition) {
+                      // mixed log levels in guard
+                      if (LOGGER.isDebugEnabled()) {
+                          LOGGER.debug("Debug: {}", name);
+                          LOGGER.info("Also info: {}", name);
+                      }
+
+                      // log level differs from guard
+                      if (LOGGER.isTraceEnabled()) {
+                          LOGGER.info("Details: {}", name);
+                      }
+
+                      // guard on another logger
+                      if (AUDIT.isDebugEnabled()) {
+                          LOGGER.debug("Audit: {}", name);
+                      }
+
                       // else branch
                       if (LOGGER.isDebugEnabled()) {
                           LOGGER.debug("Debug: {}", name);

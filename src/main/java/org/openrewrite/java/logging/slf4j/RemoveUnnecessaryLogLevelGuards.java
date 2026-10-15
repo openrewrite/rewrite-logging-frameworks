@@ -23,6 +23,7 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.search.SemanticallyEqual;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 
@@ -71,10 +72,12 @@ public class RemoveUnnecessaryLogLevelGuards extends Recipe {
 
             private boolean shouldRemoveGuard(J.If ifStatement) {
                 if (ifStatement.getElsePart() == null && IS_X_ENABLED.matches(ifStatement.getIfCondition().getTree())) {
+                    J.MethodInvocation guard = (J.MethodInvocation) ifStatement.getIfCondition().getTree();
                     List<Statement> statements = extractStatements(ifStatement.getThenPart());
                     for (Statement stmt : statements) {
                         if (!(stmt instanceof J.MethodInvocation) ||
-                                !isValidLoggingCall((J.MethodInvocation) stmt)) {
+                                !isValidLoggingCall((J.MethodInvocation) stmt) ||
+                                !isGuardedBy((J.MethodInvocation) stmt, guard)) {
                             return false;
                         }
                     }
@@ -94,6 +97,22 @@ public class RemoveUnnecessaryLogLevelGuards extends Recipe {
                     return false;
                 }
                 return logCall.getArguments().stream().allMatch(this::isArgumentSafe);
+            }
+
+            private boolean isGuardedBy(J.MethodInvocation logCall, J.MethodInvocation guard) {
+                String guardName = guard.getSimpleName();
+                String guardLevel = guardName.substring(2, guardName.length() - "Enabled".length());
+                if (!guardLevel.equalsIgnoreCase(logCall.getSimpleName()) ||
+                        guard.getSelect() == null ||
+                        !SemanticallyEqual.areEqual(guard.getSelect(), logCall.getSelect())) {
+                    return false;
+                }
+                List<Expression> guardArguments = guard.getArguments();
+                if (guardArguments.isEmpty() || guardArguments.get(0) instanceof J.Empty) {
+                    return true;
+                }
+                return !logCall.getArguments().isEmpty() &&
+                        SemanticallyEqual.areEqual(guardArguments.get(0), logCall.getArguments().get(0));
             }
 
             private boolean isArgumentSafe(Expression argument) {
