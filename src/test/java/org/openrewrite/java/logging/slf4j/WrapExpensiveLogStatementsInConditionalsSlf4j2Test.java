@@ -412,4 +412,82 @@ class WrapExpensiveLogStatementsInConditionalsSlf4j2Test implements RewriteTest 
           )
         );
     }
+
+    @Test
+    void keepMarkerInFluentApi() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.Marker;
+
+              class A {
+                  void method(Logger logger, Marker marker, Exception e) {
+                      logger.debug(marker, "Result: {}", calculateResult(), e);
+                  }
+
+                  String calculateResult() {
+                      return "result";
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.Marker;
+
+              class A {
+                  void method(Logger logger, Marker marker, Exception e) {
+                      logger.atDebug().addMarker(marker).addArgument(() -> calculateResult()).setCause(e).log("Result: {}");
+                  }
+
+                  String calculateResult() {
+                      return "result";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void useConditionalWhenLambdaWouldCaptureNonEffectivelyFinalVariable() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger logger, int count) {
+                      for (int i = 0; i < count; i++) {
+                          logger.debug("Item {}", calculateResult(i));
+                      }
+                  }
+
+                  String calculateResult(int i) {
+                      return "result";
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger logger, int count) {
+                      for (int i = 0; i < count; i++) {
+                          if (logger.isDebugEnabled()) {
+                              logger.debug("Item {}", calculateResult(i));
+                          }
+                      }
+                  }
+
+                  String calculateResult(int i) {
+                      return "result";
+                  }
+              }
+              """
+          )
+        );
+    }
 }

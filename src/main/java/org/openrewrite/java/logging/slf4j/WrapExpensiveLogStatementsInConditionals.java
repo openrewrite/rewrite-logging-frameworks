@@ -26,6 +26,7 @@ import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 import static java.util.Collections.emptyList;
@@ -90,7 +91,7 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
                                 isAnyArgumentExpensive(m)) {
 
                             // Check if we should use fluent API (SLF4J 2.0+) or if-statements (SLF4J 1.x)
-                            if (supportsFluentApi(m)) {
+                            if (supportsFluentApi(m) && capturesOnlyEffectivelyFinalLocals(m)) {
                                 return convertToFluentApi(m, ctx);
                             }
                             // Use the traditional if-statement approach for SLF4J 1.x
@@ -114,13 +115,14 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
 
                     private J.MethodInvocation convertToFluentApi(J.MethodInvocation m, ExecutionContext ctx) {
                         List<Expression> args = m.getArguments();
-                        if (args.isEmpty()) {
+                        int messageIndex = isMarker(args.get(0)) ? 1 : 0;
+                        if (args.size() <= messageIndex) {
                             return m;
                         }
 
-                        Expression messageTemplate = args.get(0);
+                        Expression messageTemplate = args.get(messageIndex);
                         boolean expensiveMessage = isExpensiveArgument(messageTemplate);
-                        int lastArgument = hasTrailingCause(args) ? args.size() - 1 : args.size();
+                        int lastArgument = hasTrailingCause(args, messageIndex) ? args.size() - 1 : args.size();
 
                         StringBuilder templateStr = new StringBuilder();
                         templateStr.append("#{logger:any(org.slf4j.Logger)}.at")
@@ -128,6 +130,10 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
                         List<Object> templateArgs = new ArrayList<>();
                         //noinspection DataFlowIssue
                         templateArgs.add(m.getSelect());
+                        if (messageIndex == 1) {
+                            templateStr.append(".addMarker(#{any(org.slf4j.Marker)})");
+                            templateArgs.add(args.get(0));
+                        }
 
                         if (useSetMessage) {
                             templateStr.append(expensiveMessage ? ".setMessage(() -> #{any()})" : ".setMessage(#{any()})");
@@ -135,7 +141,7 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
                         }
 
                         // Use a supplier lambda for expensive arguments, and the value itself for cheap ones
-                        for (int i = 1; i < lastArgument; i++) {
+                        for (int i = messageIndex + 1; i < lastArgument; i++) {
                             Expression arg = args.get(i);
                             templateStr.append(isExpensiveArgument(arg) ? ".addArgument(() -> #{any()})" : ".addArgument(#{any()})");
                             templateArgs.add(arg);
@@ -157,6 +163,60 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
                                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2.+"))
                                 .build()
                                 .apply(getCursor(), m.getCoordinates().replace(), templateArgs.toArray());
+                    }
+
+                    private boolean capturesOnlyEffectivelyFinalLocals(J.MethodInvocation m) {
+                        Set<String> capturedLocals = new HashSet<>();
+                        for (Expression arg : m.getArguments()) {
+                            if (isExpensiveArgument(arg)) {
+                                new JavaIsoVisitor<Set<String>>() {
+                                    @Override
+                                    public J.Identifier visitIdentifier(J.Identifier identifier, Set<String> locals) {
+                                        JavaType.Variable fieldType = identifier.getFieldType();
+                                        if (fieldType != null && !(fieldType.getOwner() instanceof JavaType.FullyQualified)) {
+                                            locals.add(identifier.getSimpleName());
+                                        }
+                                        return identifier;
+                                    }
+                                }.visit(arg, capturedLocals);
+                            }
+                        }
+                        if (capturedLocals.isEmpty()) {
+                            return true;
+                        }
+                        J scope = getCursor().firstEnclosing(J.MethodDeclaration.class);
+                        if (scope == null) {
+                            scope = getCursor().firstEnclosingOrThrow(JavaSourceFile.class);
+                        }
+                        AtomicBoolean reassigned = new AtomicBoolean();
+                        new JavaIsoVisitor<AtomicBoolean>() {
+                            @Override
+                            public J.Assignment visitAssignment(J.Assignment assignment, AtomicBoolean found) {
+                                checkTarget(assignment.getVariable(), found);
+                                return super.visitAssignment(assignment, found);
+                            }
+
+                            @Override
+                            public J.AssignmentOperation visitAssignmentOperation(J.AssignmentOperation assignOp, AtomicBoolean found) {
+                                checkTarget(assignOp.getVariable(), found);
+                                return super.visitAssignmentOperation(assignOp, found);
+                            }
+
+                            @Override
+                            public J.Unary visitUnary(J.Unary unary, AtomicBoolean found) {
+                                if (unary.getOperator().isModifying()) {
+                                    checkTarget(unary.getExpression(), found);
+                                }
+                                return super.visitUnary(unary, found);
+                            }
+
+                            private void checkTarget(Expression target, AtomicBoolean found) {
+                                if (target instanceof J.Identifier && capturedLocals.contains(((J.Identifier) target).getSimpleName())) {
+                                    found.set(true);
+                                }
+                            }
+                        }.visit(scope, reassigned);
+                        return !reassigned.get();
                     }
                 });
     }
@@ -182,12 +242,17 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
     /**
      * SLF4J only treats a trailing {@link Throwable} as the cause when it is not consumed by a placeholder.
      */
-    private static boolean hasTrailingCause(List<Expression> args) {
-        if (args.size() < 2 || !TypeUtils.isAssignableTo("java.lang.Throwable", args.get(args.size() - 1).getType())) {
+    private static boolean hasTrailingCause(List<Expression> args, int messageIndex) {
+        if (args.size() < messageIndex + 2 || !TypeUtils.isAssignableTo("java.lang.Throwable", args.get(args.size() - 1).getType())) {
             return false;
         }
-        Object message = args.get(0) instanceof J.Literal ? ((J.Literal) args.get(0)).getValue() : null;
-        return message instanceof String && countPlaceholders((String) message) <= args.size() - 2;
+        Expression messageArg = args.get(messageIndex);
+        Object message = messageArg instanceof J.Literal ? ((J.Literal) messageArg).getValue() : null;
+        return message instanceof String && countPlaceholders((String) message) <= args.size() - messageIndex - 2;
+    }
+
+    private static boolean isMarker(Expression expression) {
+        return TypeUtils.isAssignableTo("org.slf4j.Marker", expression.getType());
     }
 
     private static int countPlaceholders(String message) {
