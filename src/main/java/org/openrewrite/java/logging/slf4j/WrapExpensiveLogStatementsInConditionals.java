@@ -188,8 +188,7 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
                         if (scope == null) {
                             scope = getCursor().firstEnclosingOrThrow(JavaSourceFile.class);
                         }
-                        AtomicBoolean reassigned = new AtomicBoolean();
-                        new JavaIsoVisitor<AtomicBoolean>() {
+                        return !new JavaIsoVisitor<AtomicBoolean>() {
                             @Override
                             public J.Assignment visitAssignment(J.Assignment assignment, AtomicBoolean found) {
                                 checkTarget(assignment.getVariable(), found);
@@ -215,8 +214,7 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
                                     found.set(true);
                                 }
                             }
-                        }.visit(scope, reassigned);
-                        return !reassigned.get();
+                        }.reduce(scope, new AtomicBoolean()).get();
                     }
                 });
     }
