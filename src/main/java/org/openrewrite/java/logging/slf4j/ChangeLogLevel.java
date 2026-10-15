@@ -26,6 +26,7 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.List;
 
@@ -78,12 +79,12 @@ public class ChangeLogLevel extends Recipe {
                 if (args.isEmpty()) {
                     return m;
                 }
-                J.Literal lit = leftMostLiteral(args.get(0));
-                if (lit == null || lit.getValue() == null) {
-                    return m;
-                }
-                if (!StringUtils.isBlank(startsWith) && !lit.getValue().toString().startsWith(startsWith)) {
-                    return m;
+                if (!StringUtils.isBlank(startsWith)) {
+                    int messageIndex = TypeUtils.isAssignableTo("org.slf4j.Marker", args.get(0).getType()) ? 1 : 0;
+                    J.Literal lit = messageIndex < args.size() ? leftMostLiteral(args.get(messageIndex)) : null;
+                    if (lit == null || lit.getValue() == null || !lit.getValue().toString().startsWith(startsWith)) {
+                        return m;
+                    }
                 }
                 return (J.MethodInvocation) new ChangeMethodName(methodPattern, to.name().toLowerCase(), true, null)
                         .getVisitor()
