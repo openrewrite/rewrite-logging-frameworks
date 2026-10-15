@@ -21,10 +21,10 @@ import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
-import org.openrewrite.internal.StringUtils;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.logging.internal.JavaStringEscapes;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
@@ -38,12 +38,8 @@ import java.util.regex.Pattern;
 public class Slf4jLogShouldBeConstant extends Recipe {
 
     private static final String SLF4J_FORMAT_SPECIFIER = "{}";
-    private static final Pattern SLF4J_FORMAT_SPECIFIER_PATTERN = Pattern.compile("\\{}");
-    private static final Pattern FORMAT_SPECIFIER_PATTERN = Pattern.compile("%[-#+ 0,(\\d+]*[\\d.]*[dfscbBhHn%]");
-    private static final Pattern SIMPLE_FORMAT_SPECIFIER_PATTERN = Pattern.compile("%[dfscbBhHn%]");
-
-    // A regular expression that matches index specifiers like '%2$s', '%1$s', etc.
-    private static final Pattern INDEXED_FORMAT_SPECIFIER_PATTERN = Pattern.compile("%(\\d+\\$)[a-zA-Z]");
+    private static final Pattern FORMAT_SPECIFIER_PATTERN = Pattern.compile("%(\\d+\\$|<)?[-#+ 0,(]*\\d*(\\.\\d+)?([tT][a-zA-Z]|[a-zA-Z%])");
+    private static final Pattern SIMPLE_FORMAT_SPECIFIER_PATTERN = Pattern.compile("%[dfscb]");
     private static final MethodMatcher SLF4J_LOG = new MethodMatcher("org.slf4j.Logger *(..)");
     private static final MethodMatcher STRING_FORMAT = new MethodMatcher("java.lang.String format(..)");
     private static final MethodMatcher STRING_VALUE_OF = new MethodMatcher("java.lang.String valueOf(..)");
@@ -75,15 +71,15 @@ public class Slf4jLogShouldBeConstant extends Recipe {
                             }
 
                             String strFormat = Objects.requireNonNull(((J.Literal) stringFormat.getArguments().get(0)).getValue()).toString();
-                            if (containsIndexFormatSpecifier(strFormat) || containsCombinedFormatSpecifiers(strFormat) || containsComplexFormatSpecifiers(strFormat)) {
+                            if (!isConvertibleFormat(strFormat, stringFormat.getArguments().size() - 1)) {
                                 return method;
                             }
-                            String updatedStrFormat = replaceFormatSpecifier(strFormat, SLF4J_FORMAT_SPECIFIER);
+                            String updatedStrFormat = FORMAT_SPECIFIER_PATTERN.matcher(strFormat).replaceAll(SLF4J_FORMAT_SPECIFIER);
                             List<Expression> stringFormatWithArgs = ListUtils.map(stringFormat.getArguments(), (n, arg) -> {
                                 if (n == 0) {
                                     J.Literal str = (J.Literal) arg;
                                     return str.withValue(updatedStrFormat)
-                                            .withValueSource("\"" + updatedStrFormat + "\"");
+                                            .withValueSource("\"" + JavaStringEscapes.escapeJavaStringContent(updatedStrFormat) + "\"");
                                 }
                                 return arg;
                             });
@@ -112,35 +108,15 @@ public class Slf4jLogShouldBeConstant extends Recipe {
         });
     }
 
-    private boolean containsCombinedFormatSpecifiers(String str) {
-        return FORMAT_SPECIFIER_PATTERN.matcher(str).find() && SLF4J_FORMAT_SPECIFIER_PATTERN.matcher(str).find();
-    }
-
-    private static String replaceFormatSpecifier(String str, String replacement) {
-        if (StringUtils.isNullOrEmpty(str)) {
-            return str;
-        }
-        return FORMAT_SPECIFIER_PATTERN.matcher(str).replaceAll(replacement);
-    }
-
-    private static boolean containsIndexFormatSpecifier(String str) {
-        if (StringUtils.isNullOrEmpty(str)) {
-            return false;
-        }
-        return INDEXED_FORMAT_SPECIFIER_PATTERN.matcher(str).find();
-    }
-
-    private static boolean containsComplexFormatSpecifiers(String str) {
-        if (StringUtils.isNullOrEmpty(str)) {
-            return false;
-        }
-        Matcher matcher = FORMAT_SPECIFIER_PATTERN.matcher(str);
+    private static boolean isConvertibleFormat(String format, int argumentCount) {
+        int specifierCount = 0;
+        Matcher matcher = FORMAT_SPECIFIER_PATTERN.matcher(format);
         while (matcher.find()) {
-            String specifier = matcher.group();
-            if (!SIMPLE_FORMAT_SPECIFIER_PATTERN.matcher(specifier).matches()) {
-                return true;
+            if (!SIMPLE_FORMAT_SPECIFIER_PATTERN.matcher(matcher.group()).matches()) {
+                return false;
             }
+            specifierCount++;
         }
-        return false;
+        return specifierCount == argumentCount && (specifierCount == 0 || !format.contains(SLF4J_FORMAT_SPECIFIER));
     }
 }

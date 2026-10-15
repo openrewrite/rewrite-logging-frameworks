@@ -416,4 +416,69 @@ class Slf4jLogShouldBeConstantTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void keepEscapesInFormatString() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+              class A {
+                  Logger log;
+                  void method(String name) {
+                      log.info(String.format("name=\\"%s\\"\\tdone\\n", name));
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              class A {
+                  Logger log;
+                  void method(String name) {
+                      log.info("name=\\"{}\\"\\tdone\\n", name);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void noChangeWithPercentLiteralOrLineSeparator() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+              class A {
+                  Logger log;
+                  void method(int percentage, String name) {
+                      log.info(String.format("Done %d%%", percentage));
+                      log.info(String.format("Hello %s%n", name));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void noChangeWithUnsupportedConversion() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+              class A {
+                  Logger log;
+                  void method(String id, int code) {
+                      log.info(String.format("id=%s code=%x", id, code));
+                      log.info(String.format("id=%S", id));
+                  }
+              }
+              """
+          )
+        );
+    }
 }

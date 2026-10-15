@@ -62,6 +62,34 @@ class JulParameterizedArgumentsTest implements RewriteTest {
     }
 
     @Test
+    void unescapeMessageFormatQuotes() {
+        rewriteRun(
+          // language=java
+          java(
+            """
+              import java.util.logging.Level;
+              import java.util.logging.Logger;
+
+              class Test {
+                  void method(Logger logger, String param1) {
+                      logger.log(Level.INFO, "Can''t find {0}", param1);
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  void method(Logger logger, String param1) {
+                      logger.info("Can't find {}", param1);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void escapeCharacters() {
         rewriteRun(
           // language=java
