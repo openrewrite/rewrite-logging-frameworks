@@ -29,8 +29,8 @@ import java.util.regex.Pattern;
 
 public class StringFormatToParameterizedLogging extends AbstractFormatToParameterizedLogging {
 
-    private static final Pattern SIMPLE_FORMAT_SPECIFIER = Pattern.compile("%[sdxofbc]");
-    private static final Pattern COMPLEX_FORMAT_PATTERN = Pattern.compile("%[0-9$+\\-#, (]+[sdxofbc]|%%|%n");
+    private static final Pattern FORMAT_SPECIFIER = Pattern.compile("%(\\d+\\$|<)?[-#+ 0,(]*\\d*(\\.\\d+)?([tT][a-zA-Z]|[a-zA-Z%])");
+    private static final Pattern SIMPLE_FORMAT_SPECIFIER = Pattern.compile("%[sdfbc]");
     private static final MethodMatcher STRING_FORMAT = new MethodMatcher("java.lang.String format(..)");
 
     @Getter
@@ -52,7 +52,16 @@ public class StringFormatToParameterizedLogging extends AbstractFormatToParamete
     @Override
     protected boolean isValidFormatString(String format) {
         // A literal `{}` would turn into an SLF4J placeholder once the `String.format` wrapper is dropped
-        return !format.contains("{}") && !COMPLEX_FORMAT_PATTERN.matcher(format).find();
+        if (format.contains("{}")) {
+            return false;
+        }
+        Matcher matcher = FORMAT_SPECIFIER.matcher(format);
+        while (matcher.find()) {
+            if (!SIMPLE_FORMAT_SPECIFIER.matcher(matcher.group()).matches()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
@@ -67,6 +76,6 @@ public class StringFormatToParameterizedLogging extends AbstractFormatToParamete
 
     @Override
     protected String convertToSlf4jTemplate(String format) {
-        return format.replaceAll("%[sdxofbc]", "{}");
+        return SIMPLE_FORMAT_SPECIFIER.matcher(format).replaceAll("{}");
     }
 }

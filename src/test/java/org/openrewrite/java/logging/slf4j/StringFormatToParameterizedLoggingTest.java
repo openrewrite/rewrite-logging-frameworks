@@ -113,8 +113,8 @@ class StringFormatToParameterizedLoggingTest implements RewriteTest {
 
                       LOGGER.info("String: {}", username);
                       LOGGER.info("Decimal: {}", count);
-                      LOGGER.info("Hex: {}", count);
-                      LOGGER.info("Octal: {}", count);
+                      LOGGER.info(String.format("Hex: %x", count));
+                      LOGGER.info(String.format("Octal: %o", count));
                       LOGGER.info("Float: {}", value);
                       LOGGER.info("Boolean: {}", true);
                       LOGGER.info("Char: {}", 'x');
@@ -228,6 +228,8 @@ class StringFormatToParameterizedLoggingTest implements RewriteTest {
                       LOGGER.info(String.format("Order: %2$s %1$s", first, second));
                       LOGGER.info(String.format("Complete: 100%%"));
                       LOGGER.info(String.format("Line1%nLine2"));
+                      LOGGER.info(String.format("Id: %s, code: %x", first, number));
+                      LOGGER.info(String.format("Name: %S", first));
                       LOGGER.info(String.format(first + " completed"));
                       LOGGER.error(String.format("Response body: {}"), exception);
                   }
