@@ -120,6 +120,7 @@ public class CompleteExceptionLogging extends Recipe {
                     // convert `logger.error(e.getMessage());` to `logger.error("", e);`
                     if (method.getArguments().size() == 1 &&
                         lastParameter instanceof J.MethodInvocation &&
+                        ((J.MethodInvocation) lastParameter).getSelect() != null &&
                         (THROWABLE_GET_MESSAGE.matches(lastParameter) ||
                          THROWABLE_GET_LOCALIZED_MESSAGE.matches(lastParameter))
                     ) {
@@ -133,8 +134,9 @@ public class CompleteExceptionLogging extends Recipe {
                         @Override
                         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation m,
                                                                         List<Expression> exceptions) {
-                            if (THROWABLE_GET_MESSAGE.matches(m) ||
-                                THROWABLE_GET_LOCALIZED_MESSAGE.matches(m)) {
+                            if (m.getSelect() != null &&
+                                (THROWABLE_GET_MESSAGE.matches(m) ||
+                                 THROWABLE_GET_LOCALIZED_MESSAGE.matches(m))) {
                                 exceptions.add(m.getSelect());
                                 return m;
                             }
