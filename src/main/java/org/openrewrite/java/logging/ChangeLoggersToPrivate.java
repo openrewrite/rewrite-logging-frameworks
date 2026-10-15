@@ -29,6 +29,7 @@ import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.Markers;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -38,7 +39,7 @@ import static org.openrewrite.java.tree.J.Modifier.Type.Abstract;
 
 @EqualsAndHashCode(callSuper = false)
 @Value
-public class ChangeLoggersToPrivate extends Recipe {
+public class ChangeLoggersToPrivate extends ScanningRecipe<Set<String>> {
 
     private static final Set<String> LOGGER_TYPES = Arrays.stream(LoggingFramework.values())
             .map(LoggingFramework::getLoggerType)
@@ -49,14 +50,47 @@ public class ChangeLoggersToPrivate extends Recipe {
     String description = "Ensures that logger fields are declared as `private` to encapsulate logging mechanics within the class.";
 
     @Override
-    public TreeVisitor<?, ExecutionContext> getVisitor() {
+    public Set<String> getInitialValue(ExecutionContext ctx) {
+        return new HashSet<>();
+    }
+
+    @Override
+    public TreeVisitor<?, ExecutionContext> getScanner(Set<String> referencedFromOtherClasses) {
+        return Preconditions.check(usesAnyLogger(), new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            public J.Identifier visitIdentifier(J.Identifier identifier, ExecutionContext ctx) {
+                JavaType.Variable fieldType = identifier.getFieldType();
+                if (fieldType != null && isLoggerType(fieldType.getType())) {
+                    JavaType.FullyQualified owner = TypeUtils.asFullyQualified(fieldType.getOwner());
+                    if (owner != null && !topLevelName(owner).equals(enclosingTopLevelName())) {
+                        referencedFromOtherClasses.add(fieldKey(owner, fieldType.getName()));
+                    }
+                }
+                return super.visitIdentifier(identifier, ctx);
+            }
+
+            private String enclosingTopLevelName() {
+                J.ClassDeclaration topLevel = null;
+                for (Cursor c = getCursor(); c != null; c = c.getParent()) {
+                    if (c.getValue() instanceof J.ClassDeclaration) {
+                        topLevel = c.getValue();
+                    }
+                }
+                return topLevel == null || topLevel.getType() == null ? "" : topLevel.getType().getFullyQualifiedName();
+            }
+        });
+    }
+
+    @Override
+    public TreeVisitor<?, ExecutionContext> getVisitor(Set<String> referencedFromOtherClasses) {
         return Preconditions.check(usesAnyLogger(), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
                 J.VariableDeclarations mv = super.visitVariableDeclarations(multiVariable, ctx);
                 if (mv.getTypeExpression() == null ||
                         !isLoggerType(mv.getTypeExpression().getType()) ||
-                        mv.hasModifier(J.Modifier.Type.Private)) {
+                        mv.hasModifier(J.Modifier.Type.Private) ||
+                        isReferencedFromOtherClasses(mv, referencedFromOtherClasses)) {
                     return mv;
                 }
 
@@ -96,15 +130,35 @@ public class ChangeLoggersToPrivate extends Recipe {
                 }
                 return autoFormat(mv.withModifiers(mapped), mv.getTypeExpression(), ctx, getCursor().getParentTreeCursor());
             }
-
-            private boolean isLoggerType(@Nullable JavaType type) {
-                JavaType.FullyQualified fqnType = TypeUtils.asFullyQualified(type);
-                if (fqnType != null) {
-                    return LOGGER_TYPES.contains(fqnType.getFullyQualifiedName());
-                }
-                return false;
-            }
         });
+    }
+
+    private static boolean isReferencedFromOtherClasses(J.VariableDeclarations mv, Set<String> referencedFromOtherClasses) {
+        for (J.VariableDeclarations.NamedVariable variable : mv.getVariables()) {
+            JavaType.Variable variableType = variable.getVariableType();
+            JavaType.FullyQualified owner = variableType == null ? null : TypeUtils.asFullyQualified(variableType.getOwner());
+            if (owner != null && referencedFromOtherClasses.contains(fieldKey(owner, variableType.getName()))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isLoggerType(@Nullable JavaType type) {
+        JavaType.FullyQualified fqnType = TypeUtils.asFullyQualified(type);
+        return fqnType != null && LOGGER_TYPES.contains(fqnType.getFullyQualifiedName());
+    }
+
+    private static String topLevelName(JavaType.FullyQualified type) {
+        JavaType.FullyQualified topLevel = type;
+        while (topLevel.getOwningClass() != null) {
+            topLevel = topLevel.getOwningClass();
+        }
+        return topLevel.getFullyQualifiedName();
+    }
+
+    private static String fieldKey(JavaType.FullyQualified owner, String name) {
+        return owner.getFullyQualifiedName() + "#" + name;
     }
 
     private static TreeVisitor<?, ExecutionContext> usesAnyLogger() {
