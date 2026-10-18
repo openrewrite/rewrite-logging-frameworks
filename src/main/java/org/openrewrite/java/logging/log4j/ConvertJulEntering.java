@@ -80,7 +80,7 @@ public class ConvertJulEntering extends Recipe {
                     }
 
                     private J.Literal buildNullString() {
-                        return new J.Literal(randomId(), Space.EMPTY, Markers.EMPTY, null, "null", null, JavaType.Primitive.String);
+                        return new J.Literal(randomId(), Space.EMPTY, Markers.EMPTY, null, "null", null, JavaType.Primitive.Null);
                     }
                 }
         );
