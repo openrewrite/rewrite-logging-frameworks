@@ -348,7 +348,7 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
         rewriteRun(
           spec -> spec.recipe(new PrintStackTraceToLogError(null, "LOGGER", null))
             .parser(JavaParser.fromJavaVersion()
-              .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2.1.+")),
+              .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2")),
           //language=java
           java(
             """

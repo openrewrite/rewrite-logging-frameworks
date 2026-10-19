@@ -37,7 +37,7 @@ class CommonsLoggingToSlf4j1Test implements RewriteTest {
             .activateRecipes("org.openrewrite.java.logging.slf4j.CommonsLogging1ToSlf4j1"))
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(),
-              "commons-logging-1.3.+",
+              "commons-logging-1",
               "slf4j-api-2",
               "lombok-1.18.+"));
     }
