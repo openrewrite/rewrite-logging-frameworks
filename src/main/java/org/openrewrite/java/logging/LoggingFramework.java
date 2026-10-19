@@ -70,7 +70,7 @@ public enum LoggingFramework {
             case COMMONS:
                 return JavaTemplate
                         .builder("#{any(org.apache.commons.logging.Log)}.error(" + message + ", #{any(java.lang.Throwable)})")
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "commons-logging-1.3.+"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "commons-logging-1"))
                         .build();
             case SYSTEM:
                 return JavaTemplate

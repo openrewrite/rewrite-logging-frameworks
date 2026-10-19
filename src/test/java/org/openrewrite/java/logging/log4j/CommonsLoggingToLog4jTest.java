@@ -29,7 +29,7 @@ import static org.openrewrite.groovy.Assertions.groovy;
 import static org.openrewrite.java.Assertions.java;
 
 class CommonsLoggingToLog4jTest implements RewriteTest {
-    protected static final String[] CLASSPATH = {"log4j-api-2.+", "commons-logging-1.3.+", "lombok-1.18.+"};
+    protected static final String[] CLASSPATH = {"log4j-api-2.+", "commons-logging-1", "lombok-1.18.+"};
 
     @Override
     public void defaults(RecipeSpec spec) {
