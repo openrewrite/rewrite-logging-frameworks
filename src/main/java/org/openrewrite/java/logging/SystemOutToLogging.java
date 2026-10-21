@@ -122,13 +122,9 @@ public class SystemOutToLogging extends Recipe {
                         .getVisitor()
                         .visitNonNull(print, ctx, printCursor);
 
-                if (framework == LoggingFramework.JUL) {
-                    maybeAddImport("java.util.logging.Level");
-                }
+                maybeAddImport("java.util.logging.Level");
 
-                if (framework == LoggingFramework.SYSTEM) {
-                    maybeAddImport("java.lang.System.Logger.Level");
-                }
+                maybeAddImport("java.lang.System.Logger.Level");
 
                 return print;
             }

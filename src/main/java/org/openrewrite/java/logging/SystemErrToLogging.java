@@ -176,13 +176,9 @@ public class SystemErrToLogging extends Recipe {
                                     exceptionPrintStackTrace);
                 }
 
-                if (framework == LoggingFramework.JUL) {
-                    maybeAddImport("java.util.logging.Level");
-                }
+                maybeAddImport("java.util.logging.Level");
 
-                if (framework == LoggingFramework.SYSTEM) {
-                    maybeAddImport("java.lang.System.Logger.Level");
-                }
+                maybeAddImport("java.lang.System.Logger.Level");
 
                 String methodPattern;
                 if (framework == LoggingFramework.SYSTEM) {

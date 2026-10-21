@@ -103,12 +103,8 @@ public class PrintStackTraceToLogError extends Recipe {
             }
 
             private J.MethodInvocation replaceMethodInvocation(J.MethodInvocation m, J.Identifier logField, ExecutionContext ctx) {
-                if (framework == LoggingFramework.JUL) {
-                    maybeAddImport("java.util.logging.Level");
-                }
-                if (framework == LoggingFramework.SYSTEM) {
-                    maybeAddImport("java.lang.System.Logger.Level");
-                }
+                maybeAddImport("java.util.logging.Level");
+                maybeAddImport("java.lang.System.Logger.Level");
 
                 return framework.getErrorTemplate("\"Exception\"", ctx).apply(
                         new Cursor(getCursor().getParent(), m),
