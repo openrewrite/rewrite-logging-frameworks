@@ -95,7 +95,7 @@ public class ConditionAttributeToConditionElement extends Recipe {
                     Xml.Tag ifTag = (Xml.Tag) child;
                     return Arrays.asList(
                             conditionElement(parsed, ctx).withPrefix(ifTag.getPrefix()),
-                            ifTag.withAttributes(ListUtils.map(ifTag.getAttributes(), a -> a == condition ? null : a))
+                            ifTag.withAttributes(ListUtils.filter(ifTag.getAttributes(), a -> a != condition))
                                     .withPrefix(lastLineOf(ifTag.getPrefix())));
                 }));
             }
