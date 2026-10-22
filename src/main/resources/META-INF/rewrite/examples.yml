@@ -1248,7 +1248,7 @@ examples:
               logger.error(marker, "Failed: {}", message, exception);
 
               logger.info("User {} logged in", username);
-              logger.info("isHTML ''{}'', body: {}", username, message);
+              logger.info("isHTML '{}', body: {}", username, message);
               logger.info("part1 part2 {}", username);
           }
       }
@@ -1310,12 +1310,6 @@ examples:
               // single statement without braces
               if (LOGGER.isDebugEnabled())
                   LOGGER.debug("No braces: {}", name);
-
-              // mixed log levels in guard
-              if (LOGGER.isDebugEnabled()) {
-                  LOGGER.debug("Debug: {}", name);
-                  LOGGER.info("Also info: {}", name);
-              }
           }
       }
     after: |
@@ -1350,10 +1344,6 @@ examples:
 
               // single statement without braces
               LOGGER.debug("No braces: {}", name);
-
-              // mixed log levels in guard
-              LOGGER.debug("Debug: {}", name);
-              LOGGER.info("Also info: {}", name);
           }
       }
     language: java
@@ -1488,8 +1478,8 @@ examples:
 
               LOGGER.info("String: {}", username);
               LOGGER.info("Decimal: {}", count);
-              LOGGER.info("Hex: {}", count);
-              LOGGER.info("Octal: {}", count);
+              LOGGER.info(String.format("Hex: %x", count));
+              LOGGER.info(String.format("Octal: %o", count));
               LOGGER.info("Float: {}", value);
               LOGGER.info("Boolean: {}", true);
               LOGGER.info("Char: {}", 'x');
