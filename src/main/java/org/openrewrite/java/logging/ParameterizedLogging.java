@@ -115,21 +115,20 @@ public class ParameterizedLogging extends Recipe {
                         }
 
                         // Build the message template
-                        ListUtils.map(m.getArguments(), (index, message) -> {
+                        for (int index = 0; index < m.getArguments().size(); index++) {
                             if (index > 0) {
                                 messageBuilder.append(", ");
                             }
                             if (index == logMsgIndex) {
                                 messageBuilder.append("\"");
-                                MessageAndArguments literalAndArgs = concatenationToLiteral(message, new MessageAndArguments("", new ArrayList<>()));
+                                MessageAndArguments literalAndArgs = concatenationToLiteral(m.getArguments().get(index), new MessageAndArguments("", new ArrayList<>()));
                                 messageBuilder.append(literalAndArgs.message);
                                 messageBuilder.append("\"");
                                 literalAndArgs.arguments.forEach(arg -> messageBuilder.append(", #{any()}"));
                             } else {
                                 messageBuilder.append("#{any()}");
                             }
-                            return message;
-                        });
+                        }
 
                         // Assemble arguments in correct order: regular args, concatenation args, throwable (if any)
                         newArgList.addAll(regularArgs);
