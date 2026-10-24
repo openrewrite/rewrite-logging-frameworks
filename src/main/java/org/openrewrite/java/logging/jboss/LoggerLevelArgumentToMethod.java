@@ -104,6 +104,7 @@ public class LoggerLevelArgumentToMethod extends Recipe {
                                 .withParameterNames(ListUtils.filter(m.getMethodType().getParameterNames(), it -> !"level".equals(it)))
                                 .withName(logLevelName.toLowerCase());
 
+                        maybeRemoveImport("org.jboss.logging.Logger.Level");
                         return m
                                 .withArguments(updatedArguments)
                                 .withMethodType(updatedMethodType)

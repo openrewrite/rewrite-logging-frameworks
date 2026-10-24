@@ -63,13 +63,11 @@ public class Log4jAppenderToLogback extends Recipe {
                                 .contextSensitive()
                                 .imports("ch.qos.logback.core.AppenderBase", "ch.qos.logback.classic.spi.ILoggingEvent")
                                 .javaParser(JavaParser.fromJavaVersion().dependsOn(
+                                        "package ch.qos.logback.core;public abstract class AppenderBase<E> { }",
                                         "package ch.qos.logback.classic.spi;public interface ILoggingEvent{ }",
                                         "package org.apache.log4j.spi;public class LoggingEvent { public String getRenderedMessage() {return null;}}"))
                                 .build()
                                 .apply(new Cursor(getCursor().getParent(), cd), cd.getCoordinates().replaceExtendsClause());
-
-                        // should be covered by maybeAddImport, todo
-                        doAfterVisit(new AddImport<>("ch.qos.logback.core.AppenderBase", null, false));
                     }
 
                     cd = cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), statement -> {
