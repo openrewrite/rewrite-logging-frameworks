@@ -88,8 +88,6 @@ class LoggerLevelArgumentToMethodTest implements RewriteTest {
             """
               import org.jboss.logging.Logger;
 
-              import static org.jboss.logging.Logger.Level.%1$S;
-
               class Test {
                   void test(Logger logger, Object msg, Throwable t, String fqcn) {
                       logger.%1$s(msg);
@@ -102,6 +100,34 @@ class LoggerLevelArgumentToMethodTest implements RewriteTest {
                   }
               }
               """.formatted(level)
+          )
+        );
+    }
+
+    @Test
+    void removeImportOfLevelType() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.jboss.logging.Logger;
+              import org.jboss.logging.Logger.Level;
+
+              class Test {
+                  void test(Logger logger, String msg) {
+                      logger.log(Level.INFO, msg);
+                  }
+              }
+              """,
+            """
+              import org.jboss.logging.Logger;
+
+              class Test {
+                  void test(Logger logger, String msg) {
+                      logger.info(msg);
+                  }
+              }
+              """
           )
         );
     }

@@ -118,7 +118,6 @@ class Log4j1MdcGetContextToCopyOfContextMapTest implements RewriteTest {
             """
               import org.apache.log4j.MDC;
 
-              import java.util.Hashtable;
               import java.util.Map;
 
               class Test {
@@ -233,7 +232,6 @@ class Log4j1MdcGetContextToCopyOfContextMapTest implements RewriteTest {
             """
               import org.apache.log4j.MDC;
 
-              import java.util.Hashtable;
               import java.util.Map;
 
               class Test {
