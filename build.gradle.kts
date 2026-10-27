@@ -18,6 +18,8 @@ recipeDependencies {
     parserClasspath("ch.qos.logback:logback-classic:1.3.+")
     parserClasspath("org.projectlombok:lombok:1.18.+")
     parserClasspath("org.jboss.logging:jboss-logging:3.+")
+
+    testParserClasspath("ch.qos.logback:logback-core:1.3.+")
 }
 
 dependencies {
@@ -44,8 +46,6 @@ dependencies {
         exclude("com.google.auto.service", "auto-service-annotations")
         exclude("io.github.eisop","dataflow-errorprone")
     }
-
-    testRuntimeOnly("ch.qos.logback:logback-classic:1.3.+")
 
     testImplementation("org.openrewrite:rewrite-kotlin")
     testImplementation("org.openrewrite:rewrite-maven")
