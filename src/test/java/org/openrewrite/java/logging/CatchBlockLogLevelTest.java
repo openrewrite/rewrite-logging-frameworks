@@ -122,7 +122,7 @@ class CatchBlockLogLevelTest implements RewriteTest {
     @Test
     void slf4j() {
         rewriteRun(
-          spec -> spec.parser(JavaParser.fromJavaVersion().classpath("slf4j-api")),
+          spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2")),
           //language=java
           java(
                """
@@ -166,7 +166,7 @@ class CatchBlockLogLevelTest implements RewriteTest {
     @Test
     void logbackClassic() {
         rewriteRun(
-          spec -> spec.parser(JavaParser.fromJavaVersion().classpath("slf4j-api", "logback-classic", "logback-core")),
+          spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2", "logback-classic-1.3", "logback-core-1.3")),
           //language=java
           java(
                """
