@@ -298,10 +298,18 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
         if (enclosingIf == null) {
             return false;
         }
-        List<J> sideEffects = enclosingIf.getIfCondition().getSideEffects();
-        return (infoMatcher.matches(m) && sideEffects.stream().allMatch(e -> e instanceof J.MethodInvocation && isInfoEnabledMatcher.matches((J.MethodInvocation) e))) ||
-                (debugMatcher.matches(m) && sideEffects.stream().allMatch(e -> e instanceof J.MethodInvocation && isDebugEnabledMatcher.matches((J.MethodInvocation) e))) ||
-                (traceMatcher.matches(m) && sideEffects.stream().allMatch(e -> e instanceof J.MethodInvocation && isTraceEnabledMatcher.matches((J.MethodInvocation) e)));
+        Expression condition = enclosingIf.getIfCondition().getTree();
+        return (infoMatcher.matches(m) && onlyCalls(condition, isInfoEnabledMatcher)) ||
+                (debugMatcher.matches(m) && onlyCalls(condition, isDebugEnabledMatcher)) ||
+                (traceMatcher.matches(m) && onlyCalls(condition, isTraceEnabledMatcher));
+    }
+
+    private static boolean onlyCalls(Expression condition, MethodMatcher isEnabledMatcher) {
+        if (condition instanceof J.Binary) {
+            J.Binary binary = (J.Binary) condition;
+            return onlyCalls(binary.getLeft(), isEnabledMatcher) && onlyCalls(binary.getRight(), isEnabledMatcher);
+        }
+        return condition.getSideEffects().stream().allMatch(e -> e instanceof J.MethodInvocation && isEnabledMatcher.matches((J.MethodInvocation) e));
     }
 
     private static boolean isAnyArgumentExpensive(J.MethodInvocation m) {

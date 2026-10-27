@@ -142,7 +142,8 @@ public class JulParameterizedArguments extends Recipe {
                 doAfterVisit(new ArgumentArrayToVarargs().getVisitor());
                 Set<Flag> flags = new HashSet<>(requireNonNull(updatedMi.getMethodType()).getFlags());
                 flags.add(Flag.Varargs);
-                return updatedMi.withMethodType(updatedMi.getMethodType().withFlags(flags));
+                JavaType.Method varargsType = updatedMi.getMethodType().withFlags(flags);
+                return updatedMi.withMethodType(varargsType).withName(updatedMi.getName().withType(varargsType));
             }
             return super.visitMethodInvocation(method, ctx);
         }
