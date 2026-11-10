@@ -252,6 +252,98 @@ class LoggersNamedForEnclosingClassTest implements RewriteTest {
     }
 
     @Test
+    void shouldNotChangeCorrectLoggerNameWithComment() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+              class A {
+                  Logger log = LoggerFactory.getLogger(A /* the class */ .class);
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shouldNotChangeFullyQualifiedCorrectLoggerName() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package foo;
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+              class A {
+                  Logger log = LoggerFactory.getLogger(foo.A.class);
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shouldNotChangeNestedCorrectLoggerName() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+              class Outer {
+                  static class Inner {
+                      Logger log = LoggerFactory.getLogger(Outer.Inner.class);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shouldRenameLoggerFromGetClassWithCommentForFinalClass() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+              final class A {
+                  Logger log = LoggerFactory.getLogger(this./* the class */getClass());
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+              final class A {
+                  Logger log = LoggerFactory.getLogger(A.class);
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shouldNotReplaceGetClassOfOtherObjectForFinalClass() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+              final class A {
+                  Logger getLoggerFor(Object other) {
+                      return LoggerFactory.getLogger(other.getClass());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void groovyClassLiteralInCommandChain() {
         rewriteRun(
           spec -> spec.parser(GroovyParser.builder().classpathFromResource(new InMemoryExecutionContext(), "slf4j-api-2")),

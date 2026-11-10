@@ -83,24 +83,45 @@ public class LoggersNamedForEnclosingClass extends Recipe {
                     return mi;
                 }
 
-                String enclosingClazzName = firstEnclosingClass.getSimpleName() + ".class";
                 Expression firstArgument = mi.getArguments().get(0);
-                if (isThisClass(firstArgument) || firstArgument instanceof J.MethodInvocation &&
-                                                  "getClass".equals(((J.MethodInvocation) firstArgument).getName().toString())) {
+                if (isThisClass(firstArgument) || isThisGetClass(firstArgument)) {
                     if (firstEnclosingClass.hasModifier(J.Modifier.Type.Final)) {
                         return replaceMethodArgument(mi, firstEnclosingClass);
                     }
-                } else if (firstArgument instanceof J.FieldAccess) {
-                    String argumentClazzName = ((J.FieldAccess) firstArgument).toString();
-                    if (argumentClazzName.endsWith(".class") && !enclosingClazzName.equals(argumentClazzName)) {
-                        if (firstArgument.getType() instanceof JavaType.Parameterized) {
-                            maybeRemoveImport(((JavaType.Parameterized) firstArgument.getType()).getTypeParameters().get(0).toString());
-                        }
-                        return replaceMethodArgument(mi, firstEnclosingClass);
+                } else if (isClassLiteral(firstArgument) &&
+                           !isEnclosingClass(((J.FieldAccess) firstArgument).getTarget(), firstEnclosingClass)) {
+                    if (firstArgument.getType() instanceof JavaType.Parameterized) {
+                        maybeRemoveImport(((JavaType.Parameterized) firstArgument.getType()).getTypeParameters().get(0).toString());
                     }
+                    return replaceMethodArgument(mi, firstEnclosingClass);
                 }
 
                 return mi;
+            }
+
+            private boolean isThisGetClass(Expression argument) {
+                if (!(argument instanceof J.MethodInvocation)) {
+                    return false;
+                }
+                J.MethodInvocation getClass = (J.MethodInvocation) argument;
+                Expression select = getClass.getSelect();
+                return "getClass".equals(getClass.getSimpleName()) &&
+                       getClass.getArguments().stream().allMatch(J.Empty.class::isInstance) &&
+                       (select == null || select instanceof J.Identifier && "this".equals(((J.Identifier) select).getSimpleName()));
+            }
+
+            private boolean isClassLiteral(Expression argument) {
+                return argument instanceof J.FieldAccess && "class".equals(((J.FieldAccess) argument).getSimpleName());
+            }
+
+            private boolean isEnclosingClass(Expression target, J.ClassDeclaration enclosingClass) {
+                JavaType.FullyQualified targetType = TypeUtils.asFullyQualified(target.getType());
+                if (targetType != null && enclosingClass.getType() != null) {
+                    return TypeUtils.isOfClassType(enclosingClass.getType(), targetType.getFullyQualifiedName());
+                }
+                String targetName = target instanceof J.Identifier ? ((J.Identifier) target).getSimpleName() :
+                        target instanceof J.FieldAccess ? ((J.FieldAccess) target).getSimpleName() : null;
+                return enclosingClass.getSimpleName().equals(targetName);
             }
 
             private boolean isThisClass(Expression argument) {
