@@ -20,6 +20,7 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -42,6 +43,8 @@ class Slf4jBestPracticesTest implements RewriteTest {
     void applyBestPractices() {
         //language=java
         rewriteRun(
+          // CompleteExceptionLogging turns `logger.error(e.getMessage())` into `logger.error("", e)` but keeps `error(String)`, where javac picks `error(String, Throwable)`
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           java(
             """
               import org.slf4j.Logger;

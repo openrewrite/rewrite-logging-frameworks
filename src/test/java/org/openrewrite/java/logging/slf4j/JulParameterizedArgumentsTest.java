@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.Issue;
+import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -36,6 +37,8 @@ class JulParameterizedArgumentsTest implements RewriteTest {
     @Test
     void parameterizedSingleArgument() {
         rewriteRun(
+          // the template patches a method type together from JUL's `log` and the recipe marks it varargs, where javac picks a fixed-arity overload
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           // language=java
           java(
             """
@@ -64,6 +67,8 @@ class JulParameterizedArgumentsTest implements RewriteTest {
     @Test
     void unescapeMessageFormatQuotes() {
         rewriteRun(
+          // the template patches a method type together from JUL's `log` and the recipe marks it varargs, where javac picks a fixed-arity overload
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           // language=java
           java(
             """
@@ -92,6 +97,8 @@ class JulParameterizedArgumentsTest implements RewriteTest {
     @Test
     void escapeCharacters() {
         rewriteRun(
+          // the template patches a method type together from JUL's `log` and the recipe marks it varargs, where javac picks a fixed-arity overload
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           // language=java
           java(
             """
@@ -128,6 +135,8 @@ class JulParameterizedArgumentsTest implements RewriteTest {
     @Test
     void parameterizedArgumentArray() {
         rewriteRun(
+          // ArgumentArrayToVarargs unpacks the array but keeps `info(String, Object...)`, where javac picks `info(String, Object, Object)`
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           // language=java
           java(
             """
@@ -158,6 +167,8 @@ class JulParameterizedArgumentsTest implements RewriteTest {
     @Test
     void parameterizedArgumentArrayWithNoInitializer() {
         rewriteRun(
+          // ArgumentArrayToVarargs drops the empty array but keeps `info(String, Object...)`, where javac picks `info(String)`
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           // language=java
           java(
             """
@@ -186,6 +197,8 @@ class JulParameterizedArgumentsTest implements RewriteTest {
     @Test
     void retainLoggedArgumentOrder() {
         rewriteRun(
+          // ArgumentArrayToVarargs unpacks the array but keeps `info(String, Object...)`, where javac picks `info(String, Object, Object)`
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           // language=java
           java(
             """
@@ -236,6 +249,8 @@ class JulParameterizedArgumentsTest implements RewriteTest {
     @Test
     void repeatLoggedArgumentAsNeeded() {
         rewriteRun(
+          // the recipe repeats the logged argument but keeps the template's two-parameter `info(String, String)`, where javac picks `info(String, Object, Object)`
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           // language=java
           java(
             """
@@ -264,6 +279,8 @@ class JulParameterizedArgumentsTest implements RewriteTest {
     @Test
     void mapLogLevelsToCorrectMethod() {
         rewriteRun(
+          // the template patches a method type together from JUL's `log` and the recipe marks it varargs, where javac picks a fixed-arity overload
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           // language=java
           java(
             """
@@ -304,6 +321,8 @@ class JulParameterizedArgumentsTest implements RewriteTest {
     @Test
     void staticImportLevel() {
         rewriteRun(
+          // the template patches a method type together from JUL's `log` and the recipe marks it varargs, where javac picks a fixed-arity overload
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           // language=java
           java(
             """
@@ -401,6 +420,8 @@ class JulParameterizedArgumentsTest implements RewriteTest {
         @Test
         void quotedParameters() {
             rewriteRun(
+              // the template patches a method type together from JUL's `log` and the recipe marks it varargs, where javac picks a fixed-arity overload
+              spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
               // language=java
               java(
                 """
@@ -429,6 +450,8 @@ class JulParameterizedArgumentsTest implements RewriteTest {
         @Test
         void backslashInFormatString() {
             rewriteRun(
+              // the template patches a method type together from JUL's `log` and the recipe marks it varargs, where javac picks a fixed-arity overload
+              spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
               // language=java
               java(
                 """

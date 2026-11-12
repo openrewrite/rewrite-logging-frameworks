@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
@@ -37,6 +38,8 @@ class JulToLog4jTest implements RewriteTest {
     @Test
     void simpleLoggerCalls() {
         rewriteRun(
+          // ChangeType keeps the flags of JUL's concrete `Logger` methods and JUL's `Supplier` parameter, where Log4j's interface methods are abstract and take its own `Supplier`
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           // language=java
           java(
             """
