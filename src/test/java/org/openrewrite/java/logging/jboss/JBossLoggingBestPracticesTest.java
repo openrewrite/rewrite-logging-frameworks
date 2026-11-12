@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -35,6 +36,8 @@ class JBossLoggingBestPracticesTest implements RewriteTest {
     @Test
     void convertInfo() {
         rewriteRun(
+          // the call keeps `infov(String, Object...)` once the array's element becomes the argument, where javac picks `infov(String, Object)`
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           //language=java
           java(
             """

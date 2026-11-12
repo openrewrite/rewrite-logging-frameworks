@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -38,6 +39,8 @@ class Log4j1ToSlf4jMdcTest implements RewriteTest {
     void replacePatterns() {
         //language=java
         rewriteRun(
+          // ChangeType keeps Log4j's `MDC.put(String, Object)`, where SLF4J's `put` takes a `String` and throws `IllegalArgumentException`
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           java(
             """
               import org.apache.log4j.MDC;

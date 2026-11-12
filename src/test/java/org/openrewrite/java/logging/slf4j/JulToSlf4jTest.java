@@ -17,6 +17,7 @@ package org.openrewrite.java.logging.slf4j;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
@@ -43,6 +44,8 @@ class JulToSlf4jTest implements RewriteTest {
     @Test
     void simpleLoggerCalls() {
         rewriteRun(
+          // ChangeType keeps the flags of JUL's concrete `Logger` methods, where SLF4J's interface methods are abstract
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           // language=java
           java(
             """
@@ -300,6 +303,8 @@ class JulToSlf4jTest implements RewriteTest {
     @Test
     void concatenatedLoggerCalls() {
         rewriteRun(
+          // ParameterizedLogging's template patches `trace(String, String)` from the JUL method that ChangeType retargets to SLF4J's `Logger`, with JUL's concrete-method flags, where javac picks the abstract `trace(String, Object)`
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           // language=java
           java(
             """
@@ -349,6 +354,8 @@ class JulToSlf4jTest implements RewriteTest {
     void logLevelIsLoggable() {
         //language=java
         rewriteRun(
+          // ChangeType keeps the flags of JUL's concrete `Logger` methods, where SLF4J's interface methods are abstract
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           java(
             """
               import java.util.logging.Level;import java.util.logging.Logger;

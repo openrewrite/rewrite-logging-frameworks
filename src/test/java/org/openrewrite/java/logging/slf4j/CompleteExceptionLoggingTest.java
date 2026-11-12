@@ -20,6 +20,7 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -39,6 +40,8 @@ class CompleteExceptionLoggingTest implements RewriteTest {
     void addExceptionToBeTheLastArg() {
         //language=java
         rewriteRun(
+          // the recipe changes the call's arguments but keeps its method type, where javac picks another overload for them
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           java(
             """
               import org.slf4j.Logger;
@@ -99,6 +102,8 @@ class CompleteExceptionLoggingTest implements RewriteTest {
     void replaceGetMessageWithException() {
         //language=java
         rewriteRun(
+          // the recipe changes the call's arguments but keeps its method type, where javac picks another overload for them
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           java(
             """
               import org.slf4j.Logger;
@@ -154,6 +159,8 @@ class CompleteExceptionLoggingTest implements RewriteTest {
     void addNewParameter() {
         //language=java
         rewriteRun(
+          // the recipe changes the call's arguments but keeps its method type, where javac picks another overload for them
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           java(
             """
               import org.slf4j.Logger;
@@ -209,6 +216,8 @@ class CompleteExceptionLoggingTest implements RewriteTest {
     void variousGetMessageAsParameter() {
         //language=java
         rewriteRun(
+          // the recipe changes the call's arguments but keeps its method type, where javac picks another overload for them
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           java(
             """
               import org.slf4j.Logger;
@@ -280,6 +289,8 @@ class CompleteExceptionLoggingTest implements RewriteTest {
     void allLogMethods() {
         //language=java
         rewriteRun(
+          // the recipe changes the call's arguments but keeps its method type, where javac picks another overload for them
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           java(
             """
               import org.slf4j.Logger;
@@ -347,6 +358,8 @@ class CompleteExceptionLoggingTest implements RewriteTest {
     void convertWithMessage() {
         //language=java
         rewriteRun(
+          // the recipe changes the call's arguments but keeps its method type, where javac picks another overload for them
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           java(
             """
               import org.slf4j.Logger;

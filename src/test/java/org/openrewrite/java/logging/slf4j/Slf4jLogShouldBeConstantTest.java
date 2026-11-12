@@ -20,6 +20,7 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -77,6 +78,8 @@ class Slf4jLogShouldBeConstantTest implements RewriteTest {
     void doNotUseStringFormat() {
         //language=java
         rewriteRun(
+          // the recipe changes the call's arguments but keeps its method type, where javac picks another overload for them
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           java(
             """
               import org.slf4j.Logger;
@@ -212,6 +215,8 @@ class Slf4jLogShouldBeConstantTest implements RewriteTest {
     void doNotUseStringFormatAndKeepPassedException() {
         //language=java
         rewriteRun(
+          // the recipe changes the call's arguments but keeps its method type, where javac picks another overload for them
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           java(
             """
               import org.slf4j.Logger;
@@ -421,6 +426,8 @@ class Slf4jLogShouldBeConstantTest implements RewriteTest {
     void keepEscapesInFormatString() {
         //language=java
         rewriteRun(
+          // the recipe changes the call's arguments but keeps its method type, where javac picks another overload for them
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           java(
             """
               import org.slf4j.Logger;

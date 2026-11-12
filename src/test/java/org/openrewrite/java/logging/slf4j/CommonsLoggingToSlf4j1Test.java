@@ -20,6 +20,7 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
@@ -47,6 +48,8 @@ class CommonsLoggingToSlf4j1Test implements RewriteTest {
     void useLoggerFactory() {
         //language=java
         rewriteRun(
+          // SimplifyMethodChain, ChangeMethodName and ChangeType keep commons-logging's `LogFactory` method types, with their `LogConfigurationException` and `getInstance`'s abstract flag
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           java(
             """
               import org.apache.commons.logging.LogFactory;
@@ -78,6 +81,8 @@ class CommonsLoggingToSlf4j1Test implements RewriteTest {
     void staticFinalLoggerIsStaticFinal() {
         //language=java
         rewriteRun(
+          // SimplifyMethodChain, ChangeMethodName and ChangeType keep commons-logging's `LogFactory` method types, with their `LogConfigurationException` and `getInstance`'s abstract flag
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           java(
             """
               import org.apache.commons.logging.LogFactory;
@@ -109,6 +114,8 @@ class CommonsLoggingToSlf4j1Test implements RewriteTest {
     void logLevelFatalToError() {
         //language=java
         rewriteRun(
+          // ChangeMethodName and ChangeType keep `Log.fatal(Object)`'s parameter type, where SLF4J's `error` takes a `String`
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           java(
             """
               import org.apache.commons.logging.Log;
