@@ -150,7 +150,8 @@ class CommonsLoggingToSlf4j1Test implements RewriteTest {
     void changeLombokLogAnnotation() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.builder().identifiers(false).methodInvocations(false).build()),
+          // ChangeType leaves `log.info(..)` typed as `Logger.info(Object)`, where the parser gives `Logger.info(String)`.
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           java(
             """
               import lombok.extern.apachecommons.CommonsLog;

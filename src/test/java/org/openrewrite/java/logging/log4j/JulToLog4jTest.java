@@ -22,7 +22,6 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
-import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
@@ -123,10 +122,7 @@ class JulToLog4jTest implements RewriteTest {
 
     @Test
     void changeLombokLogAnnotation() {
-        rewriteRun(spec -> spec.typeValidationOptions(TypeValidation.builder()
-            .identifiers(false)
-            .methodInvocations(false)
-            .build()),
+        rewriteRun(spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(RecipeQualityValidation.ParserTypes.Erasure).build()),
           // language=java
           java(
             """

@@ -25,7 +25,6 @@ import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeQualityValidation.ParserTypes;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
-import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.groovy.Assertions.groovy;
 import static org.openrewrite.java.Assertions.java;
@@ -79,10 +78,7 @@ class CommonsLoggingToLog4jTest implements RewriteTest {
     void changeLombokLogAnnotation() {
         // language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.builder()
-            .identifiers(false)
-            .methodInvocations(false)
-            .build()),
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           java(
             """
               import lombok.extern.apachecommons.CommonsLog;
