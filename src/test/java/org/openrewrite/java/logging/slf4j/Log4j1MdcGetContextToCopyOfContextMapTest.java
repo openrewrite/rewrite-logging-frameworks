@@ -20,6 +20,7 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeQualityValidation;
+import org.openrewrite.test.RecipeQualityValidation.ParserTypes;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -258,7 +259,8 @@ class Log4j1MdcGetContextToCopyOfContextMapTest implements RewriteTest {
         //language=java
         rewriteRun(
           // the recipe retypes `inner()`'s return type to the raw `Map`, where javac gives it `Map<String, String>`
-          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder()
+            .parserTypedTrees(ParserTypes.Erasure).build()),
           java(
             """
               import org.apache.log4j.MDC;
@@ -302,7 +304,8 @@ class Log4j1MdcGetContextToCopyOfContextMapTest implements RewriteTest {
         //language=java
         rewriteRun(
           // the recipe retypes the declaration to the raw `Map`, where javac gives it `Map<String, String>`
-          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder()
+            .parserTypedTrees(ParserTypes.Erasure).build()),
           java(
             """
               import org.apache.log4j.MDC;
