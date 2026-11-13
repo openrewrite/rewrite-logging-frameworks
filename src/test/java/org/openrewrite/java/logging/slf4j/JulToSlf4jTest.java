@@ -21,7 +21,6 @@ import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeQualityValidation.ParserTypes;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
-import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
@@ -152,7 +151,6 @@ class JulToSlf4jTest implements RewriteTest {
     @Test
     void supplierLoggerCalls() {
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.builder().methodInvocations(false).build()),
           // language=java
           java(
             """
@@ -213,7 +211,6 @@ class JulToSlf4jTest implements RewriteTest {
     @Test
     void supplierLoggerCallsWithThrowable() {
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.builder().methodInvocations(false).build()),
           // language=java
           java(
             """
@@ -258,7 +255,6 @@ class JulToSlf4jTest implements RewriteTest {
     @Test
     void concatenatedSupplierLoggerCalls() {
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.builder().methodInvocations(false).build()),
           // language=java
           java(
             """

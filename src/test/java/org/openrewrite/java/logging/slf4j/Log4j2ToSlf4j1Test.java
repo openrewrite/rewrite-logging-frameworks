@@ -175,7 +175,8 @@ class Log4j2ToSlf4j1Test implements RewriteTest {
     void changeLombokLogAnnotation() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.builder().identifiers(false).methodInvocations(false).build()),
+          // `log` is the field Lombok generates from the annotation; Lombok does not run in the test, so `log` has no type.
+          spec -> spec.typeValidationOptions(TypeValidation.all().identifiers(false)),
           java(
             """
               import lombok.extern.log4j.Log4j;
