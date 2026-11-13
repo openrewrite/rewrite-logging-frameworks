@@ -21,6 +21,7 @@ import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeQualityValidation;
+import org.openrewrite.test.RecipeQualityValidation.ParserTypes;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
@@ -49,7 +50,8 @@ class CommonsLoggingToSlf4j1Test implements RewriteTest {
         //language=java
         rewriteRun(
           // SimplifyMethodChain, ChangeMethodName and ChangeType keep commons-logging's `LogFactory` method types, with their `LogConfigurationException` and `getInstance`'s abstract flag
-          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder()
+            .parserTypedTrees(ParserTypes.Erasure).build()),
           java(
             """
               import org.apache.commons.logging.LogFactory;
@@ -82,7 +84,8 @@ class CommonsLoggingToSlf4j1Test implements RewriteTest {
         //language=java
         rewriteRun(
           // SimplifyMethodChain, ChangeMethodName and ChangeType keep commons-logging's `LogFactory` method types, with their `LogConfigurationException` and `getInstance`'s abstract flag
-          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder()
+            .parserTypedTrees(ParserTypes.Erasure).build()),
           java(
             """
               import org.apache.commons.logging.LogFactory;

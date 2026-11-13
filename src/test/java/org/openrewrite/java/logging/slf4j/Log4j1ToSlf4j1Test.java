@@ -22,6 +22,7 @@ import org.openrewrite.Issue;
 import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeQualityValidation;
+import org.openrewrite.test.RecipeQualityValidation.ParserTypes;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -255,7 +256,8 @@ class Log4j1ToSlf4j1Test implements RewriteTest {
         //language=java
         rewriteRun(
           // Log4j1MdcGetContextToCopyOfContextMap retypes the declaration to the raw `Map`, where javac gives it `Map<String, String>`
-          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder()
+            .parserTypedTrees(ParserTypes.Erasure).build()),
           java(
             """
               import org.apache.log4j.MDC;
