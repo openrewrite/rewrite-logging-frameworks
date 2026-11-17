@@ -38,6 +38,10 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
     private static final String MARKER = "org.apache.logging.log4j.Marker";
     private static final List<String> ALL_LEVELS = asList("trace", "debug", "info", "warn", "error", "fatal");
     private static final MethodMatcher LOG_METHODS = new MethodMatcher(LOGGER + " *(..)", true);
+    private static final String LOG4J_SUPPLIER = "org.apache.logging.log4j.util.Supplier";
+    private static final String JAVA_SUPPLIER = "java.util.function.Supplier";
+    private static final MethodMatcher LOG4J_SUPPLIER_GET = new MethodMatcher(LOG4J_SUPPLIER + " get()", true);
+    private static final MethodMatcher JAVA_SUPPLIER_GET = new MethodMatcher(JAVA_SUPPLIER + " get()", true);
 
     @Option(displayName = "Log levels",
             description = "The log levels whose statements are converted, e.g. `trace, debug`. " +
@@ -62,8 +66,8 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
     String description = "Replace parameterized Log4j 2 log statements such as `logger.debug(String message, Object... params)` " +
                          "with `logger.debug(String message, Supplier<?>... paramSuppliers)`, so that the parameters are only " +
                          "evaluated when the log level is enabled. Statements whose last argument is a `Throwable`, whose arguments " +
-                         "capture local variables that are not effectively final, have side effects or throw checked exceptions " +
-                         "are left unchanged.";
+                         "capture local variables that are not effectively final, have side effects, throw checked exceptions " +
+                         "or are suppliers themselves are left unchanged.";
 
     Set<String> tags = new HashSet<>(asList("logging", "log4j"));
 
@@ -177,6 +181,8 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
         for (Expression param : params) {
             JavaType type = param.getType();
             if (type == null || type instanceof JavaType.Unknown || type instanceof JavaType.Array ||
+                // A supplier is logged as an object; wrapping it in another supplier gains nothing
+                TypeUtils.isAssignableTo(LOG4J_SUPPLIER, type) || TypeUtils.isAssignableTo(JAVA_SUPPLIER, type) ||
                 param instanceof J.Literal && ((J.Literal) param).getValue() == null ||
                 hasSideEffectsOrCheckedExceptions(param)) {
                 return false;
@@ -205,6 +211,10 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
         Expression unwrapped = arg.unwrap();
         if (unwrapped instanceof J.MethodInvocation) {
             J.MethodInvocation mi = (J.MethodInvocation) unwrapped;
+            if (LOG4J_SUPPLIER_GET.matches(mi) || JAVA_SUPPLIER_GET.matches(mi)) {
+                // `Supplier.get()` looks like a getter, but runs whatever the supplier computes
+                return true;
+            }
             String name = mi.getSimpleName();
             boolean simpleGetter = mi.getMethodType() != null &&
                                    !mi.getMethodType().hasFlags(Flag.Static) &&

@@ -395,6 +395,47 @@ class ParameterizedLoggingToLambdaSuppliersTest implements RewriteTest {
         );
     }
 
+    @Test
+    void supplierGet() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.apache.logging.log4j.Logger;
+              import org.apache.logging.log4j.util.Supplier;
+
+              class Test {
+                  void test(Logger logger, Supplier<String> log4jSupplier, java.util.function.Supplier<String> javaSupplier) {
+                      logger.debug("{}", log4jSupplier.get());
+                      logger.debug("{}", javaSupplier.get());
+                      logger.debug("{} {}", javaSupplier.get(), compute());
+                  }
+
+                  String compute() {
+                      return "";
+                  }
+              }
+              """,
+            """
+              import org.apache.logging.log4j.Logger;
+              import org.apache.logging.log4j.util.Supplier;
+
+              class Test {
+                  void test(Logger logger, Supplier<String> log4jSupplier, java.util.function.Supplier<String> javaSupplier) {
+                      logger.debug("{}", () -> log4jSupplier.get());
+                      logger.debug("{}", () -> javaSupplier.get());
+                      logger.debug("{} {}", () -> javaSupplier.get(), () -> compute());
+                  }
+
+                  String compute() {
+                      return "";
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Nested
     class NoChange {
 
@@ -568,16 +609,109 @@ class ParameterizedLoggingToLambdaSuppliersTest implements RewriteTest {
         }
 
         @Test
-        void alreadySupplier() {
+        void lambdasAndMethodReferences() {
             rewriteRun(
+              //language=java
+              java(
+                """
+                  import org.apache.logging.log4j.Level;
+                  import org.apache.logging.log4j.Logger;
+                  import org.apache.logging.log4j.Marker;
+
+                  class Test {
+                      void test(Logger logger, Marker marker, java.util.function.Supplier<String> javaSupplier) {
+                          logger.debug("{}", this::compute);
+                          logger.debug("{}", javaSupplier::get);
+                          logger.debug("{}", () -> {
+                              return compute();
+                          });
+                          logger.debug("{} {}", () -> compute(), () -> compute());
+                          logger.debug(marker, "{}", () -> compute());
+                          logger.log(Level.DEBUG, "{}", () -> compute());
+                          logger.log(Level.DEBUG, marker, "{}", () -> compute());
+                      }
+
+                      String compute() {
+                          return "";
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void supplierValues() {
+            rewriteRun(
+              spec -> spec.recipe(new ParameterizedLoggingToLambdaSuppliers(null, true)),
+              //language=java
+              java(
+                """
+                  import org.apache.logging.log4j.Logger;
+                  import org.apache.logging.log4j.util.Supplier;
+
+                  class Test {
+                      void test(Logger logger, Supplier<String> supplier, Supplier<?>[] suppliers) {
+                          logger.debug("{}", supplier);
+                          logger.debug("{}", supplier());
+                          logger.debug("{} {}", suppliers);
+                          logger.debug("{}", (Supplier<?>) this::compute);
+                          logger.debug("{}", (Supplier<?>) null);
+                      }
+
+                      Supplier<String> supplier() {
+                          return this::compute;
+                      }
+
+                      String compute() {
+                          return "";
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void javaUtilSupplierValues() {
+            rewriteRun(
+              spec -> spec.recipe(new ParameterizedLoggingToLambdaSuppliers(null, true)),
               //language=java
               java(
                 """
                   import org.apache.logging.log4j.Logger;
 
+                  import java.util.function.Supplier;
+
                   class Test {
-                      void test(Logger logger) {
-                          logger.debug("{}", () -> compute());
+                      void test(Logger logger, Supplier<String> supplier) {
+                          logger.debug("{}", supplier);
+                          logger.debug("{}", supplier());
+                      }
+
+                      Supplier<String> supplier() {
+                          return () -> "";
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void supplierAsMessage() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import org.apache.logging.log4j.Logger;
+                  import org.apache.logging.log4j.util.Supplier;
+
+                  class Test {
+                      void test(Logger logger, Supplier<String> supplier, Exception e) {
+                          logger.debug(() -> "Total " + compute());
+                          logger.debug(supplier);
+                          logger.debug(supplier, e);
                       }
 
                       String compute() {
