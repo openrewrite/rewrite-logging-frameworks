@@ -19,6 +19,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
@@ -41,7 +42,8 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
     @Option(displayName = "Log levels",
             description = "The log levels whose statements are converted, e.g. `trace, debug`. " +
                           "Applies to the level methods such as `debug(..)` as well as to `log(Level.DEBUG, ..)`. " +
-                          "Defaults to all levels.",
+                          "Defaults to all levels. A `log(..)` call whose level is not a `Level` constant is only " +
+                          "converted when no levels are given.",
             example = "trace, debug",
             required = false)
     @Nullable
@@ -80,19 +82,18 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         Set<String> levels = new HashSet<>();
-        for (String level : logLevels == null || logLevels.isEmpty() ? ALL_LEVELS : logLevels) {
-            levels.add(level.trim().toLowerCase(Locale.ROOT));
+        if (logLevels != null) {
+            for (String level : logLevels) {
+                levels.add(level.trim().toLowerCase(Locale.ROOT));
+            }
         }
         boolean convertSimple = Boolean.TRUE.equals(convertSimpleArguments);
-        return Preconditions.check(new UsesMethod<>(LOG_METHODS), new JavaVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesMethod<>(LOG_METHODS), new JavaIsoVisitor<ExecutionContext>() {
             @Override
-            public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                J.MethodInvocation m = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
-                if (m.getSelect() == null || !LOG_METHODS.matches(m)) {
-                    return m;
-                }
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
                 JavaType.Method methodType = m.getMethodType();
-                if (methodType == null) {
+                if (m.getSelect() == null || methodType == null || !LOG_METHODS.matches(m)) {
                     return m;
                 }
 
@@ -109,39 +110,44 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
                 }
 
                 StringJoiner template = new StringJoiner(", ", "#{any(" + LOGGER + ")}." + m.getSimpleName() + "(", ")");
-                List<Object> templateArgs = new ArrayList<>();
-                templateArgs.add(m.getSelect());
                 for (int i = 0; i < messageIndex; i++) {
                     template.add("#{any(" + (isType(args.get(i), LEVEL) ? LEVEL : MARKER) + ")}");
-                    templateArgs.add(args.get(i));
                 }
                 template.add("#{any(java.lang.String)}");
-                templateArgs.add(args.get(messageIndex));
-                for (Expression param : params) {
+                for (int i = 0; i < params.size(); i++) {
                     template.add("() -> #{any()}");
-                    templateArgs.add(param);
                 }
-                return JavaTemplate.builder(template.toString())
+                List<Object> templateArgs = new ArrayList<>(args.size() + 1);
+                templateArgs.add(m.getSelect());
+                templateArgs.addAll(args);
+                J.MethodInvocation converted = JavaTemplate.builder(template.toString())
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "log4j-api"))
                         .build()
                         .apply(getCursor(), m.getCoordinates().replace(), templateArgs.toArray());
+                // Keep the line breaks and comments of the original call
+                return m.withMethodType(converted.getMethodType())
+                        .withName(m.getName().withType(converted.getMethodType()))
+                        .withArguments(ListUtils.map(converted.getArguments(), (i, arg) -> {
+                            Space prefix = args.get(i).getPrefix();
+                            if (arg instanceof J.Lambda) {
+                                J.Lambda lambda = (J.Lambda) arg;
+                                return lambda.withPrefix(prefix).withBody(lambda.getBody().withPrefix(Space.SINGLE_SPACE));
+                            }
+                            return arg.withPrefix(prefix);
+                        }));
             }
         });
     }
 
-    /**
-     * @return the index of the message argument, or -1 when the call is not a parameterized log statement
-     * of one of the selected levels.
-     */
     private static int messageIndex(JavaType.Method methodType, List<Expression> args, Set<String> levels) {
-        String name = methodType.getName();
         int index = 0;
-        if ("log".equals(name)) {
-            if (args.isEmpty() || !isType(args.get(0), LEVEL) || !levels.contains(levelName(args.get(0)))) {
+        if ("log".equals(methodType.getName())) {
+            if (args.isEmpty() || !isType(args.get(0), LEVEL) ||
+                !levels.isEmpty() && !levels.contains(levelName(args.get(0)))) {
                 return -1;
             }
             index++;
-        } else if (!levels.contains(name)) {
+        } else if (!(levels.isEmpty() ? ALL_LEVELS : levels).contains(methodType.getName())) {
             return -1;
         }
         if (args.size() > index && isType(args.get(index), MARKER)) {
@@ -197,20 +203,17 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
 
     private static boolean isExpensive(Expression arg) {
         Expression unwrapped = arg.unwrap();
-        return !(unwrapped instanceof J.Literal ||
-                 unwrapped instanceof J.Identifier ||
-                 unwrapped instanceof J.FieldAccess ||
-                 unwrapped instanceof J.MethodInvocation && isSimpleGetter((J.MethodInvocation) unwrapped));
-    }
-
-    private static boolean isSimpleGetter(J.MethodInvocation mi) {
-        JavaType.Method type = mi.getMethodType();
-        String name = mi.getSimpleName();
-        return type != null &&
-               mi.getArguments().stream().allMatch(a -> a instanceof J.Empty) &&
-               !type.hasFlags(Flag.Static) &&
-               (name.startsWith("get") || name.startsWith("is")) &&
-               (mi.getSelect() == null || mi.getSelect() instanceof J.Identifier || mi.getSelect() instanceof J.FieldAccess);
+        if (unwrapped instanceof J.MethodInvocation) {
+            J.MethodInvocation mi = (J.MethodInvocation) unwrapped;
+            String name = mi.getSimpleName();
+            boolean simpleGetter = mi.getMethodType() != null &&
+                                   !mi.getMethodType().hasFlags(Flag.Static) &&
+                                   mi.getArguments().stream().allMatch(a -> a instanceof J.Empty) &&
+                                   (name.startsWith("get") || name.startsWith("is")) &&
+                                   (mi.getSelect() == null || mi.getSelect() instanceof J.Identifier || mi.getSelect() instanceof J.FieldAccess);
+            return !simpleGetter;
+        }
+        return !(unwrapped instanceof J.Literal || unwrapped instanceof J.Identifier || unwrapped instanceof J.FieldAccess);
     }
 
     private static boolean hasSideEffectsOrCheckedExceptions(Expression param) {

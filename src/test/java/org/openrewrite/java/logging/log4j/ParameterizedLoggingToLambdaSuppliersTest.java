@@ -15,15 +15,21 @@
  */
 package org.openrewrite.java.logging.log4j;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.java.Assertions.java;
 
 class ParameterizedLoggingToLambdaSuppliersTest implements RewriteTest {
@@ -234,7 +240,7 @@ class ParameterizedLoggingToLambdaSuppliersTest implements RewriteTest {
     }
 
     @Test
-    void keepSimpleArgumentsByDefault() {
+    void keepLineBreaksAndComments() {
         rewriteRun(
           //language=java
           java(
@@ -242,15 +248,118 @@ class ParameterizedLoggingToLambdaSuppliersTest implements RewriteTest {
               import org.apache.logging.log4j.Logger;
 
               class Test {
-                  static final String CONSTANT = "c";
-                  String name;
-
-                  void test(Logger logger, String id) {
-                      logger.debug("{} {} {} {} {}", id, 42, CONSTANT, this.name, getName());
+                  void test(Logger logger) {
+                      logger.debug("Values {} and {}",
+                              compute(),
+                              /* total */ compute());
                   }
 
-                  String getName() {
-                      return name;
+                  String compute() {
+                      return "";
+                  }
+              }
+              """,
+            """
+              import org.apache.logging.log4j.Logger;
+
+              class Test {
+                  void test(Logger logger) {
+                      logger.debug("Values {} and {}",
+                              () -> compute(),
+                              /* total */ () -> compute());
+                  }
+
+                  String compute() {
+                      return "";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void levelVariable() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.apache.logging.log4j.Level;
+              import org.apache.logging.log4j.Logger;
+
+              class Test {
+                  void test(Logger logger, Level level) {
+                      logger.log(level, "{}", compute());
+                  }
+
+                  String compute() {
+                      return "";
+                  }
+              }
+              """,
+            """
+              import org.apache.logging.log4j.Level;
+              import org.apache.logging.log4j.Logger;
+
+              class Test {
+                  void test(Logger logger, Level level) {
+                      logger.log(level, "{}", () -> compute());
+                  }
+
+                  String compute() {
+                      return "";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void callsSupplierOverload() {
+        rewriteRun(
+          spec -> spec.afterRecipe(run -> {
+              J.CompilationUnit cu = (J.CompilationUnit) run.getChangeset().getAllResults().get(0).getAfter();
+              new JavaIsoVisitor<Integer>() {
+                  @Override
+                  public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, Integer p) {
+                      if ("debug".equals(method.getSimpleName())) {
+                          JavaType.Method type = method.getMethodType();
+                          assertThat(type).isNotNull();
+                          assertThat(TypeUtils.isOfClassType(type.getDeclaringType(), "org.apache.logging.log4j.Logger")).isTrue();
+                          assertThat(type.getParameterTypes()).last()
+                            .matches(t -> t instanceof JavaType.Array &&
+                                          TypeUtils.isOfClassType(((JavaType.Array) t).getElemType(), "org.apache.logging.log4j.util.Supplier"));
+                      }
+                      return super.visitMethodInvocation(method, p);
+                  }
+              }.visit(cu, 0);
+          }),
+          //language=java
+          java(
+            """
+              import org.apache.logging.log4j.Logger;
+
+              class Test {
+                  void test(Logger logger) {
+                      logger.debug("{}", compute());
+                  }
+
+                  String compute() {
+                      return "";
+                  }
+              }
+              """,
+            """
+              import org.apache.logging.log4j.Logger;
+
+              class Test {
+                  void test(Logger logger) {
+                      logger.debug("{}", () -> compute());
+                  }
+
+                  String compute() {
+                      return "";
                   }
               }
               """
@@ -286,97 +395,222 @@ class ParameterizedLoggingToLambdaSuppliersTest implements RewriteTest {
         );
     }
 
-    @Test
-    void keepTrailingThrowable() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import org.apache.logging.log4j.Logger;
+    @Nested
+    class NoChange {
 
-              class Test {
-                  void test(Logger logger, Exception e) {
-                      logger.error("Failed {}", compute(), e);
-                  }
+        @Test
+        void simpleArguments() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import org.apache.logging.log4j.Logger;
 
-                  String compute() {
-                      return "";
-                  }
-              }
-              """
-          )
-        );
-    }
+                  class Test {
+                      static final String CONSTANT = "c";
+                      String name;
 
-    @Test
-    void keepNonEffectivelyFinalLocals() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import org.apache.logging.log4j.Logger;
-
-              class Test {
-                  void test(Logger logger, String s) {
-                      for (int i = 0; i < 3; i++) {
-                          logger.debug("{}", String.valueOf(i));
+                      void test(Logger logger, String id) {
+                          logger.debug("{} {} {} {} {}", id, 42, CONSTANT, this.name, getName());
                       }
-                      s = s.trim();
-                      logger.debug("{}", s.toUpperCase());
+
+                      String getName() {
+                          return name;
+                      }
                   }
-              }
-              """
-          )
-        );
-    }
+                  """
+              )
+            );
+        }
 
-    @Test
-    void keepSideEffectsAndCheckedExceptions() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import org.apache.logging.log4j.Logger;
+        @Test
+        void trailingThrowable() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import org.apache.logging.log4j.Logger;
 
-              class Test {
-                  int counter;
+                  class Test {
+                      void test(Logger logger, Exception e) {
+                          logger.error("Failed {}", compute(), e);
+                      }
 
-                  void test(Logger logger) throws Exception {
-                      logger.debug("{}", String.valueOf(counter++));
-                      logger.debug("{}", load());
+                      String compute() {
+                          return "";
+                      }
                   }
+                  """
+              )
+            );
+        }
 
-                  String load() throws Exception {
-                      return "";
+        @Test
+        void loopVariable() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import org.apache.logging.log4j.Logger;
+
+                  class Test {
+                      void test(Logger logger) {
+                          for (int i = 0; i < 3; i++) {
+                              logger.debug("{}", String.valueOf(i));
+                          }
+                      }
                   }
-              }
-              """
-          )
-        );
-    }
+                  """
+              )
+            );
+        }
 
-    @Test
-    void keepMessagesWithoutParametersAndExplicitArrays() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import org.apache.logging.log4j.Logger;
+        @Test
+        void reassignedParameter() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import org.apache.logging.log4j.Logger;
 
-              class Test {
-                  void test(Logger logger, Object[] params) {
-                      logger.debug("no params");
-                      logger.debug("{} {}", params);
-                      logger.debug(compute());
-                      logger.debug("{}", () -> compute());
+                  class Test {
+                      void test(Logger logger, String s) {
+                          s = s.trim();
+                          logger.debug("{}", s.toUpperCase());
+                      }
                   }
+                  """
+              )
+            );
+        }
 
-                  String compute() {
-                      return "";
+        @Test
+        void sideEffect() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import org.apache.logging.log4j.Logger;
+
+                  class Test {
+                      int counter;
+
+                      void test(Logger logger) {
+                          logger.debug("{}", String.valueOf(counter++));
+                      }
                   }
-              }
-              """
-          )
-        );
+                  """
+              )
+            );
+        }
+
+        @Test
+        void checkedException() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import org.apache.logging.log4j.Logger;
+
+                  class Test {
+                      void test(Logger logger) throws Exception {
+                          logger.debug("{}", load());
+                      }
+
+                      String load() throws Exception {
+                          return "";
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void noParameters() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import org.apache.logging.log4j.Logger;
+
+                  class Test {
+                      void test(Logger logger) {
+                          logger.debug("no params");
+                          logger.debug(compute());
+                      }
+
+                      String compute() {
+                          return "";
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void explicitArray() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import org.apache.logging.log4j.Logger;
+
+                  class Test {
+                      void test(Logger logger, Object[] params) {
+                          logger.debug("{} {}", params);
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void alreadySupplier() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import org.apache.logging.log4j.Logger;
+
+                  class Test {
+                      void test(Logger logger) {
+                          logger.debug("{}", () -> compute());
+                      }
+
+                      String compute() {
+                          return "";
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void levelVariableWithLevelsSelected() {
+            rewriteRun(
+              spec -> spec.recipe(new ParameterizedLoggingToLambdaSuppliers(List.of("debug"), null)),
+              //language=java
+              java(
+                """
+                  import org.apache.logging.log4j.Level;
+                  import org.apache.logging.log4j.Logger;
+
+                  class Test {
+                      void test(Logger logger, Level level) {
+                          logger.log(level, "{}", compute());
+                      }
+
+                      String compute() {
+                          return "";
+                      }
+                  }
+                  """
+              )
+            );
+        }
     }
 }
