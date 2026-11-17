@@ -128,17 +128,20 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "log4j-api"))
                         .build()
                         .apply(getCursor(), m.getCoordinates().replace(), templateArgs.toArray());
-                // Keep the line breaks and comments of the original call
+                // Keep the line breaks and comments around the arguments of the original call
+                JContainer<Expression> originalArgs = m.getPadding().getArguments();
                 return m.withMethodType(converted.getMethodType())
                         .withName(m.getName().withType(converted.getMethodType()))
-                        .withArguments(ListUtils.map(converted.getArguments(), (i, arg) -> {
-                            Space prefix = args.get(i).getPrefix();
-                            if (arg instanceof J.Lambda) {
-                                J.Lambda lambda = (J.Lambda) arg;
-                                return lambda.withPrefix(prefix).withBody(lambda.getBody().withPrefix(Space.SINGLE_SPACE));
-                            }
-                            return arg.withPrefix(prefix);
-                        }));
+                        .getPadding().withArguments(originalArgs.getPadding().withElements(
+                                ListUtils.map(originalArgs.getPadding().getElements(), (i, original) -> {
+                                    Expression arg = converted.getArguments().get(i);
+                                    Space prefix = original.getElement().getPrefix();
+                                    if (arg instanceof J.Lambda) {
+                                        J.Lambda lambda = (J.Lambda) arg;
+                                        return original.withElement(lambda.withPrefix(prefix).withBody(lambda.getBody().withPrefix(Space.SINGLE_SPACE)));
+                                    }
+                                    return original.withElement(arg.withPrefix(prefix));
+                                })));
             }
         });
     }
@@ -188,7 +191,7 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
                 return false;
             }
         }
-        // There is no `Supplier<?>...` overload that takes a Throwable
+        // Log4j logs a trailing Throwable with its stack trace; such calls are kept as they are
         return !TypeUtils.isAssignableTo("java.lang.Throwable", params.get(params.size() - 1).getType());
     }
 

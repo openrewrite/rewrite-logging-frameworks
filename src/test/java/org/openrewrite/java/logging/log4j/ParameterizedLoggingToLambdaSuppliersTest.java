@@ -252,6 +252,10 @@ class ParameterizedLoggingToLambdaSuppliersTest implements RewriteTest {
                       logger.debug("Values {} and {}",
                               compute(),
                               /* total */ compute());
+                      logger.debug("Values {} and {}",
+                              compute() /* first */,
+                              compute() // second
+                      );
                   }
 
                   String compute() {
@@ -267,6 +271,10 @@ class ParameterizedLoggingToLambdaSuppliersTest implements RewriteTest {
                       logger.debug("Values {} and {}",
                               () -> compute(),
                               /* total */ () -> compute());
+                      logger.debug("Values {} and {}",
+                              () -> compute() /* first */,
+                              () -> compute() // second
+                      );
                   }
 
                   String compute() {
