@@ -444,6 +444,51 @@ class ParameterizedLoggingToLambdaSuppliersTest implements RewriteTest {
         );
     }
 
+    @Test
+    void composedMessages() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.apache.logging.log4j.Level;
+              import org.apache.logging.log4j.Logger;
+              import org.apache.logging.log4j.Marker;
+
+              class Test {
+                  void test(Logger logger, Marker marker, String name, Exception e) {
+                      logger.debug("Hello " + name);
+                      logger.debug(String.format("Hello %s", name));
+                      logger.debug(name.trim());
+                      logger.debug(marker, "Hello " + name);
+                      logger.log(Level.DEBUG, "Hello " + name);
+                      logger.log(Level.DEBUG, marker, "Hello " + name);
+                      logger.error("Failed " + name, e);
+                      logger.error(marker, "Failed " + name, e);
+                  }
+              }
+              """,
+            """
+              import org.apache.logging.log4j.Level;
+              import org.apache.logging.log4j.Logger;
+              import org.apache.logging.log4j.Marker;
+
+              class Test {
+                  void test(Logger logger, Marker marker, String name, Exception e) {
+                      logger.debug(() -> "Hello " + name);
+                      logger.debug(() -> String.format("Hello %s", name));
+                      logger.debug(() -> name.trim());
+                      logger.debug(marker, () -> "Hello " + name);
+                      logger.log(Level.DEBUG, () -> "Hello " + name);
+                      logger.log(Level.DEBUG, marker, () -> "Hello " + name);
+                      logger.error(() -> "Failed " + name, e);
+                      logger.error(marker, () -> "Failed " + name, e);
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Nested
     class NoChange {
 
@@ -567,29 +612,6 @@ class ParameterizedLoggingToLambdaSuppliersTest implements RewriteTest {
                       }
 
                       String load() throws Exception {
-                          return "";
-                      }
-                  }
-                  """
-              )
-            );
-        }
-
-        @Test
-        void noParameters() {
-            rewriteRun(
-              //language=java
-              java(
-                """
-                  import org.apache.logging.log4j.Logger;
-
-                  class Test {
-                      void test(Logger logger) {
-                          logger.debug("no params");
-                          logger.debug(compute());
-                      }
-
-                      String compute() {
                           return "";
                       }
                   }
@@ -724,6 +746,35 @@ class ParameterizedLoggingToLambdaSuppliersTest implements RewriteTest {
 
                       String compute() {
                           return "";
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void messagesThatAreNotComposed() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import org.apache.logging.log4j.Logger;
+
+                  class Test {
+                      void test(Logger logger, String name, Object message, Exception e) {
+                          logger.debug("Constant message");
+                          logger.debug("A long constant message " +
+                                  "that is wrapped");
+                          logger.debug(name);
+                          logger.debug(message);
+                          logger.error("Failed", e);
+                          logger.debug("Name {}", name);
+                          logger.debug(() -> "Hello " + name);
+                          logger.debug("Name {}", () -> name);
+                          for (int i = 0; i < 3; i++) {
+                              logger.debug("Round " + i);
+                          }
                       }
                   }
                   """

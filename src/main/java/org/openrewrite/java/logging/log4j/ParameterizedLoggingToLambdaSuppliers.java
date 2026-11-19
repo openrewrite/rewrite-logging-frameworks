@@ -65,7 +65,8 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
 
     String description = "Replace parameterized Log4j 2 log statements such as `logger.debug(String message, Object... params)` " +
                          "with `logger.debug(String message, Supplier<?>... paramSuppliers)`, so that the parameters are only " +
-                         "evaluated when the log level is enabled. Statements whose last argument is a `Throwable`, whose arguments " +
+                         "evaluated when the log level is enabled. A message without parameters that is put together at the call, " +
+                         "such as `logger.debug(\"Hello \" + name)`, is passed as a supplier too. Statements whose last argument is a `Throwable`, whose arguments " +
                          "capture local variables that are not effectively final, have side effects, throw checked exceptions " +
                          "or are suppliers themselves are left unchanged.";
 
@@ -107,9 +108,14 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
                     return m;
                 }
                 List<Expression> params = args.subList(messageIndex + 1, args.size());
-                if (!isConvertible(methodType, messageIndex, params) ||
-                    !convertSimple && params.stream().noneMatch(ParameterizedLoggingToLambdaSuppliers::isExpensive) ||
-                    !capturesOnlyEffectivelyFinalLocals(params, getCursor())) {
+                boolean messageOnly = isComposedMessageOnly(methodType, messageIndex, args);
+                if (messageOnly) {
+                    if (!capturesOnlyEffectivelyFinalLocals(args.subList(messageIndex, messageIndex + 1), getCursor())) {
+                        return m;
+                    }
+                } else if (!isConvertible(methodType, messageIndex, params) ||
+                           !convertSimple && params.stream().noneMatch(ParameterizedLoggingToLambdaSuppliers::isExpensive) ||
+                           !capturesOnlyEffectivelyFinalLocals(params, getCursor())) {
                     return m;
                 }
 
@@ -117,9 +123,16 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
                 for (int i = 0; i < messageIndex; i++) {
                     template.add("#{any(" + (isType(args.get(i), LEVEL) ? LEVEL : MARKER) + ")}");
                 }
-                template.add("#{any(java.lang.String)}");
-                for (int i = 0; i < params.size(); i++) {
-                    template.add("() -> #{any()}");
+                if (messageOnly) {
+                    template.add("() -> #{any(java.lang.String)}");
+                    if (!params.isEmpty()) {
+                        template.add("#{any(java.lang.Throwable)}");
+                    }
+                } else {
+                    template.add("#{any(java.lang.String)}");
+                    for (int i = 0; i < params.size(); i++) {
+                        template.add("() -> #{any()}");
+                    }
                 }
                 List<Object> templateArgs = new ArrayList<>(args.size() + 1);
                 templateArgs.add(m.getSelect());
@@ -165,6 +178,28 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
             return -1;
         }
         return index;
+    }
+
+    private static boolean isComposedMessageOnly(JavaType.Method methodType, int messageIndex, List<Expression> args) {
+        // `debug(String)` and `debug(String, Throwable)` have a `Supplier<?>` counterpart for the message
+        List<JavaType> parameterTypes = methodType.getParameterTypes();
+        int trailing = parameterTypes.size() - messageIndex - 1;
+        if (args.size() != parameterTypes.size() || trailing > 1 ||
+            trailing == 1 && !TypeUtils.isOfClassType(parameterTypes.get(messageIndex + 1), "java.lang.Throwable")) {
+            return false;
+        }
+        Expression message = args.get(messageIndex);
+        return TypeUtils.isString(message.getType()) && isExpensive(message) && !isLiteralConcatenation(message) &&
+               !hasSideEffectsOrCheckedExceptions(message);
+    }
+
+    private static boolean isLiteralConcatenation(Expression expression) {
+        // Literals joined with `+`, often to wrap a long line, are folded into one constant by the compiler
+        Expression unwrapped = expression.unwrap();
+        return unwrapped instanceof J.Literal ||
+               unwrapped instanceof J.Binary &&
+               isLiteralConcatenation(((J.Binary) unwrapped).getLeft()) &&
+               isLiteralConcatenation(((J.Binary) unwrapped).getRight());
     }
 
     private static boolean isConvertible(JavaType.Method methodType, int messageIndex, List<Expression> params) {
