@@ -296,22 +296,33 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
     }
 
     private static boolean isInIfStatementWithLogLevelCheck(Cursor cursor, J.MethodInvocation m) {
-        J.If enclosingIf = cursor.firstEnclosing(J.If.class);
-        if (enclosingIf == null) {
-            return false;
+        MethodMatcher isEnabledMatcher = infoMatcher.matches(m) ? isInfoEnabledMatcher :
+                debugMatcher.matches(m) ? isDebugEnabledMatcher : isTraceEnabledMatcher;
+        Object child = null;
+        for (Iterator<Object> path = cursor.getPath(); path.hasNext(); ) {
+            Object value = path.next();
+            // The condition says nothing about the level on the else branch
+            if (value instanceof J.If && !(child instanceof J.If.Else) &&
+                    impliesLogLevelEnabled(((J.If) value).getIfCondition().getTree(), isEnabledMatcher)) {
+                return true;
+            }
+            child = value;
         }
-        Expression condition = enclosingIf.getIfCondition().getTree();
-        return (infoMatcher.matches(m) && onlyCalls(condition, isInfoEnabledMatcher)) ||
-                (debugMatcher.matches(m) && onlyCalls(condition, isDebugEnabledMatcher)) ||
-                (traceMatcher.matches(m) && onlyCalls(condition, isTraceEnabledMatcher));
+        return false;
     }
 
-    private static boolean onlyCalls(Expression condition, MethodMatcher isEnabledMatcher) {
-        if (condition instanceof J.Binary) {
-            J.Binary binary = (J.Binary) condition;
-            return onlyCalls(binary.getLeft(), isEnabledMatcher) && onlyCalls(binary.getRight(), isEnabledMatcher);
+    private static boolean impliesLogLevelEnabled(Expression condition, MethodMatcher isEnabledMatcher) {
+        Expression unwrapped = condition.unwrap();
+        if (unwrapped instanceof J.Binary) {
+            J.Binary binary = (J.Binary) unwrapped;
+            boolean left = impliesLogLevelEnabled(binary.getLeft(), isEnabledMatcher);
+            boolean right = impliesLogLevelEnabled(binary.getRight(), isEnabledMatcher);
+            if (binary.getOperator() == J.Binary.Type.And) {
+                return left || right;
+            }
+            return binary.getOperator() == J.Binary.Type.Or && left && right;
         }
-        return condition.getSideEffects().stream().allMatch(e -> e instanceof J.MethodInvocation && isEnabledMatcher.matches((J.MethodInvocation) e));
+        return isEnabledMatcher.matches(unwrapped);
     }
 
     @EqualsAndHashCode(callSuper = false)
