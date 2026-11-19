@@ -21,6 +21,7 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
+import org.openrewrite.java.logging.internal.LogArguments;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.staticanalysis.groovy.GroovyFileChecker;
@@ -30,6 +31,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.util.Arrays.asList;
+import static org.openrewrite.java.logging.internal.LogArguments.isExpensive;
 
 @EqualsAndHashCode(callSuper = false)
 @Value
@@ -42,8 +44,6 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
     private static final MethodMatcher LOG_METHODS = new MethodMatcher(LOGGER + " *(..)", true);
     private static final String LOG4J_SUPPLIER = "org.apache.logging.log4j.util.Supplier";
     private static final String JAVA_SUPPLIER = "java.util.function.Supplier";
-    private static final MethodMatcher LOG4J_SUPPLIER_GET = new MethodMatcher(LOG4J_SUPPLIER + " get()", true);
-    private static final MethodMatcher JAVA_SUPPLIER_GET = new MethodMatcher(JAVA_SUPPLIER + " get()", true);
 
     @Option(displayName = "Log levels",
             description = "The log levels whose statements are converted, e.g. `trace, debug`. " +
@@ -57,7 +57,8 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
 
     @Option(displayName = "Convert simple arguments",
             description = "When `true`, statements whose arguments are all cheap to evaluate " +
-                          "(literals, variables, field accesses and simple getters) are converted as well. " +
+                          "(literals, variables, field accesses, simple getters, and casts, array accesses, " +
+                          "ternaries or operators over those) are converted as well. " +
                           "Defaults to `false`, which converts a statement only when at least one argument does real work.",
             required = false)
     @Nullable
@@ -120,7 +121,7 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
                         return m;
                     }
                 } else if (!isConvertible(methodType, messageIndex, params) ||
-                           !convertSimple && params.stream().noneMatch(ParameterizedLoggingToLambdaSuppliers::isExpensive) ||
+                           !convertSimple && params.stream().noneMatch(LogArguments::isExpensive) ||
                            !capturesOnlyEffectivelyFinalLocals(params, getCursor())) {
                     return m;
                 }
@@ -194,20 +195,8 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
             trailing == 1 && !TypeUtils.isOfClassType(parameterTypes.get(messageIndex + 1), "java.lang.Throwable")) {
             return false;
         }
-        Expression message = args.get(messageIndex).unwrap();
-        return TypeUtils.isString(message.getType()) &&
-               (message instanceof J.Binary || message instanceof J.MethodInvocation) &&
-               isExpensive(message) && !isLiteralConcatenation(message) &&
-               !hasSideEffectsOrCheckedExceptions(message);
-    }
-
-    private static boolean isLiteralConcatenation(Expression expression) {
-        // Literals joined with `+`, often to wrap a long line, are folded into one constant by the compiler
-        Expression unwrapped = expression.unwrap();
-        return unwrapped instanceof J.Literal ||
-               unwrapped instanceof J.Binary &&
-               isLiteralConcatenation(((J.Binary) unwrapped).getLeft()) &&
-               isLiteralConcatenation(((J.Binary) unwrapped).getRight());
+        Expression message = args.get(messageIndex);
+        return TypeUtils.isString(message.getType()) && isExpensive(message) && !hasSideEffectsOrCheckedExceptions(message);
     }
 
     private static boolean isConvertible(JavaType.Method methodType, int messageIndex, List<Expression> params) {
@@ -251,25 +240,6 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
             return ((J.Identifier) level).getSimpleName().toLowerCase(Locale.ROOT);
         }
         return null;
-    }
-
-    private static boolean isExpensive(Expression arg) {
-        Expression unwrapped = arg.unwrap();
-        if (unwrapped instanceof J.MethodInvocation) {
-            J.MethodInvocation mi = (J.MethodInvocation) unwrapped;
-            if (LOG4J_SUPPLIER_GET.matches(mi) || JAVA_SUPPLIER_GET.matches(mi)) {
-                // `Supplier.get()` looks like a getter, but runs whatever the supplier computes
-                return true;
-            }
-            String name = mi.getSimpleName();
-            boolean simpleGetter = mi.getMethodType() != null &&
-                                   !mi.getMethodType().hasFlags(Flag.Static) &&
-                                   mi.getArguments().stream().allMatch(a -> a instanceof J.Empty) &&
-                                   (name.startsWith("get") || name.startsWith("is")) &&
-                                   (mi.getSelect() == null || mi.getSelect() instanceof J.Identifier || mi.getSelect() instanceof J.FieldAccess);
-            return !simpleGetter;
-        }
-        return !(unwrapped instanceof J.Literal || unwrapped instanceof J.Identifier || unwrapped instanceof J.FieldAccess);
     }
 
     private static boolean hasSideEffectsOrCheckedExceptions(Expression param) {

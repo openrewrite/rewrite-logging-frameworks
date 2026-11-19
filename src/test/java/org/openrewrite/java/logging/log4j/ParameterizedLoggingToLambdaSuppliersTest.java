@@ -25,6 +25,7 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.kotlin.KotlinParser;
+import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -491,6 +492,51 @@ class ParameterizedLoggingToLambdaSuppliersTest implements RewriteTest {
         );
     }
 
+    @Test
+    void expressionsWithExpensiveParts() {
+        rewriteRun(
+          // A parser types the ternary in a `Supplier<?>` lambda as `Object`, the recipe keeps its `String` type
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
+          //language=java
+          java(
+            """
+              import org.apache.logging.log4j.Logger;
+
+              class Test {
+                  void test(Logger logger, String name, String[] names) {
+                      logger.debug(name == null ? "No name" : name.trim());
+                      logger.debug("{}", name == null ? "none" : name.trim());
+                      logger.debug("{}", (String) compute());
+                      logger.debug("{}", names[name.length()]);
+                      logger.debug("{}", name.length() * 2);
+                  }
+
+                  Object compute() {
+                      return null;
+                  }
+              }
+              """,
+            """
+              import org.apache.logging.log4j.Logger;
+
+              class Test {
+                  void test(Logger logger, String name, String[] names) {
+                      logger.debug(() -> name == null ? "No name" : name.trim());
+                      logger.debug("{}", () -> name == null ? "none" : name.trim());
+                      logger.debug("{}", () -> (String) compute());
+                      logger.debug("{}", () -> names[name.length()]);
+                      logger.debug("{}", () -> name.length() * 2);
+                  }
+
+                  Object compute() {
+                      return null;
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Nested
     class NoChange {
 
@@ -506,8 +552,9 @@ class ParameterizedLoggingToLambdaSuppliersTest implements RewriteTest {
                       static final String CONSTANT = "c";
                       String name;
 
-                      void test(Logger logger, String id) {
+                      void test(Logger logger, String id, Object value, String[] ids, int count) {
                           logger.debug("{} {} {} {} {}", id, 42, CONSTANT, this.name, getName());
+                          logger.debug("{} {} {} {}", (String) value, ids[count - 1], id == null ? "none" : id, count * 2);
                       }
 
                       String getName() {
