@@ -25,6 +25,7 @@ import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.format.AutoFormatVisitor;
 import org.openrewrite.java.search.FindFieldsOfType;
 import org.openrewrite.java.search.FindInheritedFields;
+import org.openrewrite.java.trait.Scope;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Statement;
 
@@ -137,7 +138,8 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
 
             //noinspection ComparatorMethodParameterNotUsed
             Comparator<Statement> firstAfterEnumValueSet = (unused, o2) -> o2 instanceof J.EnumValueSet ? 1 : -1;
-            cd = template.apply(updateCursor(cd), cd.getBody().getCoordinates().addStatement(firstAfterEnumValueSet), loggerName, cd.getSimpleName());
+            String name = Scope.at(getCursor()).freeName(loggerName, taken -> false);
+            cd = template.apply(updateCursor(cd), cd.getBody().getCoordinates().addStatement(firstAfterEnumValueSet), name, cd.getSimpleName());
 
             // ensure the appropriate number of blank lines on next statement after new field
             J.ClassDeclaration formatted = (J.ClassDeclaration) new AutoFormatVisitor<ExecutionContext>().visitNonNull(cd, ctx, requireNonNull(getCursor().getParent()));

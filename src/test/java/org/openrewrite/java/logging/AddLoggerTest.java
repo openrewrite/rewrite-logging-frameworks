@@ -109,6 +109,30 @@ class AddLoggerTest implements RewriteTest {
     }
 
     @Test
+    void nameTakenByOtherField() {
+        rewriteRun(
+          spec -> spec.recipe(new MaybeAddLoggerToClass("Test")),
+          //language=java
+          java(
+            """
+              class Test {
+                  String LOGGER = "audit";
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Test {
+                  private static final Logger LOGGER1 = LoggerFactory.getLogger(Test.class);
+                  String LOGGER = "audit";
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void notIfExistingInheritedLogger() {
         rewriteRun(
           spec -> spec.recipe(new MaybeAddLoggerToClass("Test")),
