@@ -21,6 +21,7 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.internal.StringUtils;
 import org.openrewrite.java.*;
+import org.openrewrite.java.logging.internal.LogArguments;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
@@ -33,6 +34,7 @@ import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 import static org.openrewrite.Preconditions.or;
 import static org.openrewrite.Tree.randomId;
+import static org.openrewrite.java.logging.internal.LogArguments.isExpensive;
 
 @EqualsAndHashCode(callSuper = false)
 @Value
@@ -98,7 +100,7 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
                                 (infoMatcher.matches(m) || debugMatcher.matches(m) || traceMatcher.matches(m)) &&
                                 !isInIfStatementWithLogLevelCheck(getCursor(), m) &&
                                 !isAlreadyUsingFluentApi(getCursor()) &&
-                                isAnyArgumentExpensive(m)) {
+                                m.getArguments().stream().anyMatch(LogArguments::isExpensive)) {
 
                             // Check if we should use fluent API (SLF4J 2.0+) or if-statements (SLF4J 1.x)
                             if (supportsFluentApi(m) && capturesOnlyEffectivelyFinalLocals(m)) {
@@ -131,7 +133,7 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
                         }
 
                         Expression messageTemplate = args.get(messageIndex);
-                        boolean expensiveMessage = isExpensiveArgument(messageTemplate);
+                        boolean expensiveMessage = isExpensive(messageTemplate);
                         int lastArgument = hasTrailingCause(args, messageIndex) ? args.size() - 1 : args.size();
 
                         StringBuilder templateStr = new StringBuilder();
@@ -153,7 +155,7 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
                         // Use a supplier lambda for expensive arguments, and the value itself for cheap ones
                         for (int i = messageIndex + 1; i < lastArgument; i++) {
                             Expression arg = args.get(i);
-                            templateStr.append(isExpensiveArgument(arg) ? ".addArgument(() -> #{any()})" : ".addArgument(#{any()})");
+                            templateStr.append(isExpensive(arg) ? ".addArgument(() -> #{any()})" : ".addArgument(#{any()})");
                             templateArgs.add(arg);
                         }
                         if (lastArgument < args.size()) {
@@ -178,7 +180,7 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
                     private boolean capturesOnlyEffectivelyFinalLocals(J.MethodInvocation m) {
                         Set<String> capturedLocals = new HashSet<>();
                         for (Expression arg : m.getArguments()) {
-                            if (isExpensiveArgument(arg)) {
+                            if (isExpensive(arg)) {
                                 new JavaIsoVisitor<Set<String>>() {
                                     @Override
                                     public J.Identifier visitIdentifier(J.Identifier identifier, Set<String> locals) {
@@ -310,61 +312,6 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
             return onlyCalls(binary.getLeft(), isEnabledMatcher) && onlyCalls(binary.getRight(), isEnabledMatcher);
         }
         return condition.getSideEffects().stream().allMatch(e -> e instanceof J.MethodInvocation && isEnabledMatcher.matches((J.MethodInvocation) e));
-    }
-
-    private static boolean isAnyArgumentExpensive(J.MethodInvocation m) {
-        return m.getArguments().stream().anyMatch(WrapExpensiveLogStatementsInConditionals::isExpensiveArgument);
-    }
-
-    private static boolean isExpensiveArgument(Expression arg) {
-        return !(arg instanceof J.MethodInvocation && isSimpleGetter((J.MethodInvocation) arg) ||
-                arg instanceof J.Literal ||
-                arg instanceof J.Identifier ||
-                arg instanceof J.FieldAccess ||
-                arg instanceof J.Binary && isOnlyLiterals((J.Binary) arg));
-    }
-
-    private static boolean isSimpleGetter(J.MethodInvocation mi) {
-        if (mi.getMethodType() == null ||
-                !mi.getMethodType().getParameterNames().isEmpty() ||
-                mi.getMethodType().hasFlags(Flag.Static) ||
-                !(mi.getSelect() == null || mi.getSelect() instanceof J.Identifier)) {
-            return false;
-        }
-        // Consider it a simple getter if it follows getter naming convention
-        if ((mi.getSimpleName().startsWith("get") && mi.getSimpleName().length() > 3) ||
-                (mi.getSimpleName().startsWith("is") && mi.getSimpleName().length() > 2)) {
-            return true;
-        }
-        // Also consider record component accessors as simple getters
-        return mi.getMethodType().getDeclaringType().getKind() == JavaType.FullyQualified.Kind.Record;
-    }
-
-    private static boolean isOnlyLiterals(J.Binary binary) {
-        return isLiteralOrBinary(binary.getLeft()) && isLiteralOrBinary(binary.getRight());
-    }
-
-    private static boolean isLiteralOrBinary(J expression) {
-        return expression instanceof J.Literal ||
-                isSimpleBooleanGetter(expression) ||
-                isBooleanIdentifier(expression) ||
-                expression instanceof J.Binary && isOnlyLiterals((J.Binary) expression);
-    }
-
-    private static boolean isSimpleBooleanGetter(J expression) {
-        if (expression instanceof J.MethodInvocation) {
-            J.MethodInvocation mi = (J.MethodInvocation) expression;
-            return isSimpleGetter(mi) && mi.getMethodType() != null && isTypeBoolean(mi.getMethodType().getReturnType());
-        }
-        return false;
-    }
-
-    private static boolean isBooleanIdentifier(J expression) {
-        return expression instanceof J.Identifier && isTypeBoolean(((J.Identifier) expression).getType());
-    }
-
-    private static boolean isTypeBoolean(@Nullable JavaType type) {
-        return type == JavaType.Primitive.Boolean || TypeUtils.isAssignableTo("java.lang.Boolean", type);
     }
 
     @EqualsAndHashCode(callSuper = false)
