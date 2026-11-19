@@ -21,7 +21,6 @@ import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RewriteTest;
-import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
@@ -429,8 +428,7 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
     void supportLombokLogAnnotations() {
         rewriteRun(
           spec -> spec.recipe(new PrintStackTraceToLogError(null, null, null))
-            .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2", "lombok-1.18.+"))
-            .typeValidationOptions(TypeValidation.builder().identifiers(false).build()),
+            .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2", "lombok-1.18.+")),
           //language=java
           java(
             """

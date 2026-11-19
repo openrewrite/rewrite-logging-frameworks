@@ -61,10 +61,24 @@ public enum LoggingFramework {
     }
 
     /**
-     * A reference to the field holding this framework's logger that code at the cursor can call by its simple name,
-     * from the innermost class first. The field may be inherited or belong to a class around the cursor's.
+     * A reference to the logger field that code at the cursor can call by its simple name. Where the innermost
+     * class has a Lombok logging annotation, {@code lombokFieldName} is the field Lombok generates, which is taken
+     * unless a variable hides it. Otherwise it is the innermost field of this framework's logger type, which may be
+     * inherited or belong to a class around the cursor's.
      */
-    J.@Nullable Identifier loggerAt(Cursor cursor) {
+    J.@Nullable Identifier loggerAt(Cursor cursor, @Nullable String lombokFieldName) {
+        J.ClassDeclaration innermost = cursor.firstEnclosing(J.ClassDeclaration.class);
+        if (lombokFieldName != null && innermost != null && !lombokLoggerHiddenAt(cursor, innermost, lombokFieldName)) {
+            JavaType.Variable generated = null;
+            if (innermost.getType() != null) {
+                for (JavaType.Variable member : innermost.getType().getMembers()) {
+                    if (member.getName().equals(lombokFieldName)) {
+                        generated = member;
+                    }
+                }
+            }
+            return reference(lombokFieldName, generated);
+        }
         return Scope.at(cursor).visible()
                 .filter(binding -> binding.getNamespace() == Scope.Namespace.VARIABLE && !binding.isLocal() &&
                                    binding.getType() instanceof JavaType.Variable)
@@ -73,12 +87,13 @@ public enum LoggingFramework {
                     return TypeUtils.isAssignableTo(loggerType, field.getType()) &&
                            (field.hasFlags(Flag.Static) || hasInstanceOf(cursor, binding.getScope().getTree()));
                 })
-                .map(binding -> {
-                    JavaType.Variable field = (JavaType.Variable) binding.getType();
-                    return new J.Identifier(Tree.randomId(), Space.EMPTY, Markers.EMPTY, emptyList(), binding.getName(), field.getType(), field);
-                })
+                .map(binding -> reference(binding.getName(), (JavaType.Variable) binding.getType()))
                 .findFirst()
                 .orElse(null);
+    }
+
+    private static J.Identifier reference(String name, JavaType.@Nullable Variable field) {
+        return new J.Identifier(Tree.randomId(), Space.EMPTY, Markers.EMPTY, emptyList(), name, field == null ? null : field.getType(), field);
     }
 
     /**
@@ -104,7 +119,7 @@ public enum LoggingFramework {
      * annotated class. A variable bound inside the class does, and so does a member the class declares. A field the
      * class inherits and a variable from around the class do not, as the generated field hides them.
      */
-    static boolean lombokLoggerHiddenAt(Cursor cursor, J.ClassDeclaration annotated, String name) {
+    private static boolean lombokLoggerHiddenAt(Cursor cursor, J.ClassDeclaration annotated, String name) {
         return Scope.at(cursor).lookup(name)
                 .filter(binding -> {
                     Cursor boundBy = binding.getScope().getCursor();

@@ -26,11 +26,7 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.TypeUtils;
-import org.openrewrite.marker.Markers;
-
-import static java.util.Collections.emptyList;
 
 @EqualsAndHashCode(callSuper = false)
 @Value
@@ -84,16 +80,11 @@ public class PrintStackTraceToLogError extends Recipe {
                     }
                     Cursor classCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
                     AnnotationService annotationService = service(AnnotationService.class);
-                    J.Identifier logger = framework.loggerAt(getCursor());
+                    boolean lombok = annotationService.matches(classCursor, lombokLogAnnotationMatcher);
+                    J.Identifier logger = framework.loggerAt(getCursor(), lombok ? (loggerName == null ? "log" : loggerName) : null);
                     if (logger != null) {
                         m = replaceMethodInvocation(m, logger, ctx);
-                    } else if (annotationService.matches(classCursor, lombokLogAnnotationMatcher)) {
-                        String fieldName = loggerName == null ? "log" : loggerName;
-                        if (!LoggingFramework.lombokLoggerHiddenAt(getCursor(), classCursor.getValue(), fieldName)) {
-                            J.Identifier logField = new J.Identifier(Tree.randomId(), Space.SINGLE_SPACE, Markers.EMPTY, emptyList(), fieldName, null, null);
-                            m = replaceMethodInvocation(m, logField, ctx);
-                        }
-                    } else if (addLogger != null && addLogger) {
+                    } else if (!lombok && addLogger != null && addLogger) {
                         doAfterVisit(AddLogger.addLogger(classCursor.getValue(), framework, loggerName == null ? "logger" : loggerName, ctx));
                     }
                 }

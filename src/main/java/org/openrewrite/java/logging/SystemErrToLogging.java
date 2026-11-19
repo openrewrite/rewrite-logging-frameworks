@@ -24,13 +24,10 @@ import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.*;
-import org.openrewrite.marker.Markers;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static java.util.Collections.emptyList;
 
 @EqualsAndHashCode(callSuper = false)
 @Value
@@ -144,16 +141,11 @@ public class SystemErrToLogging extends Recipe {
                 J.MethodInvocation print = printCursor.getValue();
                 Cursor classCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
                 AnnotationService annotationService = service(AnnotationService.class);
-                J.Identifier logger = framework.loggerAt(printCursor);
+                boolean lombok = annotationService.matches(classCursor, lombokLogAnnotationMatcher);
+                J.Identifier logger = framework.loggerAt(printCursor, lombok ? (loggerName == null ? "log" : loggerName) : null);
                 if (logger != null) {
                     print = replaceMethodInvocation(printCursor, ctx, exceptionPrintStackTrace, print, logger);
-                } else if (annotationService.matches(classCursor, lombokLogAnnotationMatcher)) {
-                    String fieldName = loggerName == null ? "log" : loggerName;
-                    if (!LoggingFramework.lombokLoggerHiddenAt(printCursor, classCursor.getValue(), fieldName)) {
-                        J.Identifier logField = new J.Identifier(Tree.randomId(), Space.SINGLE_SPACE, Markers.EMPTY, emptyList(), fieldName, null, null);
-                        print = replaceMethodInvocation(printCursor, ctx, exceptionPrintStackTrace, print, logField);
-                    }
-                } else if (addLogger != null && addLogger) {
+                } else if (!lombok && addLogger != null && addLogger) {
                     doAfterVisit(AddLogger.addLogger(classCursor.getValue(), framework, loggerName == null ? "logger" : loggerName, ctx));
                     addedLogger.set(true);
                 }

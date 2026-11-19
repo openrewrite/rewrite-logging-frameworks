@@ -22,7 +22,6 @@ import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
-import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
@@ -101,8 +100,7 @@ class SystemOutToLoggingTest implements RewriteTest {
     @Test
     void supportLombokLogAnnotations() {
         rewriteRun(
-          spec -> spec.recipe(new SystemOutToLogging(null, null, null, "info"))
-            .typeValidationOptions(TypeValidation.builder().identifiers(false).build()),
+          spec -> spec.recipe(new SystemOutToLogging(null, null, null, "info")),
           //language=java
           java(
             """
@@ -260,6 +258,48 @@ class SystemOutToLoggingTest implements RewriteTest {
     }
 
     @Test
+    void preferLombokLoggerOverLoggerOfOuterClass() {
+        rewriteRun(
+          spec -> spec.recipe(new SystemOutToLogging(null, null, null, null)),
+          //language=java
+          java(
+            """
+              import lombok.extern.slf4j.Slf4j;
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Outer {
+                  private static final Logger LOGGER = LoggerFactory.getLogger(Outer.class);
+
+                  @Slf4j
+                  static class Inner {
+                      void test() {
+                          System.out.println("Oh no");
+                      }
+                  }
+              }
+              """,
+            """
+              import lombok.extern.slf4j.Slf4j;
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Outer {
+                  private static final Logger LOGGER = LoggerFactory.getLogger(Outer.class);
+
+                  @Slf4j
+                  static class Inner {
+                      void test() {
+                          log.info("Oh no");
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void doNotUseInstanceLoggerFromStaticContext() {
         rewriteRun(
           spec -> spec.recipe(new SystemOutToLogging(null, null, null, null)),
@@ -361,8 +401,7 @@ class SystemOutToLoggingTest implements RewriteTest {
     @Test
     void useLombokLoggerThatHidesInheritedOrOuterField() {
         rewriteRun(
-          spec -> spec.recipe(new SystemOutToLogging(null, null, null, null))
-            .typeValidationOptions(TypeValidation.builder().identifiers(false).build()),
+          spec -> spec.recipe(new SystemOutToLogging(null, null, null, null)),
           //language=java
           java(
             """

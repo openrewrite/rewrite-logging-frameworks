@@ -23,7 +23,6 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.logging.logback.Log4jAppenderToLogback;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
-import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
@@ -211,8 +210,7 @@ class SystemErrToLoggingTest implements RewriteTest {
     @Test
     void supportLombokLogAnnotations() {
         rewriteRun(
-          spec -> spec.recipe(new SystemErrToLogging(null, null, null))
-            .typeValidationOptions(TypeValidation.builder().identifiers(false).build()),
+          spec -> spec.recipe(new SystemErrToLogging(null, null, null)),
           // language=java
           java(
             """
