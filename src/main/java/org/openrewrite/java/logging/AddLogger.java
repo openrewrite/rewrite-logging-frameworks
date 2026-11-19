@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.logging;
 
+import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
@@ -138,7 +139,8 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
 
             //noinspection ComparatorMethodParameterNotUsed
             Comparator<Statement> firstAfterEnumValueSet = (unused, o2) -> o2 instanceof J.EnumValueSet ? 1 : -1;
-            String name = Scope.at(getCursor()).freeName(loggerName, taken -> false);
+            // Asked from the body, where the members the class declares and inherits are in scope
+            String name = Scope.at(new Cursor(getCursor(), cd.getBody())).freeName(loggerName, taken -> false);
             cd = template.apply(updateCursor(cd), cd.getBody().getCoordinates().addStatement(firstAfterEnumValueSet), name, cd.getSimpleName());
 
             // ensure the appropriate number of blank lines on next statement after new field

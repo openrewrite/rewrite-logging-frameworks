@@ -133,6 +133,36 @@ class AddLoggerTest implements RewriteTest {
     }
 
     @Test
+    void nameTakenByInheritedField() {
+        rewriteRun(
+          spec -> spec.recipe(new MaybeAddLoggerToClass("Test")),
+          //language=java
+          java(
+            """
+              class Base {
+                  protected String LOGGER = "audit";
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              class Test extends Base {
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Test extends Base {
+                  private static final Logger LOGGER1 = LoggerFactory.getLogger(Test.class);
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void notIfExistingInheritedLogger() {
         rewriteRun(
           spec -> spec.recipe(new MaybeAddLoggerToClass("Test")),
