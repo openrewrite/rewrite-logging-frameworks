@@ -193,6 +193,41 @@ class SystemOutToLoggingTest implements RewriteTest {
     }
 
     @Test
+    void useSystemLoggerWhereLoggerNamesAnotherType() {
+        rewriteRun(
+          spec -> spec.recipe(new SystemOutToLogging(true, "logger", "SYSTEM", "info")),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  Logger audit;
+
+                  void test() {
+                      System.out.println("Hello World");
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              import java.lang.System.Logger.Level;
+
+              class Test {
+                  private static final System.Logger logger = System.getLogger("Test");
+                  Logger audit;
+
+                  void test() {
+                      logger.log(Level.INFO, "Hello World");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void doNotUseLoggerHiddenByParameter() {
         rewriteRun(
           spec -> spec.recipe(new SystemOutToLogging(null, null, null, null)),

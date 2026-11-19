@@ -163,6 +163,60 @@ class AddLoggerTest implements RewriteTest {
     }
 
     @Test
+    void loggerNamesAnotherImportedType() {
+        rewriteRun(
+          spec -> spec.recipe(new MaybeAddLoggerToClass("Test")),
+          //language=java
+          java(
+            """
+              import java.util.logging.Logger;
+
+              class Test {
+                  Logger julLogger = Logger.getLogger("x");
+              }
+              """,
+            """
+              import org.slf4j.LoggerFactory;
+
+              import java.util.logging.Logger;
+
+              class Test {
+                  private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(Test.class);
+                  Logger julLogger = Logger.getLogger("x");
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void loggerNamesAnotherStarImportedType() {
+        rewriteRun(
+          spec -> spec.recipe(new MaybeAddLoggerToClass("Test")),
+          //language=java
+          java(
+            """
+              import java.util.logging.*;
+
+              class Test {
+                  Logger julLogger = Logger.getLogger("x");
+              }
+              """,
+            """
+              import org.slf4j.LoggerFactory;
+
+              import java.util.logging.*;
+
+              class Test {
+                  private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(Test.class);
+                  Logger julLogger = Logger.getLogger("x");
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void notIfExistingInheritedLogger() {
         rewriteRun(
           spec -> spec.recipe(new MaybeAddLoggerToClass("Test")),

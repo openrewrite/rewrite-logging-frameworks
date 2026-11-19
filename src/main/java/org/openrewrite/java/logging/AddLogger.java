@@ -22,15 +22,18 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
-import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.format.AutoFormatVisitor;
 import org.openrewrite.java.search.FindFieldsOfType;
 import org.openrewrite.java.search.FindInheritedFields;
 import org.openrewrite.java.trait.Scope;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaSourceFile;
+import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Statement;
+import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.Comparator;
+import java.util.Optional;
 import java.util.function.Function;
 
 import static java.util.Objects.requireNonNull;
@@ -43,14 +46,18 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
     private final String loggerType;
     private final String factoryType;
     private final String loggerName;
-    private final JavaTemplate template;
+    private final Function<String, JavaTemplate> template;
 
-    public AddLogger(J.ClassDeclaration scope, String loggerType, String factoryType, String loggerName, Function<JavaVisitor<?>, JavaTemplate> function) {
+    /**
+     * @param template Builds the field's template from the way to write the logger type, which is its simple name,
+     *                 or its qualified name where the simple name means another type in the class.
+     */
+    public AddLogger(J.ClassDeclaration scope, String loggerType, String factoryType, String loggerName, Function<String, JavaTemplate> template) {
         this.scope = scope;
         this.loggerType = loggerType;
         this.factoryType = factoryType;
         this.loggerName = loggerName;
-        this.template = function.apply(this);
+        this.template = template;
     }
 
     public static TreeVisitor<J, ExecutionContext> addLogger(J.ClassDeclaration scope, LoggingFramework loggingFramework, String loggerName, ExecutionContext ctx) {
@@ -70,9 +77,9 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
     }
 
     public static AddLogger addSlf4jLogger(J.ClassDeclaration scope, String loggerName, ExecutionContext ctx) {
-        return new AddLogger(scope, "org.slf4j.Logger", "org.slf4j.LoggerFactory", loggerName, visitor ->
+        return new AddLogger(scope, "org.slf4j.Logger", "org.slf4j.LoggerFactory", loggerName, type ->
                 JavaTemplate
-                        .builder(getModifiers(scope) + " Logger #{} = LoggerFactory.getLogger(#{}.class);")
+                        .builder(getModifiers(scope) + " " + type + " #{} = LoggerFactory.getLogger(#{}.class);")
                         .contextSensitive()
                         .imports("org.slf4j.Logger", "org.slf4j.LoggerFactory")
                         .javaParser(JavaParser.fromJavaVersion()
@@ -82,9 +89,9 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
     }
 
     public static AddLogger addJulLogger(J.ClassDeclaration scope, String loggerName, @SuppressWarnings("unused") ExecutionContext ctx) {
-        return new AddLogger(scope, "java.util.logging.Logger", "java.util.logging.LogManager", loggerName, visitor ->
+        return new AddLogger(scope, "java.util.logging.Logger", "java.util.logging.LogManager", loggerName, type ->
                 JavaTemplate
-                        .builder(getModifiers(scope) + " Logger #{} = LogManager.getLogManager().getLogger(\"#{}\");")
+                        .builder(getModifiers(scope) + " " + type + " #{} = LogManager.getLogManager().getLogger(\"#{}\");")
                         .contextSensitive()
                         .imports("java.util.logging.Logger", "java.util.logging.LogManager")
                         .build()
@@ -92,9 +99,9 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
     }
 
     public static AddLogger addSystemLogger(J.ClassDeclaration scope, String loggerName, @SuppressWarnings("unused") ExecutionContext ctx) {
-        return new AddLogger(scope, "java.lang.System.Logger", "java.lang.System", loggerName, visitor ->
+        return new AddLogger(scope, "java.lang.System.Logger", "java.lang.System", loggerName, type ->
                 JavaTemplate
-                        .builder(getModifiers(scope) + " Logger #{} = System.getLogger(\"#{}\");")
+                        .builder(getModifiers(scope) + " " + type + " #{} = System.getLogger(\"#{}\");")
                         .contextSensitive()
                         .imports("java.lang.System.Logger")
                         .build()
@@ -102,9 +109,9 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
     }
 
     public static AddLogger addLog4j1Logger(J.ClassDeclaration scope, String loggerName, ExecutionContext ctx) {
-        return new AddLogger(scope, "org.apache.log4j.Logger", "org.apache.log4j.LogManager", loggerName, visitor ->
+        return new AddLogger(scope, "org.apache.log4j.Logger", "org.apache.log4j.LogManager", loggerName, type ->
                 JavaTemplate
-                        .builder(getModifiers(scope) + " Logger #{} = LogManager.getLogger(#{}.class);")
+                        .builder(getModifiers(scope) + " " + type + " #{} = LogManager.getLogger(#{}.class);")
                         .contextSensitive()
                         .imports("org.apache.log4j.Logger", "org.apache.log4j.LogManager")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "log4j-1.2.+"))
@@ -113,9 +120,9 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
     }
 
     public static AddLogger addLog4j2Logger(J.ClassDeclaration scope, String loggerName, ExecutionContext ctx) {
-        return new AddLogger(scope, "org.apache.logging.log4j.Logger", "org.apache.logging.log4j.LogManager", loggerName, visitor ->
+        return new AddLogger(scope, "org.apache.logging.log4j.Logger", "org.apache.logging.log4j.LogManager", loggerName, type ->
                 JavaTemplate
-                        .builder(getModifiers(scope) + " Logger #{} = LogManager.getLogger(#{}.class);")
+                        .builder(getModifiers(scope) + " " + type + " #{} = LogManager.getLogger(#{}.class);")
                         .contextSensitive()
                         .imports("org.apache.logging.log4j.Logger", "org.apache.logging.log4j.LogManager")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "log4j-api-2.+"))
@@ -140,8 +147,13 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
             //noinspection ComparatorMethodParameterNotUsed
             Comparator<Statement> firstAfterEnumValueSet = (unused, o2) -> o2 instanceof J.EnumValueSet ? 1 : -1;
             // Asked from the body, where the members the class declares and inherits are in scope
-            String name = Scope.at(new Cursor(getCursor(), cd.getBody())).freeName(loggerName, taken -> false);
-            cd = template.apply(updateCursor(cd), cd.getBody().getCoordinates().addStatement(firstAfterEnumValueSet), name, cd.getSimpleName());
+            Scope body = Scope.at(new Cursor(getCursor(), cd.getBody()));
+            String name = body.freeName(loggerName, taken -> false);
+            String simpleName = loggerType.substring(loggerType.lastIndexOf('.') + 1);
+            boolean qualified = namesAnotherType(simpleName, body);
+            String type = !qualified ? simpleName :
+                    loggerType.startsWith("java.lang.") ? loggerType.substring("java.lang.".length()) : loggerType;
+            cd = template.apply(type).apply(updateCursor(cd), cd.getBody().getCoordinates().addStatement(firstAfterEnumValueSet), name, cd.getSimpleName());
 
             // ensure the appropriate number of blank lines on next statement after new field
             J.ClassDeclaration formatted = (J.ClassDeclaration) new AutoFormatVisitor<ExecutionContext>().visitNonNull(cd, ctx, requireNonNull(getCursor().getParent()));
@@ -152,10 +164,30 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
                 return stat;
             })));
 
-            maybeAddImport(loggerType);
+            if (!qualified) {
+                maybeAddImport(loggerType);
+            }
             maybeAddImport(factoryType);
         }
 
         return cd;
+    }
+
+    private boolean namesAnotherType(String simpleName, Scope body) {
+        Optional<Scope.Binding> bound = body.lookup(simpleName, Scope.Namespace.TYPE);
+        if (bound.isPresent()) {
+            return !TypeUtils.isOfClassType(bound.get().getType(), loggerType);
+        }
+        // A type of the same package or from an on-demand import is bound by no scope. An import of the logger type
+        // would hide it from the code that uses it.
+        for (JavaType type : getCursor().firstEnclosingOrThrow(JavaSourceFile.class).getTypesInUse().getTypesInUse()) {
+            if (type instanceof JavaType.FullyQualified && !TypeUtils.isOfClassType(type, loggerType)) {
+                String className = ((JavaType.FullyQualified) type).getClassName();
+                if (className.substring(className.lastIndexOf('.') + 1).equals(simpleName)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }
