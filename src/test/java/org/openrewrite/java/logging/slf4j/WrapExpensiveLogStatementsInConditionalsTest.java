@@ -594,7 +594,9 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
       "getExpensive()", // static getter likely to use external resources or allocate things
       "342 + input", // allocating a new string
       "\"foo\" + getClass()", // allocating a new string
-      "true && isSomething(1)" // boolean getter with an argument
+      "true && isSomething(1)", // boolean getter with an argument
+      "input == null ? notAGetter() : input", // ternary with an expensive branch
+      "(Object) notAGetter()", // cast of an expensive expression
     })
     void wrapWhenExpensiveArgument(String logArgument) {
         //language=java
@@ -691,6 +693,11 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
       "true && boolVariable || isSomething()", // boolean literal and boolean variable
       "field", // field identifier
       "this.field", // field access
+      "this.field.isEmpty()", // getter on a field access
+      "(Object) input", // cast
+      "array[0]", // array access
+      "input == null ? \"none\" : input", // ternary with cheap parts
+      "!boolVariable", // negation
     })
     void dontWrapWhenCheapArgument(String logArgument) {
         //language=java
@@ -702,7 +709,7 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
               class A {
                   String field;
 
-                  void method(Logger log, String input, boolean boolVariable) {
+                  void method(Logger log, String input, boolean boolVariable, String[] array) {
                       log.info("{}", %s);
                   }
 
