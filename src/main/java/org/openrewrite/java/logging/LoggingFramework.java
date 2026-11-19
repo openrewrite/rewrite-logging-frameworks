@@ -22,7 +22,6 @@ import org.openrewrite.Tree;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.trait.Scope;
-import org.openrewrite.java.tree.Flag;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Space;
@@ -61,73 +60,23 @@ public enum LoggingFramework {
     }
 
     /**
-     * A reference to the logger field that code at the cursor can call by its simple name. Where the innermost
-     * class has a Lombok logging annotation, {@code lombokFieldName} is the field Lombok generates, which is taken
-     * unless a variable hides it. Otherwise it is the innermost field of this framework's logger type, which may be
-     * inherited or belong to a class around the cursor's.
+     * A reference to the innermost variable of this framework's logger type that code at the cursor can call by its
+     * simple name. That may be a field of the class or of one around it, an inherited field, the field a Lombok
+     * annotation generates, a parameter or a local.
      */
-    J.@Nullable Identifier loggerAt(Cursor cursor, @Nullable String lombokFieldName) {
-        J.ClassDeclaration innermost = cursor.firstEnclosing(J.ClassDeclaration.class);
-        if (lombokFieldName != null && innermost != null && !lombokLoggerHiddenAt(cursor, innermost, lombokFieldName)) {
-            JavaType.Variable generated = null;
-            if (innermost.getType() != null) {
-                for (JavaType.Variable member : innermost.getType().getMembers()) {
-                    if (member.getName().equals(lombokFieldName)) {
-                        generated = member;
-                    }
-                }
-            }
-            return reference(lombokFieldName, generated);
-        }
-        return Scope.at(cursor).visible()
-                .filter(binding -> binding.getNamespace() == Scope.Namespace.VARIABLE && !binding.isLocal() &&
-                                   binding.getType() instanceof JavaType.Variable)
-                .filter(binding -> {
-                    JavaType.Variable field = (JavaType.Variable) binding.getType();
-                    return TypeUtils.isAssignableTo(loggerType, field.getType()) &&
-                           (field.hasFlags(Flag.Static) || hasInstanceOf(cursor, binding.getScope().getTree()));
+    J.@Nullable Identifier loggerAt(Cursor cursor) {
+        Scope scope = Scope.at(cursor);
+        return scope.visible()
+                .filter(binding -> binding.getNamespace() == Scope.Namespace.VARIABLE &&
+                                   TypeUtils.isAssignableTo(loggerType, binding.getType()) &&
+                                   scope.canReference(binding))
+                .map(binding -> {
+                    JavaType.Variable variable = binding.getType() instanceof JavaType.Variable ? (JavaType.Variable) binding.getType() : null;
+                    return new J.Identifier(Tree.randomId(), Space.EMPTY, Markers.EMPTY, emptyList(), binding.getName(),
+                            variable == null ? null : variable.getType(), variable);
                 })
-                .map(binding -> reference(binding.getName(), (JavaType.Variable) binding.getType()))
                 .findFirst()
                 .orElse(null);
-    }
-
-    private static J.Identifier reference(String name, JavaType.@Nullable Variable field) {
-        return new J.Identifier(Tree.randomId(), Space.EMPTY, Markers.EMPTY, emptyList(), name, field == null ? null : field.getType(), field);
-    }
-
-    /**
-     * Whether code at the cursor runs with an instance of the class around it, whose instance fields it can then
-     * read. Scope reports such a field visible from a static context too.
-     */
-    private static boolean hasInstanceOf(Cursor cursor, J enclosingClass) {
-        for (Cursor c = cursor; c.getValue() != enclosingClass; c = c.getParentTreeCursor()) {
-            Object tree = c.getValue();
-            if (tree instanceof J.MethodDeclaration && ((J.MethodDeclaration) tree).hasModifier(J.Modifier.Type.Static) ||
-                tree instanceof J.VariableDeclarations && ((J.VariableDeclarations) tree).hasModifier(J.Modifier.Type.Static) ||
-                tree instanceof J.Block && ((J.Block) tree).isStatic() ||
-                tree instanceof J.ClassDeclaration && (((J.ClassDeclaration) tree).hasModifier(J.Modifier.Type.Static) ||
-                                                       ((J.ClassDeclaration) tree).getKind() != J.ClassDeclaration.Kind.Type.Class)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /**
-     * Whether the name, read at the cursor, means a variable other than the logger field Lombok generates in the
-     * annotated class. A variable bound inside the class does, and so does a member the class declares. A field the
-     * class inherits and a variable from around the class do not, as the generated field hides them.
-     */
-    private static boolean lombokLoggerHiddenAt(Cursor cursor, J.ClassDeclaration annotated, String name) {
-        return Scope.at(cursor).lookup(name)
-                .filter(binding -> {
-                    Cursor boundBy = binding.getScope().getCursor();
-                    return boundBy.getValue() == annotated ?
-                            binding.getKind() != Scope.Kind.INHERITED :
-                            boundBy.isScopeInPath(annotated);
-                })
-                .isPresent();
     }
 
     public JavaTemplate getErrorTemplate(String message, ExecutionContext ctx) {

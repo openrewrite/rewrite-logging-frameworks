@@ -22,7 +22,6 @@ import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.*;
 
 import java.util.List;
@@ -62,7 +61,6 @@ public class SystemErrToLogging extends Recipe {
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         LoggingFramework framework = LoggingFramework.fromOption(loggingFramework);
-        AnnotationMatcher lombokLogAnnotationMatcher = new AnnotationMatcher("@lombok.extern..*");
 
         return Preconditions.check(new UsesMethod<>(systemErrPrint), Repeat.repeatUntilStable(new JavaIsoVisitor<ExecutionContext>() {
             @Override
@@ -140,14 +138,15 @@ public class SystemErrToLogging extends Recipe {
             private J.MethodInvocation logInsteadOfPrint(Cursor printCursor, ExecutionContext ctx, @Nullable Expression exceptionPrintStackTrace, AtomicBoolean addedLogger) {
                 J.MethodInvocation print = printCursor.getValue();
                 Cursor classCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
-                AnnotationService annotationService = service(AnnotationService.class);
-                boolean lombok = annotationService.matches(classCursor, lombokLogAnnotationMatcher);
-                J.Identifier logger = framework.loggerAt(printCursor, lombok ? (loggerName == null ? "log" : loggerName) : null);
+                J.Identifier logger = framework.loggerAt(printCursor);
                 if (logger != null) {
                     print = replaceMethodInvocation(printCursor, ctx, exceptionPrintStackTrace, print, logger);
-                } else if (!lombok && addLogger != null && addLogger) {
+                } else if (addLogger != null && addLogger) {
                     doAfterVisit(AddLogger.addLogger(classCursor.getValue(), framework, loggerName == null ? "logger" : loggerName, ctx));
-                    addedLogger.set(true);
+                    // A class whose logger is out of reach here gets no other one
+                    if (!AddLogger.hasLogger(classCursor, framework.getLoggerType())) {
+                        addedLogger.set(true);
+                    }
                 }
                 return print;
             }

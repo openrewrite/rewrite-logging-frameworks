@@ -23,8 +23,6 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.format.AutoFormatVisitor;
-import org.openrewrite.java.search.FindFieldsOfType;
-import org.openrewrite.java.search.FindInheritedFields;
 import org.openrewrite.java.trait.Scope;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaSourceFile;
@@ -135,12 +133,21 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
         return innerClass && !scope.hasModifier(J.Modifier.Type.Static) ? "private final" : "private static final";
     }
 
+    /**
+     * Whether the class has a logger of the type among its own members, declared or inherited, so that it gets no
+     * other. The logger of a nested class does not count, as the class cannot call it by its simple name.
+     */
+    static boolean hasLogger(Cursor classCursor, String loggerType) {
+        return Scope.at(classCursor).getBindings().stream().anyMatch(binding ->
+                binding.getNamespace() == Scope.Namespace.VARIABLE && TypeUtils.isAssignableTo(loggerType, binding.getType()));
+    }
+
     @Override
     public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
         J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
 
         if (cd == scope) {
-            if (!FindInheritedFields.find(cd, loggerType).isEmpty() || !FindFieldsOfType.find(cd, loggerType).isEmpty()) {
+            if (hasLogger(getCursor(), loggerType)) {
                 return cd;
             }
 
@@ -151,7 +158,7 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
             // A name that code only refers to is kept, as a caller may have written those references for this field
             boolean bound = body.lookup(loggerName).isPresent() || Scope.declaredWithin(getCursor()).anyMatch(binding ->
                     binding.getNamespace() == Scope.Namespace.VARIABLE && binding.getName().equals(loggerName));
-            String name = bound ? body.freeName(loggerName, taken -> false) : loggerName;
+            String name = bound ? body.freeName(loggerName) : loggerName;
             String simpleName = loggerType.substring(loggerType.lastIndexOf('.') + 1);
             boolean qualified = namesAnotherType(simpleName, body);
             String type = !qualified ? simpleName :

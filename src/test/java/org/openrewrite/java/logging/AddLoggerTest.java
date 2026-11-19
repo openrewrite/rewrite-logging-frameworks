@@ -24,11 +24,13 @@ import org.openrewrite.*;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class AddLoggerTest implements RewriteTest {
 
@@ -265,6 +267,59 @@ class AddLoggerTest implements RewriteTest {
           java(
             """
               class Test extends Base {
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void notIfKotlinCompanionObjectHasLogger() {
+        rewriteRun(
+          spec -> spec.recipe(new MaybeAddLoggerToClass("Test"))
+            .parser(KotlinParser.builder().classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2")),
+          //language=kotlin
+          kotlin(
+            """
+              import org.slf4j.Logger
+              import org.slf4j.LoggerFactory
+
+              class Test {
+                  companion object {
+                      private val logger: Logger = LoggerFactory.getLogger(Test::class.java)
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void addWhereOnlyNestedClassHasLogger() {
+        rewriteRun(
+          spec -> spec.recipe(new MaybeAddLoggerToClass("Test")),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Test {
+                  static class Nested {
+                      private static final Logger LOGGER = LoggerFactory.getLogger(Nested.class);
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Test {
+                  private static final Logger LOGGER1 = LoggerFactory.getLogger(Test.class);
+
+                  static class Nested {
+                      private static final Logger LOGGER = LoggerFactory.getLogger(Nested.class);
+                  }
               }
               """
           )

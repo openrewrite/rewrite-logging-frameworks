@@ -518,4 +518,41 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void useInheritedLoggerWhereFileNeverNamesItsType() {
+        rewriteRun(
+          spec -> spec.recipe(new PrintStackTraceToLogError(null, null, null))
+            .parser(JavaParser.fromJavaVersion()
+              .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2")),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Base {
+                  protected final Logger logger = LoggerFactory.getLogger(getClass());
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              class Test extends Base {
+                  void test(Throwable t) {
+                      t.printStackTrace();
+                  }
+              }
+              """,
+            """
+              class Test extends Base {
+                  void test(Throwable t) {
+                      logger.error("Exception", t);
+                  }
+              }
+              """
+          )
+        );
+    }
 }

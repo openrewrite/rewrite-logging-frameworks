@@ -20,10 +20,12 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class SystemOutToLoggingTest implements RewriteTest {
 
@@ -300,7 +302,7 @@ class SystemOutToLoggingTest implements RewriteTest {
     }
 
     @Test
-    void doNotUseInstanceLoggerFromStaticContext() {
+    void doNotUseLoggerThatCannotBeReferenced() {
         rewriteRun(
           spec -> spec.recipe(new SystemOutToLogging(null, null, null, null)),
           //language=java
@@ -318,6 +320,128 @@ class SystemOutToLoggingTest implements RewriteTest {
                       void test() {
                           System.out.println("Oh no");
                       }
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+              class DeclaredLater {
+                  static {
+                      System.out.println("Oh no");
+                  }
+
+                  private static final Logger LOGGER = LoggerFactory.getLogger(DeclaredLater.class);
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              class ConstructorCall {
+                  Logger logger;
+
+                  ConstructorCall(Runnable r) {
+                  }
+
+                  ConstructorCall() {
+                      this(() -> System.out.println("Oh no"));
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              enum Level {
+                  HIGH {
+                      @Override
+                      void test() {
+                          System.out.println("Oh no");
+                      }
+                  };
+
+                  private Logger logger;
+
+                  void test() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void useLoggerParameterThatHidesField() {
+        rewriteRun(
+          spec -> spec.recipe(new SystemOutToLogging(null, null, null, null)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              class Test {
+                  Logger logger;
+
+                  Test(Logger logger) {
+                      this.logger = logger;
+                      System.out.println("Oh no");
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              class Test {
+                  Logger logger;
+
+                  Test(Logger logger) {
+                      this.logger = logger;
+                      logger.info("Oh no");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void useLoggerOfKotlinCompanionObject() {
+        rewriteRun(
+          spec -> spec.recipe(new SystemOutToLogging(true, null, null, null))
+            .parser(KotlinParser.builder().classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2")),
+          //language=kotlin
+          kotlin(
+            """
+              import org.slf4j.Logger
+              import org.slf4j.LoggerFactory
+
+              class A {
+                  companion object {
+                      private val logger: Logger = LoggerFactory.getLogger(A::class.java)
+                  }
+
+                  fun test() {
+                      println("unrelated")
+                      System.out.println("Oh no")
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger
+              import org.slf4j.LoggerFactory
+
+              class A {
+                  companion object {
+                      private val logger: Logger = LoggerFactory.getLogger(A::class.java)
+                  }
+
+                  fun test() {
+                      println("unrelated")
+                      logger.info("Oh no")
                   }
               }
               """

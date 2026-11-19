@@ -19,11 +19,9 @@ import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
-import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.search.UsesType;
-import org.openrewrite.java.service.AnnotationService;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
@@ -59,7 +57,6 @@ public class PrintStackTraceToLogError extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         MethodMatcher printStackTrace = new MethodMatcher("java.lang.Throwable printStackTrace(..)");
         LoggingFramework framework = LoggingFramework.fromOption(loggingFramework);
-        AnnotationMatcher lombokLogAnnotationMatcher = new AnnotationMatcher("@lombok.extern..*");
 
         JavaIsoVisitor<ExecutionContext> visitor = new JavaIsoVisitor<ExecutionContext>() {
             @Override
@@ -79,12 +76,10 @@ public class PrintStackTraceToLogError extends Recipe {
                         }
                     }
                     Cursor classCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
-                    AnnotationService annotationService = service(AnnotationService.class);
-                    boolean lombok = annotationService.matches(classCursor, lombokLogAnnotationMatcher);
-                    J.Identifier logger = framework.loggerAt(getCursor(), lombok ? (loggerName == null ? "log" : loggerName) : null);
+                    J.Identifier logger = framework.loggerAt(getCursor());
                     if (logger != null) {
                         m = replaceMethodInvocation(m, logger, ctx);
-                    } else if (!lombok && addLogger != null && addLogger) {
+                    } else if (addLogger != null && addLogger) {
                         doAfterVisit(AddLogger.addLogger(classCursor.getValue(), framework, loggerName == null ? "logger" : loggerName, ctx));
                     }
                 }
@@ -102,10 +97,6 @@ public class PrintStackTraceToLogError extends Recipe {
                         m.getSelect());
             }
         };
-        return Repeat.repeatUntilStable(addLogger != null && addLogger ? visitor : Preconditions.check(
-                Preconditions.or(
-                        new UsesType<>(framework.getLoggerType(), null),
-                        new UsesType<>("lombok.extern..*", null))
-                , visitor));
+        return Preconditions.check(new UsesMethod<>(printStackTrace), Repeat.repeatUntilStable(visitor));
     }
 }

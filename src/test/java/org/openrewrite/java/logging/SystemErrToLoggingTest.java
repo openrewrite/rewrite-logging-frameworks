@@ -500,7 +500,8 @@ class SystemErrToLoggingTest implements RewriteTest {
     @Test
     void useLoggerUntilLocalHidesIt() {
         rewriteRun(
-          spec -> spec.recipe(new SystemErrToLogging(null, null, null)),
+          // no logger is added to a class that has one, so the converted print is kept
+          spec -> spec.recipe(new SystemErrToLogging(true, null, null)),
           //language=java
           java(
             """
