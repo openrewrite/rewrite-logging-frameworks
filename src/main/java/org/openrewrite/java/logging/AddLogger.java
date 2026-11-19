@@ -148,7 +148,10 @@ public class AddLogger extends JavaIsoVisitor<ExecutionContext> {
             Comparator<Statement> firstAfterEnumValueSet = (unused, o2) -> o2 instanceof J.EnumValueSet ? 1 : -1;
             // Asked from the body, where the members the class declares and inherits are in scope
             Scope body = Scope.at(new Cursor(getCursor(), cd.getBody()));
-            String name = body.freeName(loggerName, taken -> false);
+            // A name that code only refers to is kept, as a caller may have written those references for this field
+            boolean bound = body.lookup(loggerName).isPresent() || Scope.declaredWithin(getCursor()).anyMatch(binding ->
+                    binding.getNamespace() == Scope.Namespace.VARIABLE && binding.getName().equals(loggerName));
+            String name = bound ? body.freeName(loggerName, taken -> false) : loggerName;
             String simpleName = loggerType.substring(loggerType.lastIndexOf('.') + 1);
             boolean qualified = namesAnotherType(simpleName, body);
             String type = !qualified ? simpleName :

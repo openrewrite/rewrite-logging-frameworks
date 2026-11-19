@@ -26,6 +26,7 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
@@ -126,6 +127,36 @@ class AddLoggerTest implements RewriteTest {
               class Test {
                   private static final Logger LOGGER1 = LoggerFactory.getLogger(Test.class);
                   String LOGGER = "audit";
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepNameThatCodeOnlyRefersTo() {
+        rewriteRun(
+          // the references are written ahead of the field, as a recipe calling `AddLogger` may do
+          spec -> spec.recipe(new MaybeAddLoggerToClass("Test")).typeValidationOptions(TypeValidation.none()),
+          //language=java
+          java(
+            """
+              class Test {
+                  void test() {
+                      LOGGER.info("Oh no");
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Test {
+                  private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
+
+                  void test() {
+                      LOGGER.info("Oh no");
+                  }
               }
               """
           )
