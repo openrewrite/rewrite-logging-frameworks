@@ -23,6 +23,8 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
+import org.openrewrite.staticanalysis.groovy.GroovyFileChecker;
+import org.openrewrite.staticanalysis.kotlin.KotlinFileChecker;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -61,14 +63,14 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
     @Nullable
     Boolean convertSimpleArguments;
 
-    String displayName = "Use lambda suppliers for Log4j parameters";
+    String displayName = "Use lambda suppliers for Log4j parameters and composed messages";
 
     String description = "Replace parameterized Log4j 2 log statements such as `logger.debug(String message, Object... params)` " +
                          "with `logger.debug(String message, Supplier<?>... paramSuppliers)`, so that the parameters are only " +
                          "evaluated when the log level is enabled. A message without parameters that is put together at the call, " +
-                         "such as `logger.debug(\"Hello \" + name)`, is passed as a supplier too. Statements whose last argument is a `Throwable`, whose arguments " +
-                         "capture local variables that are not effectively final, have side effects, throw checked exceptions " +
-                         "or are suppliers themselves are left unchanged.";
+                         "such as `logger.debug(\"Hello \" + name)`, is passed as a supplier too. Statements whose last argument " +
+                         "is a `Throwable`, whose arguments capture local variables that are not effectively final, have side " +
+                         "effects, throw checked exceptions or are suppliers themselves are left unchanged.";
 
     Set<String> tags = new HashSet<>(asList("logging", "log4j"));
 
@@ -93,7 +95,11 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
             }
         }
         boolean convertSimple = Boolean.TRUE.equals(convertSimpleArguments);
-        return Preconditions.check(new UsesMethod<>(LOG_METHODS), new JavaIsoVisitor<ExecutionContext>() {
+        TreeVisitor<?, ExecutionContext> preconditions = Preconditions.and(
+                new UsesMethod<>(LOG_METHODS),
+                Preconditions.not(new KotlinFileChecker<>()),
+                Preconditions.not(new GroovyFileChecker<>()));
+        return Preconditions.check(preconditions, new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
@@ -188,8 +194,10 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
             trailing == 1 && !TypeUtils.isOfClassType(parameterTypes.get(messageIndex + 1), "java.lang.Throwable")) {
             return false;
         }
-        Expression message = args.get(messageIndex);
-        return TypeUtils.isString(message.getType()) && isExpensive(message) && !isLiteralConcatenation(message) &&
+        Expression message = args.get(messageIndex).unwrap();
+        return TypeUtils.isString(message.getType()) &&
+               (message instanceof J.Binary || message instanceof J.MethodInvocation) &&
+               isExpensive(message) && !isLiteralConcatenation(message) &&
                !hasSideEffectsOrCheckedExceptions(message);
     }
 
@@ -319,10 +327,8 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
         }.reduce(param, new AtomicBoolean()).get();
     }
 
-    /**
-     * A lambda may only capture local variables that are effectively final.
-     */
     private static boolean capturesOnlyEffectivelyFinalLocals(List<Expression> params, Cursor cursor) {
+        // A lambda may only capture local variables that are effectively final
         Set<String> capturedLocals = new HashSet<>();
         for (Expression param : params) {
             new JavaIsoVisitor<Set<String>>() {

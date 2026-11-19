@@ -24,6 +24,7 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -31,6 +32,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class ParameterizedLoggingToLambdaSuppliersTest implements RewriteTest {
 
@@ -762,12 +764,15 @@ class ParameterizedLoggingToLambdaSuppliersTest implements RewriteTest {
                   import org.apache.logging.log4j.Logger;
 
                   class Test {
-                      void test(Logger logger, String name, Object message, Exception e) {
+                      void test(Logger logger, String name, Object message, String[] names, Exception e) {
                           logger.debug("Constant message");
                           logger.debug("A long constant message " +
                                   "that is wrapped");
                           logger.debug(name);
                           logger.debug(message);
+                          logger.debug(name == null ? "No name" : name);
+                          logger.debug((String) message);
+                          logger.debug(names[0]);
                           logger.error("Failed", e);
                           logger.debug("Name {}", name);
                           logger.debug(() -> "Hello " + name);
@@ -775,6 +780,25 @@ class ParameterizedLoggingToLambdaSuppliersTest implements RewriteTest {
                           for (int i = 0; i < 3; i++) {
                               logger.debug("Round " + i);
                           }
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void kotlinSources() {
+            rewriteRun(
+              spec -> spec.parser(KotlinParser.builder().classpathFromResources(new InMemoryExecutionContext(), "log4j-api")),
+              //language=kotlin
+              kotlin(
+                """
+                  import org.apache.logging.log4j.Logger
+
+                  class Test {
+                      fun test(logger: Logger, name: String) {
+                          logger.debug("Name {}", name.trim())
                       }
                   }
                   """
