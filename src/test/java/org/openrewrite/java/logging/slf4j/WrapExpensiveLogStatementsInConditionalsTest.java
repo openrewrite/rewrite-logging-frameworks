@@ -261,6 +261,51 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
     }
 
     @Test
+    void wrapInElseOfLogLevelCheck() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger LOG, boolean flag) {
+                      if (LOG.isInfoEnabled() && flag) {
+                          LOG.info("Verbose");
+                      } else {
+                          LOG.info("SomeString {}", expensiveOp());
+                      }
+                  }
+
+                  String expensiveOp() {
+                      return "expensive";
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger LOG, boolean flag) {
+                      if (LOG.isInfoEnabled() && flag) {
+                          LOG.info("Verbose");
+                      } else {
+                          if (LOG.isInfoEnabled()) {
+                              LOG.info("SomeString {}", expensiveOp());
+                          }
+                      }
+                  }
+
+                  String expensiveOp() {
+                      return "expensive";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void partiallyPrecheckedStatements() {
         rewriteRun(
           //language=java

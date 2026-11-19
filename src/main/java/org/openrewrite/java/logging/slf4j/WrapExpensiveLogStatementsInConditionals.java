@@ -298,10 +298,15 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
     private static boolean isInIfStatementWithLogLevelCheck(Cursor cursor, J.MethodInvocation m) {
         MethodMatcher isEnabledMatcher = infoMatcher.matches(m) ? isInfoEnabledMatcher :
                 debugMatcher.matches(m) ? isDebugEnabledMatcher : isTraceEnabledMatcher;
-        for (Iterator<Object> ifs = cursor.getPath(J.If.class::isInstance); ifs.hasNext(); ) {
-            if (impliesLogLevelEnabled(((J.If) ifs.next()).getIfCondition().getTree(), isEnabledMatcher)) {
+        Object child = null;
+        for (Iterator<Object> path = cursor.getPath(); path.hasNext(); ) {
+            Object value = path.next();
+            // The condition says nothing about the level on the else branch
+            if (value instanceof J.If && !(child instanceof J.If.Else) &&
+                    impliesLogLevelEnabled(((J.If) value).getIfCondition().getTree(), isEnabledMatcher)) {
                 return true;
             }
+            child = value;
         }
         return false;
     }
