@@ -322,4 +322,71 @@ class SystemOutToLoggingTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void useLombokLoggerThatHidesInheritedOrOuterField() {
+        rewriteRun(
+          spec -> spec.recipe(new SystemOutToLogging(null, null, null, null))
+            .typeValidationOptions(TypeValidation.builder().identifiers(false).build()),
+          //language=java
+          java(
+            """
+              class Base {
+                  protected String log = "audit";
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import lombok.extern.slf4j.Slf4j;
+              @Slf4j
+              class Test extends Base {
+                  void test() {
+                      System.out.println("Oh no");
+                  }
+              }
+              """,
+            """
+              import lombok.extern.slf4j.Slf4j;
+              @Slf4j
+              class Test extends Base {
+                  void test() {
+                      log.info("Oh no");
+                  }
+              }
+              """
+          ),
+
+          //language=java
+          java(
+            """
+              import lombok.extern.slf4j.Slf4j;
+              class Outer {
+                  static String log = "audit";
+
+                  @Slf4j
+                  static class Nested {
+                      void test() {
+                          System.out.println("Oh no");
+                      }
+                  }
+              }
+              """,
+            """
+              import lombok.extern.slf4j.Slf4j;
+              class Outer {
+                  static String log = "audit";
+
+                  @Slf4j
+                  static class Nested {
+                      void test() {
+                          log.info("Oh no");
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
 }

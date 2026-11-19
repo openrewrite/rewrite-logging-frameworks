@@ -498,4 +498,40 @@ class SystemErrToLoggingTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void useLoggerUntilLocalHidesIt() {
+        rewriteRun(
+          spec -> spec.recipe(new SystemErrToLogging(null, null, null)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              class Test {
+                  Logger logger;
+
+                  void test(Throwable t) {
+                      System.err.println("Oh no");
+                      String logger = "audit";
+                      System.err.println("Oh no");
+                      t.printStackTrace();
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              class Test {
+                  Logger logger;
+
+                  void test(Throwable t) {
+                      logger.error("Oh no");
+                      String logger = "audit";
+                      System.err.println("Oh no");
+                      t.printStackTrace();
+                  }
+              }
+              """
+          )
+        );
+    }
 }

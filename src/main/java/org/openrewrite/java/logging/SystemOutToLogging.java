@@ -22,7 +22,6 @@ import org.openrewrite.*;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.service.AnnotationService;
-import org.openrewrite.java.trait.Scope;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
@@ -94,8 +93,7 @@ public class SystemOutToLogging extends Recipe {
                     print = replaceMethodInvocation(printCursor, ctx, print, logger);
                 } else if (annotationService.matches(classCursor, lombokLogAnnotationMatcher)) {
                     String fieldName = loggerName == null ? "log" : loggerName;
-                    // A variable in scope under this name hides the field Lombok generates
-                    if (!Scope.at(printCursor).lookup(fieldName).isPresent()) {
+                    if (!LoggingFramework.lombokLoggerHiddenAt(printCursor, classCursor.getValue(), fieldName)) {
                         J.Identifier logField = new J.Identifier(Tree.randomId(), Space.SINGLE_SPACE, Markers.EMPTY, emptyList(), fieldName, null, null);
                         print = replaceMethodInvocation(printCursor, ctx, print, logField);
                     }

@@ -23,7 +23,6 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.service.AnnotationService;
-import org.openrewrite.java.trait.Scope;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
@@ -106,14 +105,16 @@ public class SystemErrToLogging extends Recipe {
                                         J next = statements.get(i + 1);
                                         if (next instanceof J.MethodInvocation && printStackTrace.matches((Expression) next)) {
                                             exceptionPrintStackTrace = ((J.MethodInvocation) next).getSelect();
-                                            skip.set(i + 1);
                                         }
                                     }
 
                                     Cursor printCursor = new Cursor(cursor, m);
-                                    J.MethodInvocation unchangedIfAddedLogger = logInsteadOfPrint(printCursor, ctx, exceptionPrintStackTrace);
-                                    addedLogger.set(unchangedIfAddedLogger == m);
-                                    return unchangedIfAddedLogger;
+                                    J.MethodInvocation logged = logInsteadOfPrint(printCursor, ctx, exceptionPrintStackTrace, addedLogger);
+                                    if (logged != m && exceptionPrintStackTrace != null) {
+                                        // A print left as it is keeps the printStackTrace() after it
+                                        skip.set(i + 1);
+                                    }
+                                    return logged;
                                 }
                             }
                         }
@@ -131,7 +132,7 @@ public class SystemErrToLogging extends Recipe {
                             JavaType.Variable field = ((J.FieldAccess) m.getSelect()).getName().getFieldType();
                             if (field != null && "err".equals(field.getName()) && TypeUtils.isOfClassType(field.getOwner(), "java.lang.System")) {
                                 Cursor printCursor = new Cursor(getCursor().getParent(), m);
-                                return logInsteadOfPrint(printCursor, ctx, null);
+                                return logInsteadOfPrint(printCursor, ctx, null, new AtomicBoolean());
                             }
                         }
                     }
@@ -139,7 +140,7 @@ public class SystemErrToLogging extends Recipe {
                 return m;
             }
 
-            private J.MethodInvocation logInsteadOfPrint(Cursor printCursor, ExecutionContext ctx, @Nullable Expression exceptionPrintStackTrace) {
+            private J.MethodInvocation logInsteadOfPrint(Cursor printCursor, ExecutionContext ctx, @Nullable Expression exceptionPrintStackTrace, AtomicBoolean addedLogger) {
                 J.MethodInvocation print = printCursor.getValue();
                 Cursor classCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
                 AnnotationService annotationService = service(AnnotationService.class);
@@ -148,13 +149,13 @@ public class SystemErrToLogging extends Recipe {
                     print = replaceMethodInvocation(printCursor, ctx, exceptionPrintStackTrace, print, logger);
                 } else if (annotationService.matches(classCursor, lombokLogAnnotationMatcher)) {
                     String fieldName = loggerName == null ? "log" : loggerName;
-                    // A variable in scope under this name hides the field Lombok generates
-                    if (!Scope.at(printCursor).lookup(fieldName).isPresent()) {
+                    if (!LoggingFramework.lombokLoggerHiddenAt(printCursor, classCursor.getValue(), fieldName)) {
                         J.Identifier logField = new J.Identifier(Tree.randomId(), Space.SINGLE_SPACE, Markers.EMPTY, emptyList(), fieldName, null, null);
                         print = replaceMethodInvocation(printCursor, ctx, exceptionPrintStackTrace, print, logField);
                     }
                 } else if (addLogger != null && addLogger) {
                     doAfterVisit(AddLogger.addLogger(classCursor.getValue(), framework, loggerName == null ? "logger" : loggerName, ctx));
+                    addedLogger.set(true);
                 }
                 return print;
             }

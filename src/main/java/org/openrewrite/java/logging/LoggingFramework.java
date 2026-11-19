@@ -99,6 +99,22 @@ public enum LoggingFramework {
         return true;
     }
 
+    /**
+     * Whether the name, read at the cursor, means a variable other than the logger field Lombok generates in the
+     * annotated class. A variable bound inside the class does, and so does a member the class declares. A field the
+     * class inherits and a variable from around the class do not, as the generated field hides them.
+     */
+    static boolean lombokLoggerHiddenAt(Cursor cursor, J.ClassDeclaration annotated, String name) {
+        return Scope.at(cursor).lookup(name)
+                .filter(binding -> {
+                    Cursor boundBy = binding.getScope().getCursor();
+                    return boundBy.getValue() == annotated ?
+                            binding.getKind() != Scope.Kind.INHERITED :
+                            boundBy.isScopeInPath(annotated);
+                })
+                .isPresent();
+    }
+
     public JavaTemplate getErrorTemplate(String message, ExecutionContext ctx) {
         switch (this) {
             case SLF4J:
