@@ -467,4 +467,35 @@ class SystemErrToLoggingTest implements RewriteTest {
         );
     }
 
+    @Test
+    void doNotUseLoggerHiddenByParameter() {
+        rewriteRun(
+          spec -> spec.recipe(new SystemErrToLogging(null, null, null)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              class Test {
+                  Logger logger;
+
+                  void test(String logger, Throwable t) {
+                      System.err.println("Oh no");
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import lombok.extern.slf4j.Slf4j;
+              @Slf4j
+              class LombokTest {
+                  void test(String log, Throwable t) {
+                      System.err.println("Oh no");
+                  }
+              }
+              """
+          )
+        );
+    }
 }

@@ -21,14 +21,13 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
-import org.openrewrite.java.search.FindFieldsOfType;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.service.AnnotationService;
+import org.openrewrite.java.trait.Scope;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -144,14 +143,16 @@ public class SystemErrToLogging extends Recipe {
                 J.MethodInvocation print = printCursor.getValue();
                 Cursor classCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
                 AnnotationService annotationService = service(AnnotationService.class);
-                Set<J.VariableDeclarations> loggers = FindFieldsOfType.find(classCursor.getValue(), framework.getLoggerType());
-                if (!loggers.isEmpty()) {
-                    J.Identifier computedLoggerName = loggers.iterator().next().getVariables().get(0).getName();
-                    print = replaceMethodInvocation(printCursor, ctx, exceptionPrintStackTrace, print, computedLoggerName);
+                J.Identifier logger = framework.loggerAt(printCursor);
+                if (logger != null) {
+                    print = replaceMethodInvocation(printCursor, ctx, exceptionPrintStackTrace, print, logger);
                 } else if (annotationService.matches(classCursor, lombokLogAnnotationMatcher)) {
                     String fieldName = loggerName == null ? "log" : loggerName;
-                    J.Identifier logField = new J.Identifier(Tree.randomId(), Space.SINGLE_SPACE, Markers.EMPTY, emptyList(), fieldName, null, null);
-                    print = replaceMethodInvocation(printCursor, ctx, exceptionPrintStackTrace, print, logField);
+                    // A variable in scope under this name hides the field Lombok generates
+                    if (!Scope.at(printCursor).lookup(fieldName).isPresent()) {
+                        J.Identifier logField = new J.Identifier(Tree.randomId(), Space.SINGLE_SPACE, Markers.EMPTY, emptyList(), fieldName, null, null);
+                        print = replaceMethodInvocation(printCursor, ctx, exceptionPrintStackTrace, print, logField);
+                    }
                 } else if (addLogger != null && addLogger) {
                     doAfterVisit(AddLogger.addLogger(classCursor.getValue(), framework, loggerName == null ? "logger" : loggerName, ctx));
                 }

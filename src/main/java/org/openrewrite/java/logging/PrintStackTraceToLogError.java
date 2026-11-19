@@ -22,16 +22,14 @@ import org.openrewrite.*;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.search.FindFieldsOfType;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.service.AnnotationService;
+import org.openrewrite.java.trait.Scope;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.Markers;
-
-import java.util.Set;
 
 import static java.util.Collections.emptyList;
 
@@ -87,14 +85,16 @@ public class PrintStackTraceToLogError extends Recipe {
                     }
                     Cursor classCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
                     AnnotationService annotationService = service(AnnotationService.class);
-                    Set<J.VariableDeclarations> loggers = FindFieldsOfType.find(classCursor.getValue(), framework.getLoggerType());
-                    if (!loggers.isEmpty()) {
-                        J.Identifier logField = loggers.iterator().next().getVariables().get(0).getName();
-                        m = replaceMethodInvocation(m, logField, ctx);
+                    J.Identifier logger = framework.loggerAt(getCursor());
+                    if (logger != null) {
+                        m = replaceMethodInvocation(m, logger, ctx);
                     } else if (annotationService.matches(classCursor, lombokLogAnnotationMatcher)) {
                         String fieldName = loggerName == null ? "log" : loggerName;
-                        J.Identifier logField = new J.Identifier(Tree.randomId(), Space.SINGLE_SPACE, Markers.EMPTY, emptyList(), fieldName, null, null);
-                        m = replaceMethodInvocation(m, logField, ctx);
+                        // A variable in scope under this name hides the field Lombok generates
+                        if (!Scope.at(getCursor()).lookup(fieldName).isPresent()) {
+                            J.Identifier logField = new J.Identifier(Tree.randomId(), Space.SINGLE_SPACE, Markers.EMPTY, emptyList(), fieldName, null, null);
+                            m = replaceMethodInvocation(m, logField, ctx);
+                        }
                     } else if (addLogger != null && addLogger) {
                         doAfterVisit(AddLogger.addLogger(classCursor.getValue(), framework, loggerName == null ? "logger" : loggerName, ctx));
                     }

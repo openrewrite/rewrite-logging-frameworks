@@ -486,4 +486,38 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void doNotUseLoggerHiddenByParameter() {
+        rewriteRun(
+          spec -> spec.recipe(new PrintStackTraceToLogError(null, null, null))
+            .parser(JavaParser.fromJavaVersion()
+              .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2", "lombok-1.18.+")),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              class Test {
+                  Logger logger;
+
+                  void test(String logger, Throwable t) {
+                      t.printStackTrace();
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import lombok.extern.slf4j.Slf4j;
+              @Slf4j
+              class LombokTest {
+                  void test(String log, Throwable t) {
+                      t.printStackTrace();
+                  }
+              }
+              """
+          )
+        );
+    }
 }
