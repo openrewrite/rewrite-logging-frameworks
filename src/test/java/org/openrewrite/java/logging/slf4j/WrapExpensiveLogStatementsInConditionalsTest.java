@@ -199,7 +199,101 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
                       if(1 == 1 && LOG.isInfoEnabled()) {
                           LOG.info("SomeString {}", expensiveOp());
                       }
+                      if (LOG.isInfoEnabled() && expensiveOp().equals("test")) {
+                          LOG.info("SomeString {}", expensiveOp());
+                      }
+                      if (LOG.isInfoEnabled()) {
+                          if (expensiveOp().equals("test")) {
+                              LOG.info("SomeString {}", expensiveOp());
+                          }
+                      }
                       LOG.info("SomeString {}", s);
+                  }
+
+                  String expensiveOp() {
+                      return "expensive";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void wrapWhenLogLevelCheckIsOneSideOfOr() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger LOG, boolean flag) {
+                      if (flag || LOG.isInfoEnabled()) {
+                          LOG.info("SomeString {}", expensiveOp());
+                      }
+                  }
+
+                  String expensiveOp() {
+                      return "expensive";
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger LOG, boolean flag) {
+                      if (flag || LOG.isInfoEnabled()) {
+                          if (LOG.isInfoEnabled()) {
+                              LOG.info("SomeString {}", expensiveOp());
+                          }
+                      }
+                  }
+
+                  String expensiveOp() {
+                      return "expensive";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void wrapInElseOfLogLevelCheck() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger LOG, boolean flag) {
+                      if (LOG.isInfoEnabled() && flag) {
+                          LOG.info("Verbose");
+                      } else {
+                          LOG.info("SomeString {}", expensiveOp());
+                      }
+                  }
+
+                  String expensiveOp() {
+                      return "expensive";
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger LOG, boolean flag) {
+                      if (LOG.isInfoEnabled() && flag) {
+                          LOG.info("Verbose");
+                      } else {
+                          if (LOG.isInfoEnabled()) {
+                              LOG.info("SomeString {}", expensiveOp());
+                          }
+                      }
                   }
 
                   String expensiveOp() {

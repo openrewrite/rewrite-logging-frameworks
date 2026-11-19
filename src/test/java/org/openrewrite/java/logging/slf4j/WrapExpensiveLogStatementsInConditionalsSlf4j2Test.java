@@ -492,6 +492,45 @@ class WrapExpensiveLogStatementsInConditionalsSlf4j2Test implements RewriteTest 
     }
 
     @Test
+    void convertInsideIfThatDoesNotCheckLogLevel() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger logger, boolean flag) {
+                      if (flag) {
+                          logger.info("Result: {}", calculateResult());
+                      }
+                  }
+
+                  String calculateResult() {
+                      return "result";
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger logger, boolean flag) {
+                      if (flag) {
+                          logger.atInfo().addArgument(() -> calculateResult()).log("Result: {}");
+                      }
+                  }
+
+                  String calculateResult() {
+                      return "result";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void useConditionalWhenCapturedVariableIsIncrementedInParentheses() {
         rewriteRun(
           //language=java
