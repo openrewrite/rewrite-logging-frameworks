@@ -142,9 +142,9 @@ class SystemOutToLoggingTest implements RewriteTest {
           java(
             """
               class Foo {
-                void bar() {
-                  System.out.println("Test");
-                }
+                  void bar() {
+                      System.out.println("Test");
+                  }
               }
               """,
             """
@@ -157,7 +157,7 @@ class SystemOutToLoggingTest implements RewriteTest {
 
                   void bar() {
                       log.log(Level.INFO, "Test");
-                }
+                  }
               }
               """
           )
