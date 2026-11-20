@@ -137,11 +137,13 @@ public class SystemErrToLogging extends Recipe {
 
             private J.MethodInvocation logInsteadOfPrint(Cursor printCursor, ExecutionContext ctx, @Nullable Expression exceptionPrintStackTrace, AtomicBoolean addedLogger) {
                 J.MethodInvocation print = printCursor.getValue();
-                Cursor classCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
                 J.Identifier logger = framework.loggerAt(printCursor);
                 if (logger != null) {
                     print = replaceMethodInvocation(printCursor, ctx, exceptionPrintStackTrace, print, logger);
-                } else if (addLogger != null && addLogger) {
+                } else if (addLogger != null && addLogger &&
+                           // A script has code with no class around it
+                           getCursor().firstEnclosing(J.ClassDeclaration.class) != null) {
+                    Cursor classCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
                     doAfterVisit(AddLogger.addLogger(classCursor.getValue(), framework, loggerName == null ? "logger" : loggerName, ctx));
                     // A class whose logger is out of reach here gets no other one
                     if (!AddLogger.hasLogger(classCursor, framework.getLoggerType())) {

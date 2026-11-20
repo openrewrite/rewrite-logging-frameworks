@@ -81,12 +81,13 @@ public class SystemOutToLogging extends Recipe {
 
             private J.MethodInvocation logInsteadOfPrint(Cursor printCursor, ExecutionContext ctx) {
                 J.MethodInvocation print = printCursor.getValue();
-                Cursor classCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
+                // A script has code with no class around it
+                J.ClassDeclaration enclosingClass = getCursor().firstEnclosing(J.ClassDeclaration.class);
                 J.Identifier logger = framework.loggerAt(printCursor);
                 if (logger != null) {
                     print = replaceMethodInvocation(printCursor, ctx, print, logger);
-                } else if (addLogger != null && addLogger) {
-                    doAfterVisit(AddLogger.addLogger(classCursor.getValue(), framework, loggerName == null ? "logger" : loggerName, ctx));
+                } else if (addLogger != null && addLogger && enclosingClass != null) {
+                    doAfterVisit(AddLogger.addLogger(enclosingClass, framework, loggerName == null ? "logger" : loggerName, ctx));
                 }
                 return print;
             }

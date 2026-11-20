@@ -24,6 +24,7 @@ import org.openrewrite.java.logging.logback.Log4jAppenderToLogback;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import static org.openrewrite.groovy.Assertions.groovy;
 import static org.openrewrite.java.Assertions.java;
 
 @SuppressWarnings({"EmptyTryBlock", "CallToPrintStackTrace"})
@@ -528,6 +529,22 @@ class SystemErrToLoggingTest implements RewriteTest {
                       System.err.println("Oh no");
                       t.printStackTrace();
                   }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void leaveScriptWithNoClassAroundTheCall() {
+        rewriteRun(
+          spec -> spec.recipe(new SystemErrToLogging(true, null, null)),
+          //language=groovy
+          groovy(
+            """
+              try {
+              } catch (Exception e) {
+                  System.err.println("Oh no")
               }
               """
           )

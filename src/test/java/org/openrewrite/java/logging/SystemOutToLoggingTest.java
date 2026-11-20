@@ -24,6 +24,7 @@ import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import static org.openrewrite.groovy.Assertions.groovy;
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
@@ -583,6 +584,19 @@ class SystemOutToLoggingTest implements RewriteTest {
                       }
                   }
               }
+              """
+          )
+        );
+    }
+
+    @Test
+    void leaveScriptWithNoClassAroundTheCall() {
+        rewriteRun(
+          spec -> spec.recipe(new SystemOutToLogging(true, null, null, null)),
+          //language=groovy
+          groovy(
+            """
+              System.out.println("Oh no")
               """
           )
         );

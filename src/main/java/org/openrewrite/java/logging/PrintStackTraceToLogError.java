@@ -75,12 +75,13 @@ public class PrintStackTraceToLogError extends Recipe {
                             return m;
                         }
                     }
-                    Cursor classCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
                     J.Identifier logger = framework.loggerAt(getCursor());
+                    // A script has code with no class around it
+                    J.ClassDeclaration enclosingClass = getCursor().firstEnclosing(J.ClassDeclaration.class);
                     if (logger != null) {
                         m = replaceMethodInvocation(m, logger, ctx);
-                    } else if (addLogger != null && addLogger) {
-                        doAfterVisit(AddLogger.addLogger(classCursor.getValue(), framework, loggerName == null ? "logger" : loggerName, ctx));
+                    } else if (addLogger != null && addLogger && enclosingClass != null) {
+                        doAfterVisit(AddLogger.addLogger(enclosingClass, framework, loggerName == null ? "logger" : loggerName, ctx));
                     }
                 }
                 return m;

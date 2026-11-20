@@ -22,6 +22,7 @@ import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RewriteTest;
 
+import static org.openrewrite.groovy.Assertions.groovy;
 import static org.openrewrite.java.Assertions.java;
 
 @SuppressWarnings({"EmptyTryBlock", "CallToPrintStackTrace"})
@@ -64,6 +65,22 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
                           logger.error("Exception", t);
                       }
                   }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void leaveScriptWithNoClassAroundTheCall() {
+        rewriteRun(
+          spec -> spec.recipe(new PrintStackTraceToLogError(null, null, null)),
+          //language=groovy
+          groovy(
+            """
+              try {
+              } catch (Exception e) {
+                  e.printStackTrace()
               }
               """
           )
