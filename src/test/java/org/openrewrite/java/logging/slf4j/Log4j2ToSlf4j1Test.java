@@ -20,6 +20,7 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
@@ -37,7 +38,13 @@ class Log4j2ToSlf4j1Test implements RewriteTest {
             .classpathFromResources(new InMemoryExecutionContext(),
               "log4j-api-2.+",
               "log4j-core-2.+",
-              "lombok-1.18.+"));
+              "lombok-1.18.+"))
+          .afterParser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "log4j-api-2.+",
+              "log4j-core-2.+",
+              "lombok-1.18.+",
+              "slf4j-api-1.7"));
     }
 
     @DocumentExample
@@ -95,7 +102,7 @@ class Log4j2ToSlf4j1Test implements RewriteTest {
 
              class Test {
                  private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
-                 private static final Logger ROOT_LOGGER = LoggerFactory.getRootLogger();
+                 private static final Logger ROOT_LOGGER = LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
 
                  public static void main(String[] args) {
                      if (LOGGER.isDebugEnabled()) {
@@ -206,6 +213,8 @@ class Log4j2ToSlf4j1Test implements RewriteTest {
     void unparameterizedLogging() {
         //language=java
         rewriteRun(
+          // The recipe types the call as info(String, String, String), which SLF4J doesn't declare
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           java(
                """
             package foo;

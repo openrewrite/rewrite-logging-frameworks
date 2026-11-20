@@ -16,10 +16,9 @@ recipeDependencies {
     parserClasspath("org.apache.logging.log4j:log4j-api:2.+")
     parserClasspath("commons-logging:commons-logging:1.+")
     parserClasspath("ch.qos.logback:logback-classic:1.3.+")
+    parserClasspath("ch.qos.logback:logback-core:1.3.+")
     parserClasspath("org.projectlombok:lombok:1.18.+")
     parserClasspath("org.jboss.logging:jboss-logging:3.+")
-
-    testParserClasspath("ch.qos.logback:logback-core:1.3.+")
 }
 
 dependencies {
@@ -64,4 +63,5 @@ tasks.withType<JavaCompile> {
 tasks.withType<Test>().configureEach {
     // Fails a test whose recipe gives the code it writes other types than a parser gives that code
     systemProperty("org.openrewrite.test.parserTypedTrees", true)
+    systemProperty("org.openrewrite.test.compilableOutput", true)
 }

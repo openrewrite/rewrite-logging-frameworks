@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -41,7 +42,13 @@ class Slf4jToLog4jTest implements RewriteTest {
             .classpathFromResources(new InMemoryExecutionContext(),
               "log4j-1.2.+",
               "slf4j-api-2",
-              "lombok-1.18.+"));
+              "lombok-1.18.+"))
+          .afterParser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "log4j-1.2.+",
+              "slf4j-api-2",
+              "lombok-1.18.+",
+              "log4j-api-2.+"));
     }
 
     @DocumentExample
@@ -93,6 +100,8 @@ class Slf4jToLog4jTest implements RewriteTest {
     @Test
     void mdcConversion() {
         rewriteRun(
+          // The migrated calls keep SLF4J's method types, such as MDC.put throwing IllegalArgumentException
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           //language=java
           java(
             """
@@ -131,6 +140,8 @@ class Slf4jToLog4jTest implements RewriteTest {
     @Test
     void logBuilder() {
         rewriteRun(
+          // The migrated calls keep the flags of SLF4J's fluent API, where Log4j's LogBuilder methods are default methods
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           //language=java
           java(
             """

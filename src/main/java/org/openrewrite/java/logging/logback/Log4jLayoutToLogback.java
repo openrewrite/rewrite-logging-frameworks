@@ -70,11 +70,8 @@ public class Log4jLayoutToLogback extends Recipe {
                         doAfterVisit(new ChangeType("org.apache.log4j.spi.LoggingEvent", "ch.qos.logback.classic.spi.ILoggingEvent", null).getVisitor());
 
                         cd = JavaTemplate.builder("LayoutBase<ILoggingEvent>")
-                                .contextSensitive()
                                 .imports("ch.qos.logback.core.LayoutBase", "ch.qos.logback.classic.spi.ILoggingEvent")
-                                .javaParser(JavaParser.fromJavaVersion().dependsOn(
-                                        "package ch.qos.logback.classic.spi;public interface ILoggingEvent{ }",
-                                        "package org.apache.log4j.spi;public class LoggingEvent { public String getRenderedMessage() {return null;}}"))
+                                .javaParser(Log4jAppenderToLogback.logbackParser(ctx))
                                 .build()
                                 .apply(new Cursor(getCursor().getParent(), cd), cd.getCoordinates().replaceExtendsClause());
 

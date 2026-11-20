@@ -24,10 +24,13 @@ import org.openrewrite.*;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class AddLoggerTest implements RewriteTest {
 
@@ -109,6 +112,144 @@ class AddLoggerTest implements RewriteTest {
     }
 
     @Test
+    void nameTakenByOtherField() {
+        rewriteRun(
+          spec -> spec.recipe(new MaybeAddLoggerToClass("Test")),
+          //language=java
+          java(
+            """
+              class Test {
+                  String LOGGER = "audit";
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Test {
+                  private static final Logger LOGGER1 = LoggerFactory.getLogger(Test.class);
+                  String LOGGER = "audit";
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepNameThatCodeOnlyRefersTo() {
+        rewriteRun(
+          // the references are written ahead of the field, as a recipe calling `AddLogger` may do
+          spec -> spec.recipe(new MaybeAddLoggerToClass("Test")).typeValidationOptions(TypeValidation.none()),
+          //language=java
+          java(
+            """
+              class Test {
+                  void test() {
+                      LOGGER.info("Oh no");
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Test {
+                  private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
+
+                  void test() {
+                      LOGGER.info("Oh no");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void nameTakenByInheritedField() {
+        rewriteRun(
+          spec -> spec.recipe(new MaybeAddLoggerToClass("Test")),
+          //language=java
+          java(
+            """
+              class Base {
+                  protected String LOGGER = "audit";
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              class Test extends Base {
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Test extends Base {
+                  private static final Logger LOGGER1 = LoggerFactory.getLogger(Test.class);
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void loggerNamesAnotherImportedType() {
+        rewriteRun(
+          spec -> spec.recipe(new MaybeAddLoggerToClass("Test")),
+          //language=java
+          java(
+            """
+              import java.util.logging.Logger;
+
+              class Test {
+                  Logger julLogger = Logger.getLogger("x");
+              }
+              """,
+            """
+              import org.slf4j.LoggerFactory;
+
+              import java.util.logging.Logger;
+
+              class Test {
+                  private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(Test.class);
+                  Logger julLogger = Logger.getLogger("x");
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void loggerNamesAnotherStarImportedType() {
+        rewriteRun(
+          spec -> spec.recipe(new MaybeAddLoggerToClass("Test")),
+          //language=java
+          java(
+            """
+              import java.util.logging.*;
+
+              class Test {
+                  Logger julLogger = Logger.getLogger("x");
+              }
+              """,
+            """
+              import org.slf4j.LoggerFactory;
+
+              import java.util.logging.*;
+
+              class Test {
+                  private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(Test.class);
+                  Logger julLogger = Logger.getLogger("x");
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void notIfExistingInheritedLogger() {
         rewriteRun(
           spec -> spec.recipe(new MaybeAddLoggerToClass("Test")),
@@ -126,6 +267,59 @@ class AddLoggerTest implements RewriteTest {
           java(
             """
               class Test extends Base {
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void notIfKotlinCompanionObjectHasLogger() {
+        rewriteRun(
+          spec -> spec.recipe(new MaybeAddLoggerToClass("Test"))
+            .parser(KotlinParser.builder().classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2")),
+          //language=kotlin
+          kotlin(
+            """
+              import org.slf4j.Logger
+              import org.slf4j.LoggerFactory
+
+              class Test {
+                  companion object {
+                      private val logger: Logger = LoggerFactory.getLogger(Test::class.java)
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void addWhereOnlyNestedClassHasLogger() {
+        rewriteRun(
+          spec -> spec.recipe(new MaybeAddLoggerToClass("Test")),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Test {
+                  static class Nested {
+                      private static final Logger LOGGER = LoggerFactory.getLogger(Nested.class);
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Test {
+                  private static final Logger LOGGER1 = LoggerFactory.getLogger(Test.class);
+
+                  static class Nested {
+                      private static final Logger LOGGER = LoggerFactory.getLogger(Nested.class);
+                  }
               }
               """
           )

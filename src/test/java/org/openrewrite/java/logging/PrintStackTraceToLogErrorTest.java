@@ -21,8 +21,8 @@ import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RewriteTest;
-import org.openrewrite.test.TypeValidation;
 
+import static org.openrewrite.groovy.Assertions.groovy;
 import static org.openrewrite.java.Assertions.java;
 
 @SuppressWarnings({"EmptyTryBlock", "CallToPrintStackTrace"})
@@ -65,6 +65,22 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
                           logger.error("Exception", t);
                       }
                   }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void leaveScriptWithNoClassAroundTheCall() {
+        rewriteRun(
+          spec -> spec.recipe(new PrintStackTraceToLogError(null, null, null)),
+          //language=groovy
+          groovy(
+            """
+              try {
+              } catch (Exception e) {
+                  e.printStackTrace()
               }
               """
           )
@@ -429,8 +445,7 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
     void supportLombokLogAnnotations() {
         rewriteRun(
           spec -> spec.recipe(new PrintStackTraceToLogError(null, null, null))
-            .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2", "lombok-1.18.+"))
-            .typeValidationOptions(TypeValidation.builder().identifiers(false).build()),
+            .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2", "lombok-1.18.+")),
           //language=java
           java(
             """
@@ -480,6 +495,77 @@ class PrintStackTraceToLogErrorTest implements RewriteTest {
 
                   void report() {
                       printStackTrace();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotUseLoggerHiddenByParameter() {
+        rewriteRun(
+          spec -> spec.recipe(new PrintStackTraceToLogError(null, null, null))
+            .parser(JavaParser.fromJavaVersion()
+              .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2", "lombok-1.18.+")),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              class Test {
+                  Logger logger;
+
+                  void test(String logger, Throwable t) {
+                      t.printStackTrace();
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import lombok.extern.slf4j.Slf4j;
+              @Slf4j
+              class LombokTest {
+                  void test(String log, Throwable t) {
+                      t.printStackTrace();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void useInheritedLoggerWhereFileNeverNamesItsType() {
+        rewriteRun(
+          spec -> spec.recipe(new PrintStackTraceToLogError(null, null, null))
+            .parser(JavaParser.fromJavaVersion()
+              .classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2")),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Base {
+                  protected final Logger logger = LoggerFactory.getLogger(getClass());
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              class Test extends Base {
+                  void test(Throwable t) {
+                      t.printStackTrace();
+                  }
+              }
+              """,
+            """
+              class Test extends Base {
+                  void test(Throwable t) {
+                      logger.error("Exception", t);
                   }
               }
               """

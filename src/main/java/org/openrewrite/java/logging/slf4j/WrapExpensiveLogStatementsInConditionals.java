@@ -23,11 +23,11 @@ import org.openrewrite.internal.StringUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.logging.internal.LogArguments;
 import org.openrewrite.java.search.UsesMethod;
+import org.openrewrite.java.trait.Scope;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 import static java.util.Collections.emptyList;
@@ -103,7 +103,7 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
                                 m.getArguments().stream().anyMatch(LogArguments::isExpensive)) {
 
                             // Check if we should use fluent API (SLF4J 2.0+) or if-statements (SLF4J 1.x)
-                            if (supportsFluentApi(m) && capturesOnlyEffectivelyFinalLocals(m)) {
+                            if (supportsFluentApi(m) && lambdasCanCaptureExpensiveArguments(m)) {
                                 return convertToFluentApi(m, ctx);
                             }
                             // Use the traditional if-statement approach for SLF4J 1.x
@@ -177,56 +177,15 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
                                 .apply(getCursor(), m.getCoordinates().replace(), templateArgs.toArray());
                     }
 
-                    private boolean capturesOnlyEffectivelyFinalLocals(J.MethodInvocation m) {
-                        Set<String> capturedLocals = new HashSet<>();
+                    private boolean lambdasCanCaptureExpensiveArguments(J.MethodInvocation m) {
+                        Cursor cursor = updateCursor(m);
+                        List<Cursor> expensive = new ArrayList<>();
                         for (Expression arg : m.getArguments()) {
                             if (isExpensive(arg)) {
-                                new JavaIsoVisitor<Set<String>>() {
-                                    @Override
-                                    public J.Identifier visitIdentifier(J.Identifier identifier, Set<String> locals) {
-                                        JavaType.Variable fieldType = identifier.getFieldType();
-                                        if (fieldType != null && !(fieldType.getOwner() instanceof JavaType.FullyQualified)) {
-                                            locals.add(identifier.getSimpleName());
-                                        }
-                                        return identifier;
-                                    }
-                                }.visit(arg, capturedLocals);
+                                expensive.add(Scope.cursorTo(cursor, arg));
                             }
                         }
-                        if (capturedLocals.isEmpty()) {
-                            return true;
-                        }
-                        J scope = getCursor().firstEnclosing(J.MethodDeclaration.class);
-                        if (scope == null) {
-                            scope = getCursor().firstEnclosingOrThrow(JavaSourceFile.class);
-                        }
-                        return !new JavaIsoVisitor<AtomicBoolean>() {
-                            @Override
-                            public J.Assignment visitAssignment(J.Assignment assignment, AtomicBoolean found) {
-                                checkTarget(assignment.getVariable(), found);
-                                return super.visitAssignment(assignment, found);
-                            }
-
-                            @Override
-                            public J.AssignmentOperation visitAssignmentOperation(J.AssignmentOperation assignOp, AtomicBoolean found) {
-                                checkTarget(assignOp.getVariable(), found);
-                                return super.visitAssignmentOperation(assignOp, found);
-                            }
-
-                            @Override
-                            public J.Unary visitUnary(J.Unary unary, AtomicBoolean found) {
-                                if (unary.getOperator().isModifying()) {
-                                    checkTarget(unary.getExpression(), found);
-                                }
-                                return super.visitUnary(unary, found);
-                            }
-
-                            private void checkTarget(Expression target, AtomicBoolean found) {
-                                if (target instanceof J.Identifier && capturedLocals.contains(((J.Identifier) target).getSimpleName())) {
-                                    found.set(true);
-                                }
-                            }
-                        }.reduce(scope, new AtomicBoolean()).get();
+                        return Scope.lambdaCanCapture(expensive);
                     }
                 });
     }
@@ -296,22 +255,33 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
     }
 
     private static boolean isInIfStatementWithLogLevelCheck(Cursor cursor, J.MethodInvocation m) {
-        J.If enclosingIf = cursor.firstEnclosing(J.If.class);
-        if (enclosingIf == null) {
-            return false;
+        MethodMatcher isEnabledMatcher = infoMatcher.matches(m) ? isInfoEnabledMatcher :
+                debugMatcher.matches(m) ? isDebugEnabledMatcher : isTraceEnabledMatcher;
+        Object child = null;
+        for (Iterator<Object> path = cursor.getPath(); path.hasNext(); ) {
+            Object value = path.next();
+            // The condition says nothing about the level on the else branch
+            if (value instanceof J.If && !(child instanceof J.If.Else) &&
+                    impliesLogLevelEnabled(((J.If) value).getIfCondition().getTree(), isEnabledMatcher)) {
+                return true;
+            }
+            child = value;
         }
-        Expression condition = enclosingIf.getIfCondition().getTree();
-        return (infoMatcher.matches(m) && onlyCalls(condition, isInfoEnabledMatcher)) ||
-                (debugMatcher.matches(m) && onlyCalls(condition, isDebugEnabledMatcher)) ||
-                (traceMatcher.matches(m) && onlyCalls(condition, isTraceEnabledMatcher));
+        return false;
     }
 
-    private static boolean onlyCalls(Expression condition, MethodMatcher isEnabledMatcher) {
-        if (condition instanceof J.Binary) {
-            J.Binary binary = (J.Binary) condition;
-            return onlyCalls(binary.getLeft(), isEnabledMatcher) && onlyCalls(binary.getRight(), isEnabledMatcher);
+    private static boolean impliesLogLevelEnabled(Expression condition, MethodMatcher isEnabledMatcher) {
+        Expression unwrapped = condition.unwrap();
+        if (unwrapped instanceof J.Binary) {
+            J.Binary binary = (J.Binary) unwrapped;
+            boolean left = impliesLogLevelEnabled(binary.getLeft(), isEnabledMatcher);
+            boolean right = impliesLogLevelEnabled(binary.getRight(), isEnabledMatcher);
+            if (binary.getOperator() == J.Binary.Type.And) {
+                return left || right;
+            }
+            return binary.getOperator() == J.Binary.Type.Or && left && right;
         }
-        return condition.getSideEffects().stream().allMatch(e -> e instanceof J.MethodInvocation && isEnabledMatcher.matches((J.MethodInvocation) e));
+        return isEnabledMatcher.matches(unwrapped);
     }
 
     @EqualsAndHashCode(callSuper = false)

@@ -24,7 +24,12 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 public class Log4jAppenderToLogback extends Recipe {
+    private static final MethodMatcher GET_LAYOUT = new MethodMatcher("org.apache.log4j.AppenderSkeleton getLayout()", true);
+    private static final MethodMatcher SET_LAYOUT = new MethodMatcher("org.apache.log4j.AppenderSkeleton setLayout(..)", true);
+
     @Getter
     final String displayName = "Migrate Log4j 2.x Appender to logback-classic equivalents";
 
@@ -51,6 +56,7 @@ public class Log4jAppenderToLogback extends Recipe {
                 if (cd.getExtends() != null && cd.getExtends().getType() != null) {
                     JavaType.FullyQualified fullyQualifiedExtends = TypeUtils.asFullyQualified(cd.getExtends().getType());
                     if (fullyQualifiedExtends != null && "org.apache.log4j.AppenderSkeleton".equals(fullyQualifiedExtends.getFullyQualifiedName())) {
+                        boolean usesLayout = usesInheritedLayout(cd);
 
                         maybeRemoveImport("org.apache.log4j.AppenderSkeleton");
                         maybeAddImport("ch.qos.logback.core.AppenderBase");
@@ -60,14 +66,14 @@ public class Log4jAppenderToLogback extends Recipe {
                         doAfterVisit(new ChangeType("org.apache.log4j.Layout", "ch.qos.logback.core.LayoutBase", null).getVisitor());
 
                         cd = JavaTemplate.builder("AppenderBase<ILoggingEvent>")
-                                .contextSensitive()
                                 .imports("ch.qos.logback.core.AppenderBase", "ch.qos.logback.classic.spi.ILoggingEvent")
-                                .javaParser(JavaParser.fromJavaVersion().dependsOn(
-                                        "package ch.qos.logback.core;public abstract class AppenderBase<E> { }",
-                                        "package ch.qos.logback.classic.spi;public interface ILoggingEvent{ }",
-                                        "package org.apache.log4j.spi;public class LoggingEvent { public String getRenderedMessage() {return null;}}"))
+                                .javaParser(logbackParser(ctx))
                                 .build()
                                 .apply(new Cursor(getCursor().getParent(), cd), cd.getCoordinates().replaceExtendsClause());
+
+                        if (usesLayout) {
+                            cd = addLayout(cd, ctx);
+                        }
                     }
 
                     cd = cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), statement -> {
@@ -91,7 +97,61 @@ public class Log4jAppenderToLogback extends Recipe {
 
                 return cd;
             }
+
+            // Logback's AppenderBase has no layout, so the class gets the field and accessors Log4j's AppenderSkeleton
+            // gave it, through which Logback's configuration sets a nested <layout>
+            private J.ClassDeclaration addLayout(J.ClassDeclaration cd, ExecutionContext ctx) {
+                maybeAddImport("ch.qos.logback.core.LayoutBase");
+                cd = JavaTemplate.builder("protected LayoutBase<ILoggingEvent> layout;")
+                        .imports("ch.qos.logback.core.LayoutBase", "ch.qos.logback.classic.spi.ILoggingEvent")
+                        .javaParser(logbackParser(ctx))
+                        .build()
+                        .apply(new Cursor(getCursor().getParent(), cd), cd.getBody().getCoordinates().firstStatement());
+                cd = cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), (i, statement) ->
+                        i == 1 && !statement.getPrefix().getWhitespace().startsWith("\n\n") ?
+                                statement.withPrefix(statement.getPrefix().withWhitespace("\n" + statement.getPrefix().getWhitespace())) :
+                                statement)));
+                cd = accessorTemplate("public LayoutBase<ILoggingEvent> getLayout() {\n    return layout;\n}", ctx)
+                        .apply(new Cursor(getCursor().getParent(), cd), cd.getBody().getCoordinates().lastStatement());
+                return accessorTemplate("public void setLayout(LayoutBase<ILoggingEvent> layout) {\n    this.layout = layout;\n}", ctx)
+                        .apply(new Cursor(getCursor().getParent(), cd), cd.getBody().getCoordinates().lastStatement());
+            }
         });
+    }
+
+    private static boolean usesInheritedLayout(J.ClassDeclaration cd) {
+        return new JavaIsoVisitor<AtomicBoolean>() {
+            @Override
+            public J.Identifier visitIdentifier(J.Identifier identifier, AtomicBoolean uses) {
+                JavaType.Variable field = identifier.getFieldType();
+                if ("layout".equals(identifier.getSimpleName()) && field != null &&
+                    TypeUtils.isOfClassType(field.getOwner(), "org.apache.log4j.AppenderSkeleton")) {
+                    uses.set(true);
+                }
+                return identifier;
+            }
+
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean uses) {
+                if (GET_LAYOUT.matches(method) || SET_LAYOUT.matches(method)) {
+                    uses.set(true);
+                }
+                return super.visitMethodInvocation(method, uses);
+            }
+        }.reduce(cd.getBody(), new AtomicBoolean()).get();
+    }
+
+    // Context-sensitive, so that the accessors' `layout` is typed as the field added before them
+    private static JavaTemplate accessorTemplate(String code, ExecutionContext ctx) {
+        return JavaTemplate.builder(code)
+                .contextSensitive()
+                .imports("ch.qos.logback.core.LayoutBase", "ch.qos.logback.classic.spi.ILoggingEvent")
+                .javaParser(logbackParser(ctx))
+                .build();
+    }
+
+    static JavaParser.Builder<?, ?> logbackParser(ExecutionContext ctx) {
+        return JavaParser.fromJavaVersion().classpathFromResources(ctx, "log4j-1.2", "logback-classic-1.3", "logback-core-1.3");
     }
 
 }

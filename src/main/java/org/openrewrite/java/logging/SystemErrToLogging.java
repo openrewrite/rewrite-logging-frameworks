@@ -21,18 +21,12 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
-import org.openrewrite.java.search.FindFieldsOfType;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.*;
-import org.openrewrite.marker.Markers;
 
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static java.util.Collections.emptyList;
 
 @EqualsAndHashCode(callSuper = false)
 @Value
@@ -67,7 +61,6 @@ public class SystemErrToLogging extends Recipe {
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         LoggingFramework framework = LoggingFramework.fromOption(loggingFramework);
-        AnnotationMatcher lombokLogAnnotationMatcher = new AnnotationMatcher("@lombok.extern..*");
 
         return Preconditions.check(new UsesMethod<>(systemErrPrint), Repeat.repeatUntilStable(new JavaIsoVisitor<ExecutionContext>() {
             @Override
@@ -107,14 +100,16 @@ public class SystemErrToLogging extends Recipe {
                                         J next = statements.get(i + 1);
                                         if (next instanceof J.MethodInvocation && printStackTrace.matches((Expression) next)) {
                                             exceptionPrintStackTrace = ((J.MethodInvocation) next).getSelect();
-                                            skip.set(i + 1);
                                         }
                                     }
 
                                     Cursor printCursor = new Cursor(cursor, m);
-                                    J.MethodInvocation unchangedIfAddedLogger = logInsteadOfPrint(printCursor, ctx, exceptionPrintStackTrace);
-                                    addedLogger.set(unchangedIfAddedLogger == m);
-                                    return unchangedIfAddedLogger;
+                                    J.MethodInvocation logged = logInsteadOfPrint(printCursor, ctx, exceptionPrintStackTrace, addedLogger);
+                                    if (logged != m && exceptionPrintStackTrace != null) {
+                                        // A print left as it is keeps the printStackTrace() after it
+                                        skip.set(i + 1);
+                                    }
+                                    return logged;
                                 }
                             }
                         }
@@ -132,7 +127,7 @@ public class SystemErrToLogging extends Recipe {
                             JavaType.Variable field = ((J.FieldAccess) m.getSelect()).getName().getFieldType();
                             if (field != null && "err".equals(field.getName()) && TypeUtils.isOfClassType(field.getOwner(), "java.lang.System")) {
                                 Cursor printCursor = new Cursor(getCursor().getParent(), m);
-                                return logInsteadOfPrint(printCursor, ctx, null);
+                                return logInsteadOfPrint(printCursor, ctx, null, new AtomicBoolean());
                             }
                         }
                     }
@@ -140,20 +135,20 @@ public class SystemErrToLogging extends Recipe {
                 return m;
             }
 
-            private J.MethodInvocation logInsteadOfPrint(Cursor printCursor, ExecutionContext ctx, @Nullable Expression exceptionPrintStackTrace) {
+            private J.MethodInvocation logInsteadOfPrint(Cursor printCursor, ExecutionContext ctx, @Nullable Expression exceptionPrintStackTrace, AtomicBoolean addedLogger) {
                 J.MethodInvocation print = printCursor.getValue();
-                Cursor classCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
-                AnnotationService annotationService = service(AnnotationService.class);
-                Set<J.VariableDeclarations> loggers = FindFieldsOfType.find(classCursor.getValue(), framework.getLoggerType());
-                if (!loggers.isEmpty()) {
-                    J.Identifier computedLoggerName = loggers.iterator().next().getVariables().get(0).getName();
-                    print = replaceMethodInvocation(printCursor, ctx, exceptionPrintStackTrace, print, computedLoggerName);
-                } else if (annotationService.matches(classCursor, lombokLogAnnotationMatcher)) {
-                    String fieldName = loggerName == null ? "log" : loggerName;
-                    J.Identifier logField = new J.Identifier(Tree.randomId(), Space.SINGLE_SPACE, Markers.EMPTY, emptyList(), fieldName, null, null);
-                    print = replaceMethodInvocation(printCursor, ctx, exceptionPrintStackTrace, print, logField);
-                } else if (addLogger != null && addLogger) {
+                J.Identifier logger = framework.loggerAt(printCursor);
+                if (logger != null) {
+                    print = replaceMethodInvocation(printCursor, ctx, exceptionPrintStackTrace, print, logger);
+                } else if (addLogger != null && addLogger &&
+                           // A script has code with no class around it
+                           getCursor().firstEnclosing(J.ClassDeclaration.class) != null) {
+                    Cursor classCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
                     doAfterVisit(AddLogger.addLogger(classCursor.getValue(), framework, loggerName == null ? "logger" : loggerName, ctx));
+                    // A class whose logger is out of reach here gets no other one
+                    if (!AddLogger.hasLogger(classCursor, framework.getLoggerType())) {
+                        addedLogger.set(true);
+                    }
                 }
                 return print;
             }

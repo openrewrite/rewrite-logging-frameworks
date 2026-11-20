@@ -23,8 +23,8 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.logging.logback.Log4jAppenderToLogback;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
-import org.openrewrite.test.TypeValidation;
 
+import static org.openrewrite.groovy.Assertions.groovy;
 import static org.openrewrite.java.Assertions.java;
 
 @SuppressWarnings({"EmptyTryBlock", "CallToPrintStackTrace"})
@@ -211,8 +211,7 @@ class SystemErrToLoggingTest implements RewriteTest {
     @Test
     void supportLombokLogAnnotations() {
         rewriteRun(
-          spec -> spec.recipe(new SystemErrToLogging(null, null, null))
-            .typeValidationOptions(TypeValidation.builder().identifiers(false).build()),
+          spec -> spec.recipe(new SystemErrToLogging(null, null, null)),
           // language=java
           java(
             """
@@ -467,4 +466,88 @@ class SystemErrToLoggingTest implements RewriteTest {
         );
     }
 
+    @Test
+    void doNotUseLoggerHiddenByParameter() {
+        rewriteRun(
+          spec -> spec.recipe(new SystemErrToLogging(null, null, null)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              class Test {
+                  Logger logger;
+
+                  void test(String logger, Throwable t) {
+                      System.err.println("Oh no");
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import lombok.extern.slf4j.Slf4j;
+              @Slf4j
+              class LombokTest {
+                  void test(String log, Throwable t) {
+                      System.err.println("Oh no");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void useLoggerUntilLocalHidesIt() {
+        rewriteRun(
+          // no logger is added to a class that has one, so the converted print is kept
+          spec -> spec.recipe(new SystemErrToLogging(true, null, null)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              class Test {
+                  Logger logger;
+
+                  void test(Throwable t) {
+                      System.err.println("Oh no");
+                      String logger = "audit";
+                      System.err.println("Oh no");
+                      t.printStackTrace();
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              class Test {
+                  Logger logger;
+
+                  void test(Throwable t) {
+                      logger.error("Oh no");
+                      String logger = "audit";
+                      System.err.println("Oh no");
+                      t.printStackTrace();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void leaveScriptWithNoClassAroundTheCall() {
+        rewriteRun(
+          spec -> spec.recipe(new SystemErrToLogging(true, null, null)),
+          //language=groovy
+          groovy(
+            """
+              try {
+              } catch (Exception e) {
+                  System.err.println("Oh no")
+              }
+              """
+          )
+        );
+    }
 }

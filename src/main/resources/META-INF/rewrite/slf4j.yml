@@ -103,9 +103,6 @@ tags:
   - slf4j
   - log4j
 recipeList:
-  - org.openrewrite.java.ChangeType:
-      oldFullyQualifiedTypeName: org.apache.logging.log4j.LogManager
-      newFullyQualifiedTypeName: org.slf4j.LoggerFactory
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: org.apache.logging.log4j.Logger fatal(..)
       newMethodName: error
@@ -121,6 +118,11 @@ recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.apache.logging.log4j.Logger
       newFullyQualifiedTypeName: org.slf4j.Logger
+  # Matches `LogManager` while it is still Log4j's, and runs once `Logger` is SLF4J's, so ROOT_LOGGER_NAME needs no qualified name
+  - org.openrewrite.java.logging.slf4j.Log4j2GetRootLoggerToSlf4j
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.apache.logging.log4j.LogManager
+      newFullyQualifiedTypeName: org.slf4j.LoggerFactory
   - org.openrewrite.java.logging.slf4j.ParameterizedLogging
   - org.openrewrite.java.logging.ChangeLombokLogAnnotation
 ---
@@ -272,6 +274,7 @@ recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.jboss.logging.Logger
       newFullyQualifiedTypeName: org.slf4j.Logger
+  - org.openrewrite.java.logging.slf4j.ParameterizedLogging
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.slf4j.AddJBossLogManagerSlf4jProviderDependency

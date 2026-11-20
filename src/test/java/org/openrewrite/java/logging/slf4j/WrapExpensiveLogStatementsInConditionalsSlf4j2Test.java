@@ -490,4 +490,129 @@ class WrapExpensiveLogStatementsInConditionalsSlf4j2Test implements RewriteTest 
           )
         );
     }
+
+    @Test
+    void convertInsideIfThatDoesNotCheckLogLevel() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger logger, boolean flag) {
+                      if (flag) {
+                          logger.info("Result: {}", calculateResult());
+                      }
+                  }
+
+                  String calculateResult() {
+                      return "result";
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger logger, boolean flag) {
+                      if (flag) {
+                          logger.atInfo().addArgument(() -> calculateResult()).log("Result: {}");
+                      }
+                  }
+
+                  String calculateResult() {
+                      return "result";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void useConditionalWhenCapturedVariableIsIncrementedInParentheses() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger logger) {
+                      int count = 0;
+                      (count)++;
+                      logger.debug("Item {}", calculateResult(count));
+                  }
+
+                  String calculateResult(int i) {
+                      return "result";
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger logger) {
+                      int count = 0;
+                      (count)++;
+                      if (logger.isDebugEnabled()) {
+                          logger.debug("Item {}", calculateResult(count));
+                      }
+                  }
+
+                  String calculateResult(int i) {
+                      return "result";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void useFluentApiWhenOnlyAnotherVariableOfTheSameNameIsReassigned() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger logger, int[] items) {
+                      for (int i = 0; i < items.length; i++) {
+                          items[i] = 0;
+                      }
+                      for (int i : items) {
+                          logger.debug("Item {}", calculateResult(i));
+                      }
+                  }
+
+                  String calculateResult(int i) {
+                      return "result";
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger logger, int[] items) {
+                      for (int i = 0; i < items.length; i++) {
+                          items[i] = 0;
+                      }
+                      for (int i : items) {
+                          logger.atDebug().addArgument(() -> calculateResult(i)).log("Item {}");
+                      }
+                  }
+
+                  String calculateResult(int i) {
+                      return "result";
+                  }
+              }
+              """
+          )
+        );
+    }
 }
