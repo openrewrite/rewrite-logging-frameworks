@@ -128,7 +128,7 @@ public class ChangeLoggersToPrivate extends ScanningRecipe<Set<String>> {
                             emptyList()
                     ), 0);
                 }
-                return autoFormat(mv.withModifiers(mapped), mv.getTypeExpression(), ctx, getCursor().getParentTreeCursor());
+                return maybeAutoFormat(mv, mv.withModifiers(mapped), mv.getTypeExpression(), ctx, getCursor().getParentTreeCursor());
             }
         });
     }
