@@ -16,9 +16,19 @@
 package org.openrewrite.java.logging;
 
 import org.jspecify.annotations.Nullable;
+import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Tree;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.trait.Scope;
+import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.Space;
+import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.marker.Markers;
+
+import static java.util.Collections.emptyList;
 
 public enum LoggingFramework {
     SLF4J("org.slf4j.Logger"),
@@ -47,6 +57,26 @@ public enum LoggingFramework {
             }
         }
         return SLF4J;
+    }
+
+    /**
+     * A reference to the innermost variable of this framework's logger type that code at the cursor can call by its
+     * simple name. That may be a field of the class or of one around it, an inherited field, the field a Lombok
+     * annotation generates, a parameter or a local.
+     */
+    J.@Nullable Identifier loggerAt(Cursor cursor) {
+        Scope scope = Scope.at(cursor);
+        return scope.visible()
+                .filter(binding -> binding.getNamespace() == Scope.Namespace.VARIABLE &&
+                                   TypeUtils.isAssignableTo(loggerType, binding.getType()) &&
+                                   scope.canReference(binding))
+                .map(binding -> {
+                    JavaType.Variable variable = binding.getType() instanceof JavaType.Variable ? (JavaType.Variable) binding.getType() : null;
+                    return new J.Identifier(Tree.randomId(), Space.EMPTY, Markers.EMPTY, emptyList(), binding.getName(),
+                            variable == null ? null : variable.getType(), variable);
+                })
+                .findFirst()
+                .orElse(null);
     }
 
     public JavaTemplate getErrorTemplate(String message, ExecutionContext ctx) {

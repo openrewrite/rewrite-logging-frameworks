@@ -20,11 +20,13 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
-import org.openrewrite.test.TypeValidation;
 
+import static org.openrewrite.groovy.Assertions.groovy;
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class SystemOutToLoggingTest implements RewriteTest {
 
@@ -101,8 +103,7 @@ class SystemOutToLoggingTest implements RewriteTest {
     @Test
     void supportLombokLogAnnotations() {
         rewriteRun(
-          spec -> spec.recipe(new SystemOutToLogging(null, null, null, "info"))
-            .typeValidationOptions(TypeValidation.builder().identifiers(false).build()),
+          spec -> spec.recipe(new SystemOutToLogging(null, null, null, "info")),
           //language=java
           java(
             """
@@ -187,6 +188,415 @@ class SystemOutToLoggingTest implements RewriteTest {
                       logger.log(Level.INFO, "Hello World");
                   }
               }
+              """
+          )
+        );
+    }
+
+    @Test
+    void useSystemLoggerWhereLoggerNamesAnotherType() {
+        rewriteRun(
+          spec -> spec.recipe(new SystemOutToLogging(true, "logger", "SYSTEM", "info")),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class Test {
+                  Logger audit;
+
+                  void test() {
+                      System.out.println("Hello World");
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              import java.lang.System.Logger.Level;
+
+              class Test {
+                  private static final System.Logger logger = System.getLogger("Test");
+                  Logger audit;
+
+                  void test() {
+                      logger.log(Level.INFO, "Hello World");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotUseLoggerHiddenByParameter() {
+        rewriteRun(
+          spec -> spec.recipe(new SystemOutToLogging(null, null, null, null)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              class Test {
+                  Logger logger;
+
+                  void test(String logger, Throwable t) {
+                      System.out.println("Oh no");
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import lombok.extern.slf4j.Slf4j;
+              @Slf4j
+              class LombokTest {
+                  void test(String log, Throwable t) {
+                      System.out.println("Oh no");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preferLombokLoggerOverLoggerOfOuterClass() {
+        rewriteRun(
+          spec -> spec.recipe(new SystemOutToLogging(null, null, null, null)),
+          //language=java
+          java(
+            """
+              import lombok.extern.slf4j.Slf4j;
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Outer {
+                  private static final Logger LOGGER = LoggerFactory.getLogger(Outer.class);
+
+                  @Slf4j
+                  static class Inner {
+                      void test() {
+                          System.out.println("Oh no");
+                      }
+                  }
+              }
+              """,
+            """
+              import lombok.extern.slf4j.Slf4j;
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Outer {
+                  private static final Logger LOGGER = LoggerFactory.getLogger(Outer.class);
+
+                  @Slf4j
+                  static class Inner {
+                      void test() {
+                          log.info("Oh no");
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotUseLoggerThatCannotBeReferenced() {
+        rewriteRun(
+          spec -> spec.recipe(new SystemOutToLogging(null, null, null, null)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              class Test {
+                  Logger logger;
+
+                  public static void main(String[] args) {
+                      System.out.println("Oh no");
+                  }
+
+                  static class Nested {
+                      void test() {
+                          System.out.println("Oh no");
+                      }
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+              class DeclaredLater {
+                  static {
+                      System.out.println("Oh no");
+                  }
+
+                  private static final Logger LOGGER = LoggerFactory.getLogger(DeclaredLater.class);
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              class ConstructorCall {
+                  Logger logger;
+
+                  ConstructorCall(Runnable r) {
+                  }
+
+                  ConstructorCall() {
+                      this(() -> System.out.println("Oh no"));
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              enum Level {
+                  HIGH {
+                      @Override
+                      void test() {
+                          System.out.println("Oh no");
+                      }
+                  };
+
+                  private Logger logger;
+
+                  void test() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void useLoggerParameterThatHidesField() {
+        rewriteRun(
+          spec -> spec.recipe(new SystemOutToLogging(null, null, null, null)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              class Test {
+                  Logger logger;
+
+                  Test(Logger logger) {
+                      this.logger = logger;
+                      System.out.println("Oh no");
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              class Test {
+                  Logger logger;
+
+                  Test(Logger logger) {
+                      this.logger = logger;
+                      logger.info("Oh no");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void useLoggerOfKotlinCompanionObject() {
+        rewriteRun(
+          spec -> spec.recipe(new SystemOutToLogging(true, null, null, null))
+            .parser(KotlinParser.builder().classpathFromResources(new InMemoryExecutionContext(), "slf4j-api-2")),
+          //language=kotlin
+          kotlin(
+            """
+              import org.slf4j.Logger
+              import org.slf4j.LoggerFactory
+
+              class A {
+                  companion object {
+                      private val logger: Logger = LoggerFactory.getLogger(A::class.java)
+                  }
+
+                  fun test() {
+                      println("unrelated")
+                      System.out.println("Oh no")
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger
+              import org.slf4j.LoggerFactory
+
+              class A {
+                  companion object {
+                      private val logger: Logger = LoggerFactory.getLogger(A::class.java)
+                  }
+
+                  fun test() {
+                      println("unrelated")
+                      logger.info("Oh no")
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void useInheritedLogger() {
+        rewriteRun(
+          spec -> spec.recipe(new SystemOutToLogging(true, null, null, null)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Base {
+                  protected final Logger logger = LoggerFactory.getLogger(getClass());
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              class Test extends Base {
+                  void test() {
+                      System.out.println("Oh no");
+                  }
+              }
+              """,
+            """
+              class Test extends Base {
+                  void test() {
+                      logger.info("Oh no");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void useLoggerOfOuterClass() {
+        rewriteRun(
+          spec -> spec.recipe(new SystemOutToLogging(true, null, null, null)),
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Test {
+                  private static final Logger logger = LoggerFactory.getLogger(Test.class);
+
+                  static class Nested {
+                      void test() {
+                          System.out.println("Oh no");
+                      }
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+              import org.slf4j.LoggerFactory;
+
+              class Test {
+                  private static final Logger logger = LoggerFactory.getLogger(Test.class);
+
+                  static class Nested {
+                      void test() {
+                          logger.info("Oh no");
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void useLombokLoggerThatHidesInheritedOrOuterField() {
+        rewriteRun(
+          spec -> spec.recipe(new SystemOutToLogging(null, null, null, null)),
+          //language=java
+          java(
+            """
+              class Base {
+                  protected String log = "audit";
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import lombok.extern.slf4j.Slf4j;
+              @Slf4j
+              class Test extends Base {
+                  void test() {
+                      System.out.println("Oh no");
+                  }
+              }
+              """,
+            """
+              import lombok.extern.slf4j.Slf4j;
+              @Slf4j
+              class Test extends Base {
+                  void test() {
+                      log.info("Oh no");
+                  }
+              }
+              """
+          ),
+
+          //language=java
+          java(
+            """
+              import lombok.extern.slf4j.Slf4j;
+              class Outer {
+                  static String log = "audit";
+
+                  @Slf4j
+                  static class Nested {
+                      void test() {
+                          System.out.println("Oh no");
+                      }
+                  }
+              }
+              """,
+            """
+              import lombok.extern.slf4j.Slf4j;
+              class Outer {
+                  static String log = "audit";
+
+                  @Slf4j
+                  static class Nested {
+                      void test() {
+                          log.info("Oh no");
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void leaveScriptWithNoClassAroundTheCall() {
+        rewriteRun(
+          spec -> spec.recipe(new SystemOutToLogging(true, null, null, null)),
+          //language=groovy
+          groovy(
+            """
+              System.out.println("Oh no")
               """
           )
         );

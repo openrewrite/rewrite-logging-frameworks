@@ -20,15 +20,8 @@ import lombok.Value;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.java.*;
-import org.openrewrite.java.search.FindFieldsOfType;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.*;
-import org.openrewrite.marker.Markers;
-
-import java.util.Set;
-
-import static java.util.Collections.emptyList;
 
 @EqualsAndHashCode(callSuper = false)
 @Value
@@ -69,7 +62,6 @@ public class SystemOutToLogging extends Recipe {
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         LoggingFramework framework = LoggingFramework.fromOption(loggingFramework);
-        AnnotationMatcher lombokLogAnnotationMatcher = new AnnotationMatcher("@lombok.extern..*");
 
         return Preconditions.check(new UsesMethod<>(systemOutPrint), Repeat.repeatUntilStable(new JavaIsoVisitor<ExecutionContext>() {
             @Override
@@ -89,18 +81,13 @@ public class SystemOutToLogging extends Recipe {
 
             private J.MethodInvocation logInsteadOfPrint(Cursor printCursor, ExecutionContext ctx) {
                 J.MethodInvocation print = printCursor.getValue();
-                Cursor classCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
-                AnnotationService annotationService = service(AnnotationService.class);
-                Set<J.VariableDeclarations> loggers = FindFieldsOfType.find(classCursor.getValue(), framework.getLoggerType());
-                if (!loggers.isEmpty()) {
-                    J.Identifier computedLoggerName = loggers.iterator().next().getVariables().get(0).getName();
-                    print = replaceMethodInvocation(printCursor, ctx, print, computedLoggerName);
-                } else if (annotationService.matches(classCursor, lombokLogAnnotationMatcher)) {
-                    String fieldName = loggerName == null ? "log" : loggerName;
-                    J.Identifier logField = new J.Identifier(Tree.randomId(), Space.SINGLE_SPACE, Markers.EMPTY, emptyList(), fieldName, null, null);
-                    print = replaceMethodInvocation(printCursor, ctx, print, logField);
-                } else if (addLogger != null && addLogger) {
-                    doAfterVisit(AddLogger.addLogger(classCursor.getValue(), framework, loggerName == null ? "logger" : loggerName, ctx));
+                // A script has code with no class around it
+                J.ClassDeclaration enclosingClass = getCursor().firstEnclosing(J.ClassDeclaration.class);
+                J.Identifier logger = framework.loggerAt(printCursor);
+                if (logger != null) {
+                    print = replaceMethodInvocation(printCursor, ctx, print, logger);
+                } else if (addLogger != null && addLogger && enclosingClass != null) {
+                    doAfterVisit(AddLogger.addLogger(enclosingClass, framework, loggerName == null ? "logger" : loggerName, ctx));
                 }
                 return print;
             }

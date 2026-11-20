@@ -529,4 +529,90 @@ class WrapExpensiveLogStatementsInConditionalsSlf4j2Test implements RewriteTest 
           )
         );
     }
+
+    @Test
+    void useConditionalWhenCapturedVariableIsIncrementedInParentheses() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger logger) {
+                      int count = 0;
+                      (count)++;
+                      logger.debug("Item {}", calculateResult(count));
+                  }
+
+                  String calculateResult(int i) {
+                      return "result";
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger logger) {
+                      int count = 0;
+                      (count)++;
+                      if (logger.isDebugEnabled()) {
+                          logger.debug("Item {}", calculateResult(count));
+                      }
+                  }
+
+                  String calculateResult(int i) {
+                      return "result";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void useFluentApiWhenOnlyAnotherVariableOfTheSameNameIsReassigned() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger logger, int[] items) {
+                      for (int i = 0; i < items.length; i++) {
+                          items[i] = 0;
+                      }
+                      for (int i : items) {
+                          logger.debug("Item {}", calculateResult(i));
+                      }
+                  }
+
+                  String calculateResult(int i) {
+                      return "result";
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void method(Logger logger, int[] items) {
+                      for (int i = 0; i < items.length; i++) {
+                          items[i] = 0;
+                      }
+                      for (int i : items) {
+                          logger.atDebug().addArgument(() -> calculateResult(i)).log("Item {}");
+                      }
+                  }
+
+                  String calculateResult(int i) {
+                      return "result";
+                  }
+              }
+              """
+          )
+        );
+    }
 }
