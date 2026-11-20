@@ -118,25 +118,25 @@ public class JulParameterizedArguments extends Recipe {
                     originalFormatString = originalFormatString.replace("''", "'");
                 }
 
+                J.NewArray newArray = stringFormatArgument instanceof J.NewArray ? (J.NewArray) stringFormatArgument : null;
+                List<Expression> arrayContent = newArray == null || newArray.getInitializer() == null ? emptyList() : newArray.getInitializer();
+                int argumentCount = newArray == null ? 1 : arrayContent.size();
+                // MessageFormat prints a placeholder past the last argument as written, and so does SLF4J
+                List<Integer> loggedIndices = originalIndices.stream().filter(i -> i < argumentCount).collect(toList());
                 Expression updatedStringFormatArgument = stringFormatArgument;
-                if (stringFormatArgument instanceof J.NewArray) {
-                    J.NewArray newArray = (J.NewArray) stringFormatArgument;
-                    List<Expression> arrayContent = newArray.getInitializer() == null ? emptyList() : newArray.getInitializer();
-                    if (originalIndices.stream().anyMatch(i -> i >= arrayContent.size())) {
-                        return method;
-                    }
+                if (newArray != null) {
                     updatedStringFormatArgument = newArray
-                            .withInitializer(originalIndices.stream().map(arrayContent::get).collect(toList()))
+                            .withInitializer(loggedIndices.stream().map(arrayContent::get).collect(toList()))
                             // Also unpack `new String[]{ ... }`, as `ArgumentArrayToVarargs` requires `Object[]`
                             .withType(((JavaType.Array) requireNonNull(newArray.getType())).withElemType(JavaType.ShallowClass.build("java.lang.Object")));
                 }
 
-                String slf4jFormatString = JavaStringEscapes.escapeJavaStringContent(originalFormatString.replaceAll("\\{\\d*}", "{}"));
+                String slf4jFormatString = JavaStringEscapes.escapeJavaStringContent(toSlf4jPlaceholders(originalFormatString, argumentCount));
                 J.MethodInvocation updatedMi = JavaTemplate.apply(newName + "(\"#{}\",#{anyArray(Object)})", getCursor(), method.getCoordinates().replaceMethod(), slf4jFormatString, updatedStringFormatArgument);
 
                 // In case of logger.log(Level.INFO, "Hello {0}, {0}", "foo")
-                if (!(stringFormatArgument instanceof J.NewArray) && originalIndices.size() > 1) {
-                    return updatedMi.withArguments(ListUtils.concatAll(updatedMi.getArguments(), nCopies(originalIndices.size() - 1, updatedStringFormatArgument)));
+                if (!(stringFormatArgument instanceof J.NewArray) && loggedIndices.size() > 1) {
+                    return updatedMi.withArguments(ListUtils.concatAll(updatedMi.getArguments(), nCopies(loggedIndices.size() - 1, updatedStringFormatArgument)));
                 }
                 // Delegate to ArgumentArrayToVarargs to convert the array argument to varargs
                 doAfterVisit(new ArgumentArrayToVarargs().getVisitor());
@@ -156,6 +156,17 @@ public class JulParameterizedArguments extends Recipe {
                 loggedArgumentIndices.add(Integer.valueOf(matcher.group(1)));
             }
             return loggedArgumentIndices;
+        }
+
+        private static String toSlf4jPlaceholders(String strFormat, int argumentCount) {
+            Matcher matcher = Pattern.compile("\\{(\\d*)}").matcher(strFormat);
+            StringBuffer slf4jFormat = new StringBuffer();
+            while (matcher.find()) {
+                String index = matcher.group(1);
+                boolean logged = index.isEmpty() || Integer.parseInt(index) < argumentCount;
+                matcher.appendReplacement(slf4jFormat, Matcher.quoteReplacement(logged ? "{}" : matcher.group()));
+            }
+            return matcher.appendTail(slf4jFormat).toString();
         }
     }
 }

@@ -79,8 +79,6 @@ class Log4j2ToSlf4j1Test implements RewriteTest {
     void loggerUsage() {
         //language=java
         rewriteRun(
-          // SLF4J's LoggerFactory has no getRootLogger(), which the recipe writes
-          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().compilableOutput(false).build()),
           java(
             """
              import org.apache.logging.log4j.Logger;
@@ -104,7 +102,7 @@ class Log4j2ToSlf4j1Test implements RewriteTest {
 
              class Test {
                  private static final Logger LOGGER = LoggerFactory.getLogger(Test.class);
-                 private static final Logger ROOT_LOGGER = LoggerFactory.getRootLogger();
+                 private static final Logger ROOT_LOGGER = LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
 
                  public static void main(String[] args) {
                      if (LOGGER.isDebugEnabled()) {

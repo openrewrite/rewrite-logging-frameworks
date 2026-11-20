@@ -92,6 +92,37 @@ class JBossLoggingToSlf4jTest implements RewriteTest {
     }
 
     @Test
+    void nonStringMessages() {
+        rewriteRun(
+          // ParameterizedLogging gives the calls method types SLF4J doesn't declare, such as error(String, Object, Throwable)
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
+          //language=java
+          java(
+            """
+              import org.jboss.logging.Logger;
+
+              class A {
+                  void doLog(Logger logger, Object o, Throwable t) {
+                      logger.info(o);
+                      logger.error(o, t);
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void doLog(Logger logger, Object o, Throwable t) {
+                      logger.info("{}", o);
+                      logger.error("{}", o, t);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void simpleLogCreationMapping() {
         rewriteRun(
           //language=java

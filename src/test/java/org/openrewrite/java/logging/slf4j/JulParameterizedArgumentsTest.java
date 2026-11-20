@@ -386,8 +386,7 @@ class JulParameterizedArgumentsTest implements RewriteTest {
     @Test
     void placeholderCountExceedsArgumentCount() {
         rewriteRun(
-          // SLF4J's Logger has no log(Level, ..), so the call is left for a person to finish
-          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().compilableOutput(false).build()),
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           // language=java
           java(
             """
@@ -405,11 +404,10 @@ class JulParameterizedArgumentsTest implements RewriteTest {
               import org.slf4j.Logger;
 
               import java.util.Arrays;
-              import java.util.logging.Level;
 
               class Test {
                   void method(Logger logger, String[] a) {
-                      logger.log(Level.FINEST, "Elements for {0} are {1}", new Object[]{Arrays.asList(a)});
+                      logger.trace("Elements for {} are {1}", Arrays.asList(a));
                   }
               }
               """

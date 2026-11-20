@@ -140,8 +140,7 @@ public class ParameterizedLogging extends Recipe {
                         m = JavaTemplate.apply(escapeDollarSign(messageBuilder.toString()), new Cursor(getCursor().getParent(), m), m.getCoordinates().replaceArguments(), newArgList.toArray());
                     } else if (logMsg instanceof J.Identifier && TypeUtils.isAssignableTo("java.lang.Throwable", logMsg.getType())) {
                         return m;
-                    } else if (!TypeUtils.isString(logMsg.getType()) && logMsg.getType() instanceof JavaType.Class &&
-                            !TypeUtils.isAssignableTo("java.util.function.Supplier", logMsg.getType())) {
+                    } else if (isNonStringMessage(logMsg.getType())) {
                         StringBuilder messageBuilder = new StringBuilder();
                         if (logMsgIndex == 1) {
                             messageBuilder.append("#{any()}, ");
@@ -191,6 +190,16 @@ public class ParameterizedLogging extends Recipe {
         return expression instanceof J.Binary &&
                 ((J.Binary) expression).getOperator() == J.Binary.Type.Addition &&
                 TypeUtils.isString(expression.getType());
+    }
+
+    /**
+     * A message of a known type other than {@code String}, which SLF4J takes only as the argument of {@code "{}"}.
+     */
+    private static boolean isNonStringMessage(@Nullable JavaType type) {
+        return type != null && !(type instanceof JavaType.Unknown) &&
+               type != JavaType.Primitive.Null && type != JavaType.Primitive.None &&
+               !TypeUtils.isString(type) &&
+               !TypeUtils.isAssignableTo("java.util.function.Supplier", type);
     }
 
     private static final class MessageAndArguments {

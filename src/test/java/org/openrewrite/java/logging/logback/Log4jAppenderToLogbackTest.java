@@ -41,8 +41,8 @@ class Log4jAppenderToLogbackTest implements RewriteTest {
     void appenderMigration() {
         //language=java
         rewriteRun(
-          // Logback's AppenderBase has no `layout` field, so the `this.layout` the recipe keeps doesn't compile
-          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().compilableOutput(false).build()),
+          // The references to `layout` keep the types of Log4j 1's field and its Layout.format(..)
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           java(
             """
               import org.apache.log4j.AppenderSkeleton;
@@ -69,12 +69,67 @@ class Log4jAppenderToLogbackTest implements RewriteTest {
             """
               import ch.qos.logback.classic.spi.ILoggingEvent;
               import ch.qos.logback.core.AppenderBase;
+              import ch.qos.logback.core.LayoutBase;
 
               class TrivialAppender extends AppenderBase<ILoggingEvent> {
+                  protected LayoutBase<ILoggingEvent> layout;
+
                   @Override
                   protected void append(ILoggingEvent event) {
                       String s = this.layout.doLayout(event);
                       System.out.println(s);
+                  }
+
+                  public LayoutBase<ILoggingEvent> getLayout() {
+                      return layout;
+                  }
+
+                  public void setLayout(LayoutBase<ILoggingEvent> layout) {
+                      this.layout = layout;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void appenderWithoutLayout() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.apache.log4j.AppenderSkeleton;
+              import org.apache.log4j.spi.LoggingEvent;
+
+              class CountingAppender extends AppenderSkeleton {
+                  int count;
+
+                  @Override
+                  protected void append(LoggingEvent event) {
+                      count++;
+                  }
+
+                  @Override
+                  public void close() {
+                  }
+
+                  @Override
+                  public boolean requiresLayout() {
+                      return false;
+                  }
+              }
+              """,
+            """
+              import ch.qos.logback.classic.spi.ILoggingEvent;
+              import ch.qos.logback.core.AppenderBase;
+
+              class CountingAppender extends AppenderBase<ILoggingEvent> {
+                  int count;
+
+                  @Override
+                  protected void append(ILoggingEvent event) {
+                      count++;
                   }
               }
               """
