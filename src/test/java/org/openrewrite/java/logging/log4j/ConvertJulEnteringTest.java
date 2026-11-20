@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -29,7 +30,9 @@ class ConvertJulEnteringTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipes(new ConvertJulEntering())
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "log4j-api-2.+"));
+            .classpathFromResources(new InMemoryExecutionContext(), "log4j-api-2.+"))
+          // A step of JulToLog4j, whose ChangeType gives the logger the Log4j type that has traceEntry()
+          .recipeQualityValidation(RecipeQualityValidation.builder().compilableOutput(false).build());
     }
 
     @DocumentExample

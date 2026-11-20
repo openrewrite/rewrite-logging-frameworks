@@ -32,7 +32,9 @@ class Log4j1MdcGetContextToCopyOfContextMapTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipe(new Log4j1MdcGetContextToCopyOfContextMap())
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "log4j-1.2.+"));
+            .classpathFromResources(new InMemoryExecutionContext(), "log4j-1.2.+"))
+          // A step of Log4j1ToSlf4jMdc, whose ChangeType gives `MDC` the SLF4J type that has getCopyOfContextMap()
+          .recipeQualityValidation(RecipeQualityValidation.builder().compilableOutput(false).build());
     }
 
     @DocumentExample
@@ -41,7 +43,7 @@ class Log4j1MdcGetContextToCopyOfContextMapTest implements RewriteTest {
         //language=java
         rewriteRun(
           // the recipe retypes the declaration to the raw `Map`, where javac gives it `Map<String, String>`
-          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).compilableOutput(false).build()),
           java(
             """
               import org.apache.log4j.MDC;
@@ -107,7 +109,7 @@ class Log4j1MdcGetContextToCopyOfContextMapTest implements RewriteTest {
         //language=java
         rewriteRun(
           // the recipe retypes the declarations, the method's return type among them, to the raw `Map`, where javac gives them `Map<String, String>`
-          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).compilableOutput(false).build()),
           java(
             """
               import org.apache.log4j.MDC;
@@ -222,7 +224,7 @@ class Log4j1MdcGetContextToCopyOfContextMapTest implements RewriteTest {
         //language=java
         rewriteRun(
           // the recipe retypes the declaration to the raw `Map`, where javac gives it `Map<String, String>`
-          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).compilableOutput(false).build()),
           java(
             """
               import org.apache.log4j.MDC;
@@ -260,7 +262,7 @@ class Log4j1MdcGetContextToCopyOfContextMapTest implements RewriteTest {
         rewriteRun(
           // the recipe retypes `inner()`'s return type to the raw `Map`, where javac gives it `Map<String, String>`
           spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder()
-            .parserTypedTrees(ParserTypes.Erasure).build()),
+            .parserTypedTrees(ParserTypes.Erasure).compilableOutput(false).build()),
           java(
             """
               import org.apache.log4j.MDC;
@@ -305,7 +307,7 @@ class Log4j1MdcGetContextToCopyOfContextMapTest implements RewriteTest {
         rewriteRun(
           // the recipe retypes the declaration to the raw `Map`, where javac gives it `Map<String, String>`
           spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder()
-            .parserTypedTrees(ParserTypes.Erasure).build()),
+            .parserTypedTrees(ParserTypes.Erasure).compilableOutput(false).build()),
           java(
             """
               import org.apache.log4j.MDC;

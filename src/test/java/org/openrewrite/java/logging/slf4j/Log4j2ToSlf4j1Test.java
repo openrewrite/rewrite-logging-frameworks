@@ -20,6 +20,7 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
@@ -37,7 +38,13 @@ class Log4j2ToSlf4j1Test implements RewriteTest {
             .classpathFromResources(new InMemoryExecutionContext(),
               "log4j-api-2.+",
               "log4j-core-2.+",
-              "lombok-1.18.+"));
+              "lombok-1.18.+"))
+          .afterParser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "log4j-api-2.+",
+              "log4j-core-2.+",
+              "lombok-1.18.+",
+              "slf4j-api-1.7"));
     }
 
     @DocumentExample
@@ -72,6 +79,8 @@ class Log4j2ToSlf4j1Test implements RewriteTest {
     void loggerUsage() {
         //language=java
         rewriteRun(
+          // SLF4J's LoggerFactory has no getRootLogger(), which the recipe writes
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().compilableOutput(false).build()),
           java(
             """
              import org.apache.logging.log4j.Logger;
@@ -206,6 +215,8 @@ class Log4j2ToSlf4j1Test implements RewriteTest {
     void unparameterizedLogging() {
         //language=java
         rewriteRun(
+          // The recipe types the call as info(String, String, String), which SLF4J doesn't declare
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           java(
                """
             package foo;

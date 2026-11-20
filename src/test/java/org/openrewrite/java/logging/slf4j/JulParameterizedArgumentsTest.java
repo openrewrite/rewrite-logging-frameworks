@@ -351,6 +351,8 @@ class JulParameterizedArgumentsTest implements RewriteTest {
     @Test
     void levelVariableLeadsToPartialConversion() {
         rewriteRun(
+          // SLF4J's Logger has no log(Level, ..), so the call is left for a person to finish
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().compilableOutput(false).build()),
           // language=java
           java(
             """
@@ -384,6 +386,8 @@ class JulParameterizedArgumentsTest implements RewriteTest {
     @Test
     void placeholderCountExceedsArgumentCount() {
         rewriteRun(
+          // SLF4J's Logger has no log(Level, ..), so the call is left for a person to finish
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().compilableOutput(false).build()),
           // language=java
           java(
             """

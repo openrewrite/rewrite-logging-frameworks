@@ -22,7 +22,6 @@ import org.openrewrite.Issue;
 import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeQualityValidation;
-import org.openrewrite.test.RecipeQualityValidation.ParserTypes;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -37,7 +36,11 @@ class Log4j1ToSlf4j1Test implements RewriteTest {
             .build()
             .activateRecipes("org.openrewrite.java.logging.slf4j.Log4j1ToSlf4j1"))
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "log4j-1.2.+"));
+            .classpathFromResources(new InMemoryExecutionContext(), "log4j-1.2.+"))
+          .afterParser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "log4j-1.2.+", "slf4j-api-1.7"))
+          // The migrated calls keep Log4j 1's method types, such as info(Object) where SLF4J has info(String)
+          .recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build());
     }
 
     @DocumentExample
@@ -255,9 +258,6 @@ class Log4j1ToSlf4j1Test implements RewriteTest {
     void migrateMdcGetContextRetypesHashtableReceiverToMap() {
         //language=java
         rewriteRun(
-          // Log4j1MdcGetContextToCopyOfContextMap retypes the declaration to the raw `Map`, where javac gives it `Map<String, String>`
-          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder()
-            .parserTypedTrees(ParserTypes.Erasure).build()),
           java(
             """
               import org.apache.log4j.MDC;

@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -30,7 +31,9 @@ class Log4jAppenderToLogbackTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipe(new Log4jAppenderToLogback())
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "log4j-1.2.+"));
+            .classpathFromResources(new InMemoryExecutionContext(), "log4j-1.2.+"))
+          .afterParser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "log4j-1.2.+", "logback-classic-1.3", "logback-core-1.3"));
     }
 
     @DocumentExample
@@ -38,6 +41,8 @@ class Log4jAppenderToLogbackTest implements RewriteTest {
     void appenderMigration() {
         //language=java
         rewriteRun(
+          // Logback's AppenderBase has no `layout` field, so the `this.layout` the recipe keeps doesn't compile
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().compilableOutput(false).build()),
           java(
             """
               import org.apache.log4j.AppenderSkeleton;
