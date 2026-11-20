@@ -16,10 +16,9 @@ recipeDependencies {
     parserClasspath("org.apache.logging.log4j:log4j-api:2.+")
     parserClasspath("commons-logging:commons-logging:1.+")
     parserClasspath("ch.qos.logback:logback-classic:1.3.+")
+    parserClasspath("ch.qos.logback:logback-core:1.3.+")
     parserClasspath("org.projectlombok:lombok:1.18.+")
     parserClasspath("org.jboss.logging:jboss-logging:3.+")
-
-    testParserClasspath("ch.qos.logback:logback-core:1.3.+")
 }
 
 dependencies {
