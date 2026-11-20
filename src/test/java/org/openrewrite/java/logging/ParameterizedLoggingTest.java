@@ -549,6 +549,46 @@ class ParameterizedLoggingTest implements RewriteTest {
     }
 
     @Test
+    void messagesOfPrimitiveParameterizedArrayAndVariableType() {
+        rewriteRun(
+          spec -> spec.recipe(new ParameterizedLogging("org.apache.logging.log4j.Logger *(..)", false)),
+          //language=java
+          java(
+            """
+              import org.apache.logging.log4j.Logger;
+
+              import java.util.List;
+
+              class Test {
+                  <T> void method(Logger logger, int count, List<String> names, Object[] values, T value, Throwable t) {
+                      logger.info(count);
+                      logger.info(names);
+                      logger.info(values);
+                      logger.info(value);
+                      logger.error(count, t);
+                  }
+              }
+              """,
+            """
+              import org.apache.logging.log4j.Logger;
+
+              import java.util.List;
+
+              class Test {
+                  <T> void method(Logger logger, int count, List<String> names, Object[] values, T value, Throwable t) {
+                      logger.info("{}", count);
+                      logger.info("{}", names);
+                      logger.info("{}", values);
+                      logger.info("{}", value);
+                      logger.error("{}", count, t);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void methodInvocationParameters() {
         rewriteRun(
           spec -> spec.recipe(new ParameterizedLogging("org.apache.logging.log4j.Logger info(..)", false)),

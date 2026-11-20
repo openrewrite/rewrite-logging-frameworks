@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.SourceSpec;
@@ -34,13 +35,16 @@ class JBossLoggingToSlf4jTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipeFromResources("org.openrewrite.java.logging.slf4j.JBossLoggingToSlf4j")
-          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "jboss-logging"));
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "jboss-logging"))
+          .afterParser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "jboss-logging", "slf4j-api-2"));
     }
 
     @DocumentExample
     @Test
     void simpleLogInvocationMapping() {
         rewriteRun(
+          // The migrated calls keep JBoss Logging's method types, such as trace(Object) where SLF4J has trace(String)
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
           //language=java
           java(
             """
@@ -80,6 +84,37 @@ class JBossLoggingToSlf4jTest implements RewriteTest {
                       logger.error(msg, t);
                       logger.error(msg);
                       logger.error(msg, t);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void nonStringMessages() {
+        rewriteRun(
+          // ParameterizedLogging gives the calls method types SLF4J doesn't declare, such as error(String, Object, Throwable)
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build()),
+          //language=java
+          java(
+            """
+              import org.jboss.logging.Logger;
+
+              class A {
+                  void doLog(Logger logger, Object o, Throwable t) {
+                      logger.info(o);
+                      logger.error(o, t);
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  void doLog(Logger logger, Object o, Throwable t) {
+                      logger.info("{}", o);
+                      logger.error("{}", o, t);
                   }
               }
               """

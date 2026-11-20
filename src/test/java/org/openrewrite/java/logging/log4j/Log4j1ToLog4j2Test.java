@@ -20,6 +20,7 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -35,7 +36,11 @@ class Log4j1ToLog4j2Test implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipeFromResources("org.openrewrite.java.logging.log4j.Log4j1ToLog4j2")
-          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "log4j-1"));
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "log4j-1"))
+          .afterParser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
+            "log4j-1", "log4j-api-2.+", "log4j-core-2.+"))
+          // The migrated calls keep Log4j 1's method types, such as info(Object) where javac picks Log4j 2's info(String)
+          .recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build());
     }
 
     @DocumentExample

@@ -37,7 +37,11 @@ class Log4j1ToSlf4j1Test implements RewriteTest {
             .build()
             .activateRecipes("org.openrewrite.java.logging.slf4j.Log4j1ToSlf4j1"))
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "log4j-1.2.+"));
+            .classpathFromResources(new InMemoryExecutionContext(), "log4j-1.2.+"))
+          .afterParser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "log4j-1.2.+", "slf4j-api-1.7"))
+          // The migrated calls keep Log4j 1's method types, such as info(Object) where SLF4J has info(String)
+          .recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build());
     }
 
     @DocumentExample

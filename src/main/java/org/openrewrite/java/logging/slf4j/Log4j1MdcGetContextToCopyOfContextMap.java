@@ -132,6 +132,17 @@ public class Log4j1MdcGetContextToCopyOfContextMap extends Recipe {
             }
 
             @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
+                // The rename keeps the method type, whose return type is Hashtable where getCopyOfContextMap() returns Map
+                if (GET_CONTEXT.matches(m) && m.getMethodType() != null) {
+                    JavaType.Method methodType = m.getMethodType().withReturnType(MAP_TYPE);
+                    return m.withMethodType(methodType).withName(m.getName().withType(methodType));
+                }
+                return m;
+            }
+
+            @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration m = syncRetypedParameters(super.visitMethodDeclaration(method, ctx));
                 // Retype a Hashtable return type that returns getContext() to Map, except on overriding methods (covariant-return rules).
