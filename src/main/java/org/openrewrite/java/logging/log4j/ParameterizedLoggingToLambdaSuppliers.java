@@ -25,8 +25,7 @@ import org.openrewrite.java.logging.internal.LogArguments;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.trait.Scope;
 import org.openrewrite.java.tree.*;
-import org.openrewrite.staticanalysis.groovy.GroovyFileChecker;
-import org.openrewrite.staticanalysis.kotlin.KotlinFileChecker;
+import org.openrewrite.staticanalysis.java.JavaFileChecker;
 
 import java.util.*;
 
@@ -88,9 +87,8 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
             }
         }
         TreeVisitor<?, ExecutionContext> preconditions = Preconditions.and(
-                new UsesMethod<>(LOG_METHODS),
-                Preconditions.not(new KotlinFileChecker<>()),
-                Preconditions.not(new GroovyFileChecker<>()));
+                new JavaFileChecker<>(),
+                new UsesMethod<>(LOG_METHODS));
         return Preconditions.check(preconditions, new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
