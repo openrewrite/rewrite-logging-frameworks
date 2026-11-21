@@ -749,6 +749,31 @@ class WrapExpensiveLogStatementsInConditionalsTest implements RewriteTest {
     }
 
     @Test
+    void dontWrapSideEffects() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  int count;
+
+                  void method(Logger log) {
+                      log.info("{}", String.valueOf(count++));
+                      log.info("{} {}", count += 2, notAGetter());
+                  }
+
+                  String notAGetter() {
+                      return "property";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void dontWrapRecordComponentAccessor() {
         //language=java
         rewriteRun(
