@@ -55,23 +55,15 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
     @Nullable
     List<String> logLevels;
 
-    @Option(displayName = "Convert simple arguments",
-            description = "When `true`, statements whose arguments are all cheap to evaluate " +
-                          "(literals, variables, field accesses, simple getters, and casts, array accesses, " +
-                          "ternaries or operators over those) are converted as well. " +
-                          "Defaults to `false`, which converts a statement only when at least one argument does real work.",
-            required = false)
-    @Nullable
-    Boolean convertSimpleArguments;
-
     String displayName = "Use lambda suppliers for Log4j parameters and composed messages";
 
     String description = "Replace parameterized Log4j 2 log statements such as `logger.debug(String message, Object... params)` " +
                          "with `logger.debug(String message, Supplier<?>... paramSuppliers)`, so that the parameters are only " +
                          "evaluated when the log level is enabled. A message without parameters that is put together at the call, " +
-                         "such as `logger.debug(\"Hello \" + name)`, is passed as a supplier too. Statements whose last argument " +
-                         "is a `Throwable`, whose arguments capture local variables that are not effectively final, have side " +
-                         "effects, throw checked exceptions or are suppliers themselves are left unchanged.";
+                         "such as `logger.debug(\"Hello \" + name)`, is passed as a supplier too. Statements whose arguments are " +
+                         "all cheap to evaluate, such as variables and simple getters, whose last argument is a `Throwable`, whose " +
+                         "arguments capture local variables that are not effectively final, have side effects, throw checked " +
+                         "exceptions or are suppliers themselves are left unchanged.";
 
     Set<String> tags = new HashSet<>(asList("logging", "log4j"));
 
@@ -95,7 +87,6 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
                 levels.add(level.trim().toLowerCase(Locale.ROOT));
             }
         }
-        boolean convertSimple = Boolean.TRUE.equals(convertSimpleArguments);
         TreeVisitor<?, ExecutionContext> preconditions = Preconditions.and(
                 new UsesMethod<>(LOG_METHODS),
                 Preconditions.not(new KotlinFileChecker<>()),
@@ -121,7 +112,7 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
                         return m;
                     }
                 } else if (!isConvertible(methodType, messageIndex, params) ||
-                           !convertSimple && params.stream().noneMatch(LogArguments::isExpensive) ||
+                           params.stream().noneMatch(LogArguments::isExpensive) ||
                            !lambdasCanCapture(params, updateCursor(m))) {
                     return m;
                 }

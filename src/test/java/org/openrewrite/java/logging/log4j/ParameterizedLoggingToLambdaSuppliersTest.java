@@ -39,7 +39,7 @@ class ParameterizedLoggingToLambdaSuppliersTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.recipe(new ParameterizedLoggingToLambdaSuppliers(null, null))
+        spec.recipe(new ParameterizedLoggingToLambdaSuppliers(null))
           .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "log4j-api"));
     }
 
@@ -129,7 +129,7 @@ class ParameterizedLoggingToLambdaSuppliersTest implements RewriteTest {
     @Test
     void onlySelectedLevels() {
         rewriteRun(
-          spec -> spec.recipe(new ParameterizedLoggingToLambdaSuppliers(List.of("trace", "DEBUG"), null)),
+          spec -> spec.recipe(new ParameterizedLoggingToLambdaSuppliers(List.of("trace", "DEBUG"))),
           //language=java
           java(
             """
@@ -371,34 +371,6 @@ class ParameterizedLoggingToLambdaSuppliersTest implements RewriteTest {
 
                   String compute() {
                       return "";
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void convertSimpleArgumentsWhenAsked() {
-        rewriteRun(
-          spec -> spec.recipe(new ParameterizedLoggingToLambdaSuppliers(null, true)),
-          //language=java
-          java(
-            """
-              import org.apache.logging.log4j.Logger;
-
-              class Test {
-                  void test(Logger logger, String id) {
-                      logger.debug("Id {}", id);
-                  }
-              }
-              """,
-            """
-              import org.apache.logging.log4j.Logger;
-
-              class Test {
-                  void test(Logger logger, String id) {
-                      logger.debug("Id {}", () -> id);
                   }
               }
               """
@@ -722,7 +694,6 @@ class ParameterizedLoggingToLambdaSuppliersTest implements RewriteTest {
         @Test
         void supplierValues() {
             rewriteRun(
-              spec -> spec.recipe(new ParameterizedLoggingToLambdaSuppliers(null, true)),
               //language=java
               java(
                 """
@@ -731,8 +702,7 @@ class ParameterizedLoggingToLambdaSuppliersTest implements RewriteTest {
 
                   class Test {
                       void test(Logger logger, Supplier<String> supplier, Supplier<?>[] suppliers) {
-                          logger.debug("{}", supplier);
-                          logger.debug("{}", supplier());
+                          logger.debug("{} {}", supplier, supplier());
                           logger.debug("{} {}", suppliers);
                           logger.debug("{}", (Supplier<?>) this::compute);
                           logger.debug("{}", (Supplier<?>) null);
@@ -754,7 +724,6 @@ class ParameterizedLoggingToLambdaSuppliersTest implements RewriteTest {
         @Test
         void javaUtilSupplierValues() {
             rewriteRun(
-              spec -> spec.recipe(new ParameterizedLoggingToLambdaSuppliers(null, true)),
               //language=java
               java(
                 """
@@ -764,8 +733,7 @@ class ParameterizedLoggingToLambdaSuppliersTest implements RewriteTest {
 
                   class Test {
                       void test(Logger logger, Supplier<String> supplier) {
-                          logger.debug("{}", supplier);
-                          logger.debug("{}", supplier());
+                          logger.debug("{} {}", supplier, supplier());
                       }
 
                       Supplier<String> supplier() {
@@ -856,7 +824,7 @@ class ParameterizedLoggingToLambdaSuppliersTest implements RewriteTest {
         @Test
         void levelVariableWithLevelsSelected() {
             rewriteRun(
-              spec -> spec.recipe(new ParameterizedLoggingToLambdaSuppliers(List.of("debug"), null)),
+              spec -> spec.recipe(new ParameterizedLoggingToLambdaSuppliers(List.of("debug"))),
               //language=java
               java(
                 """
