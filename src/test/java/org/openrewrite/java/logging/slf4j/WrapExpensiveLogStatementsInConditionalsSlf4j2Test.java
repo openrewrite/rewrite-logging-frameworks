@@ -492,6 +492,72 @@ class WrapExpensiveLogStatementsInConditionalsSlf4j2Test implements RewriteTest 
     }
 
     @Test
+    void useConditionalWhenLambdaWouldThrowCheckedException() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              import java.io.IOException;
+
+              class A {
+                  void method(Logger logger) throws IOException {
+                      logger.debug("Loaded {}", load());
+                  }
+
+                  String load() throws IOException {
+                      return "loaded";
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              import java.io.IOException;
+
+              class A {
+                  void method(Logger logger) throws IOException {
+                      if (logger.isDebugEnabled()) {
+                          logger.debug("Loaded {}", load());
+                      }
+                  }
+
+                  String load() throws IOException {
+                      return "loaded";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotDeferSideEffects() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.slf4j.Logger;
+
+              class A {
+                  int count;
+
+                  void method(Logger logger) {
+                      logger.debug("Item {}", String.valueOf(count++));
+                      logger.debug("Item {} {}", count++, calculateResult());
+                  }
+
+                  String calculateResult() {
+                      return "result";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void convertInsideIfThatDoesNotCheckLogLevel() {
         rewriteRun(
           //language=java
