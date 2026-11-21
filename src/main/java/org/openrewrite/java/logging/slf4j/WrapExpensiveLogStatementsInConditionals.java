@@ -35,6 +35,7 @@ import static java.util.stream.Collectors.toList;
 import static org.openrewrite.Preconditions.or;
 import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.java.logging.internal.LogArguments.isExpensive;
+import static org.openrewrite.java.logging.internal.LogArguments.mayThrowCheckedException;
 
 @EqualsAndHashCode(callSuper = false)
 @Value
@@ -100,10 +101,11 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
                                 (infoMatcher.matches(m) || debugMatcher.matches(m) || traceMatcher.matches(m)) &&
                                 !isInIfStatementWithLogLevelCheck(getCursor(), m) &&
                                 !isAlreadyUsingFluentApi(getCursor()) &&
-                                m.getArguments().stream().anyMatch(LogArguments::isExpensive)) {
+                                m.getArguments().stream().anyMatch(LogArguments::isExpensive) &&
+                                m.getArguments().stream().noneMatch(LogArguments::hasSideEffects)) {
 
                             // Check if we should use fluent API (SLF4J 2.0+) or if-statements (SLF4J 1.x)
-                            if (supportsFluentApi(m) && lambdasCanCaptureExpensiveArguments(m)) {
+                            if (supportsFluentApi(m) && lambdasCanTakeExpensiveArguments(m)) {
                                 return convertToFluentApi(m, ctx);
                             }
                             // Use the traditional if-statement approach for SLF4J 1.x
@@ -177,11 +179,14 @@ public class WrapExpensiveLogStatementsInConditionals extends Recipe {
                                 .apply(getCursor(), m.getCoordinates().replace(), templateArgs.toArray());
                     }
 
-                    private boolean lambdasCanCaptureExpensiveArguments(J.MethodInvocation m) {
+                    private boolean lambdasCanTakeExpensiveArguments(J.MethodInvocation m) {
                         Cursor cursor = updateCursor(m);
                         List<Cursor> expensive = new ArrayList<>();
                         for (Expression arg : m.getArguments()) {
                             if (isExpensive(arg)) {
+                                if (mayThrowCheckedException(arg)) {
+                                    return false;
+                                }
                                 expensive.add(Scope.cursorTo(cursor, arg));
                             }
                         }

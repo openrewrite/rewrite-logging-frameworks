@@ -33,7 +33,10 @@ class Log4jLayoutToLogbackTest implements RewriteTest {
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "log4j-1.2.+"))
           .afterParser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "log4j-1.2.+", "logback-classic-1.3", "logback-core-1.3"))
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "log4j-1.2.+",
+              "logback-classic-1.3",
+              "logback-core-1.3"))
           // The migrated calls keep Log4j 1's method types, such as getMessage() returning Object where Logback's returns String
           .recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(false).build());
     }

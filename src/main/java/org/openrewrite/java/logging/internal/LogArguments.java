@@ -15,7 +15,11 @@
  */
 package org.openrewrite.java.logging.internal;
 
+import org.jspecify.annotations.Nullable;
+import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.tree.*;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class LogArguments {
 
@@ -62,6 +66,77 @@ public final class LogArguments {
             return isExpensive(binary.getLeft()) || isExpensive(binary.getRight());
         }
         return true;
+    }
+
+    /**
+     * Whether evaluating a log argument assigns or increments a variable, which would no longer always happen once
+     * the argument is only evaluated when the log level is enabled. Method calls are not looked into.
+     */
+    public static boolean hasSideEffects(Expression argument) {
+        return new JavaIsoVisitor<AtomicBoolean>() {
+            @Override
+            public J.Assignment visitAssignment(J.Assignment assignment, AtomicBoolean found) {
+                found.set(true);
+                return assignment;
+            }
+
+            @Override
+            public J.AssignmentOperation visitAssignmentOperation(J.AssignmentOperation assignOp, AtomicBoolean found) {
+                found.set(true);
+                return assignOp;
+            }
+
+            @Override
+            public J.Unary visitUnary(J.Unary unary, AtomicBoolean found) {
+                if (unary.getOperator().isModifying()) {
+                    found.set(true);
+                }
+                return super.visitUnary(unary, found);
+            }
+
+            @Override
+            public J.Lambda visitLambda(J.Lambda lambda, AtomicBoolean found) {
+                return lambda;
+            }
+        }.reduce(argument, new AtomicBoolean()).get();
+    }
+
+    /**
+     * Whether a log argument calls a method or constructor that may throw a checked exception, so that it cannot be
+     * the body of a supplier lambda. A call whose type is unknown counts as one that may.
+     */
+    public static boolean mayThrowCheckedException(Expression argument) {
+        return new JavaIsoVisitor<AtomicBoolean>() {
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean found) {
+                checkThrows(method.getMethodType(), found);
+                return super.visitMethodInvocation(method, found);
+            }
+
+            @Override
+            public J.NewClass visitNewClass(J.NewClass newClass, AtomicBoolean found) {
+                checkThrows(newClass.getConstructorType(), found);
+                return super.visitNewClass(newClass, found);
+            }
+
+            @Override
+            public J.Lambda visitLambda(J.Lambda lambda, AtomicBoolean found) {
+                return lambda;
+            }
+
+            private void checkThrows(JavaType.@Nullable Method methodType, AtomicBoolean found) {
+                if (methodType == null) {
+                    found.set(true);
+                    return;
+                }
+                for (JavaType thrown : methodType.getThrownExceptions()) {
+                    if (!TypeUtils.isAssignableTo("java.lang.RuntimeException", thrown) &&
+                        !TypeUtils.isAssignableTo("java.lang.Error", thrown)) {
+                        found.set(true);
+                    }
+                }
+            }
+        }.reduce(argument, new AtomicBoolean()).get();
     }
 
     private static boolean isSimpleGetter(J.MethodInvocation method) {
