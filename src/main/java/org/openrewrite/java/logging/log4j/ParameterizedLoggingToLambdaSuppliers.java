@@ -23,15 +23,15 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.logging.internal.LogArguments;
 import org.openrewrite.java.search.UsesMethod;
+import org.openrewrite.java.trait.Scope;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.staticanalysis.groovy.GroovyFileChecker;
 import org.openrewrite.staticanalysis.kotlin.KotlinFileChecker;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.util.Arrays.asList;
-import static org.openrewrite.java.logging.internal.LogArguments.isExpensive;
+import static org.openrewrite.java.logging.internal.LogArguments.*;
 
 @EqualsAndHashCode(callSuper = false)
 @Value
@@ -117,12 +117,12 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
                 List<Expression> params = args.subList(messageIndex + 1, args.size());
                 boolean messageOnly = isComposedMessageOnly(methodType, messageIndex, args);
                 if (messageOnly) {
-                    if (!capturesOnlyEffectivelyFinalLocals(args.subList(messageIndex, messageIndex + 1), getCursor())) {
+                    if (!lambdasCanCapture(args.subList(messageIndex, messageIndex + 1), updateCursor(m))) {
                         return m;
                     }
                 } else if (!isConvertible(methodType, messageIndex, params) ||
                            !convertSimple && params.stream().noneMatch(LogArguments::isExpensive) ||
-                           !capturesOnlyEffectivelyFinalLocals(params, getCursor())) {
+                           !lambdasCanCapture(params, updateCursor(m))) {
                     return m;
                 }
 
@@ -242,109 +242,15 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
         return null;
     }
 
-    private static boolean hasSideEffectsOrCheckedExceptions(Expression param) {
-        return new JavaIsoVisitor<AtomicBoolean>() {
-            @Override
-            public J.Assignment visitAssignment(J.Assignment assignment, AtomicBoolean found) {
-                found.set(true);
-                return assignment;
-            }
-
-            @Override
-            public J.AssignmentOperation visitAssignmentOperation(J.AssignmentOperation assignOp, AtomicBoolean found) {
-                found.set(true);
-                return assignOp;
-            }
-
-            @Override
-            public J.Unary visitUnary(J.Unary unary, AtomicBoolean found) {
-                if (unary.getOperator().isModifying()) {
-                    found.set(true);
-                }
-                return super.visitUnary(unary, found);
-            }
-
-            @Override
-            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean found) {
-                checkThrows(method.getMethodType(), found);
-                return super.visitMethodInvocation(method, found);
-            }
-
-            @Override
-            public J.NewClass visitNewClass(J.NewClass newClass, AtomicBoolean found) {
-                checkThrows(newClass.getConstructorType(), found);
-                return super.visitNewClass(newClass, found);
-            }
-
-            @Override
-            public J.Lambda visitLambda(J.Lambda lambda, AtomicBoolean found) {
-                // What a nested lambda does is not evaluated eagerly
-                return lambda;
-            }
-
-            private void checkThrows(JavaType.@Nullable Method methodType, AtomicBoolean found) {
-                if (methodType == null) {
-                    found.set(true);
-                    return;
-                }
-                for (JavaType thrown : methodType.getThrownExceptions()) {
-                    if (!TypeUtils.isAssignableTo("java.lang.RuntimeException", thrown) &&
-                        !TypeUtils.isAssignableTo("java.lang.Error", thrown)) {
-                        found.set(true);
-                    }
-                }
-            }
-        }.reduce(param, new AtomicBoolean()).get();
+    private static boolean hasSideEffectsOrCheckedExceptions(Expression argument) {
+        return hasSideEffects(argument) || mayThrowCheckedException(argument);
     }
 
-    private static boolean capturesOnlyEffectivelyFinalLocals(List<Expression> params, Cursor cursor) {
-        // A lambda may only capture local variables that are effectively final
-        Set<String> capturedLocals = new HashSet<>();
-        for (Expression param : params) {
-            new JavaIsoVisitor<Set<String>>() {
-                @Override
-                public J.Identifier visitIdentifier(J.Identifier identifier, Set<String> locals) {
-                    JavaType.Variable fieldType = identifier.getFieldType();
-                    if (fieldType != null && !(fieldType.getOwner() instanceof JavaType.FullyQualified)) {
-                        locals.add(identifier.getSimpleName());
-                    }
-                    return identifier;
-                }
-            }.visit(param, capturedLocals);
+    private static boolean lambdasCanCapture(List<Expression> arguments, Cursor cursor) {
+        List<Cursor> regions = new ArrayList<>(arguments.size());
+        for (Expression argument : arguments) {
+            regions.add(Scope.cursorTo(cursor, argument));
         }
-        if (capturedLocals.isEmpty()) {
-            return true;
-        }
-        J scope = cursor.firstEnclosing(J.MethodDeclaration.class);
-        if (scope == null) {
-            scope = cursor.firstEnclosingOrThrow(JavaSourceFile.class);
-        }
-        return !new JavaIsoVisitor<AtomicBoolean>() {
-            @Override
-            public J.Assignment visitAssignment(J.Assignment assignment, AtomicBoolean found) {
-                checkTarget(assignment.getVariable(), found);
-                return super.visitAssignment(assignment, found);
-            }
-
-            @Override
-            public J.AssignmentOperation visitAssignmentOperation(J.AssignmentOperation assignOp, AtomicBoolean found) {
-                checkTarget(assignOp.getVariable(), found);
-                return super.visitAssignmentOperation(assignOp, found);
-            }
-
-            @Override
-            public J.Unary visitUnary(J.Unary unary, AtomicBoolean found) {
-                if (unary.getOperator().isModifying()) {
-                    checkTarget(unary.getExpression(), found);
-                }
-                return super.visitUnary(unary, found);
-            }
-
-            private void checkTarget(Expression target, AtomicBoolean found) {
-                if (target instanceof J.Identifier && capturedLocals.contains(((J.Identifier) target).getSimpleName())) {
-                    found.set(true);
-                }
-            }
-        }.reduce(scope, new AtomicBoolean()).get();
+        return Scope.lambdaCanCapture(regions);
     }
 }
