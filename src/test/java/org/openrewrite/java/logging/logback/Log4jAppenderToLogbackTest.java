@@ -33,7 +33,10 @@ class Log4jAppenderToLogbackTest implements RewriteTest {
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "log4j-1.2.+"))
           .afterParser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "log4j-1.2.+", "logback-classic-1.3", "logback-core-1.3"));
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "log4j-1.2.+",
+              "logback-classic-1.3",
+              "logback-core-1.3"));
     }
 
     @DocumentExample
