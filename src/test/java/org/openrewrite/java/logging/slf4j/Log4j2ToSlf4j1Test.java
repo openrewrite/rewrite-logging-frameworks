@@ -26,6 +26,9 @@ import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.java.Assertions.mavenProject;
+import static org.openrewrite.java.Assertions.srcMainJava;
+import static org.openrewrite.maven.Assertions.pomXml;
 
 class Log4j2ToSlf4j1Test implements RewriteTest {
     @Override
@@ -246,6 +249,71 @@ class Log4j2ToSlf4j1Test implements RewriteTest {
                   }
               }
               """
+          )
+        );
+    }
+
+    @Test
+    void addSlf4jApiDependency() {
+        rewriteRun(
+          mavenProject("project",
+            srcMainJava(
+              //language=java
+              java(
+                """
+                  import org.apache.logging.log4j.LogManager;
+                  import org.apache.logging.log4j.Logger;
+
+                  class Test {
+                      Logger logger = LogManager.getLogger(Test.class);
+                  }
+                  """,
+                """
+                  import org.slf4j.Logger;
+                  import org.slf4j.LoggerFactory;
+
+                  class Test {
+                      Logger logger = LoggerFactory.getLogger(Test.class);
+                  }
+                  """
+              )
+            ),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <groupId>com.mycompany.app</groupId>
+                    <artifactId>my-app</artifactId>
+                    <version>1</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.apache.logging.log4j</groupId>
+                            <artifactId>log4j-api</artifactId>
+                            <version>2.24.3</version>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              """
+                <project>
+                    <groupId>com.mycompany.app</groupId>
+                    <artifactId>my-app</artifactId>
+                    <version>1</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.apache.logging.log4j</groupId>
+                            <artifactId>log4j-api</artifactId>
+                            <version>2.24.3</version>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.slf4j</groupId>
+                            <artifactId>slf4j-api</artifactId>
+                            <version>1.7.36</version>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """
+            )
           )
         );
     }

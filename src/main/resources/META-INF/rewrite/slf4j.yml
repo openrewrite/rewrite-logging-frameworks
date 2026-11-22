@@ -125,6 +125,11 @@ recipeList:
       newFullyQualifiedTypeName: org.slf4j.LoggerFactory
   - org.openrewrite.java.logging.slf4j.ParameterizedLogging
   - org.openrewrite.java.logging.ChangeLombokLogAnnotation
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: org.slf4j
+      artifactId: slf4j-api
+      version: 1.x
+      onlyIfUsing: org.apache.logging.log4j.*
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.slf4j.Log4j1ToSlf4jMdc
@@ -156,6 +161,12 @@ recipeList:
   - org.openrewrite.java.logging.log4j.Log4j1ToLog4j2
   - org.openrewrite.java.logging.slf4j.Log4j2ToSlf4j1
   - org.openrewrite.java.logging.slf4j.ParameterizedLogging
+  # `onlyIfUsing` is matched against the sources as they were before this recipe ran, hence the Log4j 1 package
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: org.slf4j
+      artifactId: slf4j-api
+      version: 1.x
+      onlyIfUsing: org.apache.log4j.*
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.slf4j.Slf4jBestPractices

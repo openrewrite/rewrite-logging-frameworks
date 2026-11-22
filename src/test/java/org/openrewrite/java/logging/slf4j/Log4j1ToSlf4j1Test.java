@@ -26,7 +26,11 @@ import org.openrewrite.test.RecipeQualityValidation.ParserTypes;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.java.Assertions.mavenProject;
+import static org.openrewrite.java.Assertions.srcMainJava;
+import static org.openrewrite.maven.Assertions.pomXml;
 
 class Log4j1ToSlf4j1Test implements RewriteTest {
 
@@ -285,6 +289,60 @@ class Log4j1ToSlf4j1Test implements RewriteTest {
                   }
               }
               """
+          )
+        );
+    }
+
+    @Test
+    void addSlf4jApiDependency() {
+        rewriteRun(
+          mavenProject("project",
+            srcMainJava(
+              //language=java
+              java(
+                """
+                  import org.apache.log4j.Logger;
+
+                  class Test {
+                      Logger logger = Logger.getLogger(Test.class);
+                  }
+                  """,
+                """
+                  import org.slf4j.Logger;
+                  import org.slf4j.LoggerFactory;
+
+                  class Test {
+                      Logger logger = LoggerFactory.getLogger(Test.class);
+                  }
+                  """
+              )
+            ),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <groupId>com.mycompany.app</groupId>
+                    <artifactId>my-app</artifactId>
+                    <version>1</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>log4j</groupId>
+                            <artifactId>log4j</artifactId>
+                            <version>1.2.17</version>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              spec -> spec.after(pom -> assertThat(pom)
+                .contains("""
+                          <dependency>
+                              <groupId>org.slf4j</groupId>
+                              <artifactId>slf4j-api</artifactId>
+                              <version>1.7.36</version>
+                          </dependency>
+                  """)
+                .actual())
+            )
           )
         );
     }
