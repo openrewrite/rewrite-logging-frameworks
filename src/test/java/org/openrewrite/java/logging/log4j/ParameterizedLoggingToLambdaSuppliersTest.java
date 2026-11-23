@@ -127,7 +127,7 @@ class ParameterizedLoggingToLambdaSuppliersTest implements RewriteTest {
     }
 
     @Test
-    void selectedLevels() {
+    void onlySelectedLevels() {
         rewriteRun(
           spec -> spec.recipe(new ParameterizedLoggingToLambdaSuppliers(List.of("trace", "DEBUG"))),
           //language=java
@@ -137,10 +137,15 @@ class ParameterizedLoggingToLambdaSuppliersTest implements RewriteTest {
               import org.apache.logging.log4j.Logger;
 
               class Test {
-                  void test(Logger logger) {
+                  void selected(Logger logger) {
                       logger.trace("{}", compute());
                       logger.debug("{}", compute());
                       logger.log(Level.DEBUG, "{}", compute());
+                  }
+
+                  void notSelected(Logger logger) {
+                      logger.info("{}", compute());
+                      logger.log(Level.ERROR, "{}", compute());
                   }
 
                   String compute() {
@@ -153,10 +158,15 @@ class ParameterizedLoggingToLambdaSuppliersTest implements RewriteTest {
               import org.apache.logging.log4j.Logger;
 
               class Test {
-                  void test(Logger logger) {
+                  void selected(Logger logger) {
                       logger.trace("{}", () -> compute());
                       logger.debug("{}", () -> compute());
                       logger.log(Level.DEBUG, "{}", () -> compute());
+                  }
+
+                  void notSelected(Logger logger) {
+                      logger.info("{}", compute());
+                      logger.log(Level.ERROR, "{}", compute());
                   }
 
                   String compute() {
@@ -810,31 +820,6 @@ class ParameterizedLoggingToLambdaSuppliersTest implements RewriteTest {
                   class Test {
                       fun test(logger: Logger, name: String) {
                           logger.debug("Name {}", name.trim())
-                      }
-                  }
-                  """
-              )
-            );
-        }
-
-        @Test
-        void levelsNotSelected() {
-            rewriteRun(
-              spec -> spec.recipe(new ParameterizedLoggingToLambdaSuppliers(List.of("trace", "DEBUG"))),
-              //language=java
-              java(
-                """
-                  import org.apache.logging.log4j.Level;
-                  import org.apache.logging.log4j.Logger;
-
-                  class Test {
-                      void test(Logger logger) {
-                          logger.info("{}", compute());
-                          logger.log(Level.ERROR, "{}", compute());
-                      }
-
-                      String compute() {
-                          return "";
                       }
                   }
                   """
