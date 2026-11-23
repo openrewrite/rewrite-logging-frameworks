@@ -58,6 +58,27 @@ recipeList:
       methodPattern: org.apache.logging.log4j.Category fatal(..)
 ---
 type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.logging.log4j.Log4j2BestPractices
+displayName: Log4j 2.x best practices
+description: Applies best practices to logging with Log4j 2.x.
+preconditions:
+  - org.openrewrite.Singleton
+tags:
+  - logging
+  - log4j
+recipeList:
+  - org.openrewrite.java.logging.ArgumentArrayToVarargs
+  - org.openrewrite.java.logging.log4j.LoggingExceptionConcatenationRecipe
+  - org.openrewrite.java.logging.log4j.ParameterizedLogging
+  # After `ParameterizedLogging`, so a concatenated message becomes placeholders first, and only the arguments that do real work are deferred
+  - org.openrewrite.java.logging.log4j.ParameterizedLoggingToLambdaSuppliers:
+      logLevels:
+        - trace
+        - debug
+  - org.openrewrite.java.logging.CatchBlockLogLevel
+  - org.openrewrite.java.logging.ChangeLoggersToPrivate
+---
+type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.logging.log4j.Log4j1ToLog4j2
 displayName: Migrate Log4j 1.x to Log4j 2.x
 description: Migrates Log4j 1.x to Log4j 2.x.
