@@ -127,7 +127,7 @@ class ParameterizedLoggingToLambdaSuppliersTest implements RewriteTest {
     }
 
     @Test
-    void onlySelectedLevels() {
+    void selectedLevels() {
         rewriteRun(
           spec -> spec.recipe(new ParameterizedLoggingToLambdaSuppliers(List.of("trace", "DEBUG"))),
           //language=java
@@ -140,9 +140,7 @@ class ParameterizedLoggingToLambdaSuppliersTest implements RewriteTest {
                   void test(Logger logger) {
                       logger.trace("{}", compute());
                       logger.debug("{}", compute());
-                      logger.info("{}", compute());
                       logger.log(Level.DEBUG, "{}", compute());
-                      logger.log(Level.ERROR, "{}", compute());
                   }
 
                   String compute() {
@@ -158,9 +156,7 @@ class ParameterizedLoggingToLambdaSuppliersTest implements RewriteTest {
                   void test(Logger logger) {
                       logger.trace("{}", () -> compute());
                       logger.debug("{}", () -> compute());
-                      logger.info("{}", compute());
                       logger.log(Level.DEBUG, "{}", () -> compute());
-                      logger.log(Level.ERROR, "{}", compute());
                   }
 
                   String compute() {
@@ -814,6 +810,31 @@ class ParameterizedLoggingToLambdaSuppliersTest implements RewriteTest {
                   class Test {
                       fun test(logger: Logger, name: String) {
                           logger.debug("Name {}", name.trim())
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void levelsNotSelected() {
+            rewriteRun(
+              spec -> spec.recipe(new ParameterizedLoggingToLambdaSuppliers(List.of("trace", "DEBUG"))),
+              //language=java
+              java(
+                """
+                  import org.apache.logging.log4j.Level;
+                  import org.apache.logging.log4j.Logger;
+
+                  class Test {
+                      void test(Logger logger) {
+                          logger.info("{}", compute());
+                          logger.log(Level.ERROR, "{}", compute());
+                      }
+
+                      String compute() {
+                          return "";
                       }
                   }
                   """
