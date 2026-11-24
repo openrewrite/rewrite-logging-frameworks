@@ -49,6 +49,7 @@ dependencies {
 
     testImplementation("org.openrewrite:rewrite-kotlin")
     testImplementation("org.openrewrite:rewrite-maven")
+    testImplementation("org.openrewrite:rewrite-properties")
     testImplementation("org.openrewrite:rewrite-gradle")
     testImplementation("org.openrewrite.gradle.tooling:model:${rewriteVersion}")
     testImplementation("org.openrewrite:rewrite-test")

@@ -20,17 +20,23 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Tree;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.marker.JavaProject;
 import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.test.SourceSpecs;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.java.Assertions.*;
 import static org.openrewrite.gradle.Assertions.buildGradle;
+import static org.openrewrite.gradle.Assertions.settingsGradle;
 import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 import static org.openrewrite.maven.Assertions.pomXml;
+import static org.openrewrite.properties.Assertions.properties;
+import static org.openrewrite.toml.Assertions.toml;
 
 class Slf4jFluentToSlf4jTest implements RewriteTest {
     @Override
@@ -750,6 +756,268 @@ class Slf4jFluentToSlf4jTest implements RewriteTest {
                 </project>
                 """
             )
+          )
+        );
+    }
+
+    @Test
+    void overridesVersionManagedInLocalParentOnlyInChild() {
+        rewriteRun(
+          mavenProject(
+            "parent",
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>example</groupId>
+                    <artifactId>parent</artifactId>
+                    <version>1.0</version>
+                    <packaging>pom</packaging>
+                    <dependencyManagement>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.slf4j</groupId>
+                                <artifactId>slf4j-api</artifactId>
+                                <version>1.7.36</version>
+                            </dependency>
+                        </dependencies>
+                    </dependencyManagement>
+                </project>
+                """
+            )
+          ),
+          mavenProject(
+            "app",
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <parent>
+                        <groupId>example</groupId>
+                        <artifactId>parent</artifactId>
+                        <version>1.0</version>
+                        <relativePath>../parent/pom.xml</relativePath>
+                    </parent>
+                    <artifactId>app</artifactId>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.slf4j</groupId>
+                            <artifactId>slf4j-api</artifactId>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              spec -> spec.after(after -> assertThat(after)
+                .containsPattern("<artifactId>slf4j-api</artifactId>\\s*<version>2\\.0\\.\\d+</version>")
+                .actual())
+            ),
+            fluentUsage()
+          )
+        );
+    }
+
+    @Test
+    void overridesVersionPropertyOfLocalParentOnlyInChild() {
+        rewriteRun(
+          pomXml(
+            """
+              <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>example</groupId>
+                  <artifactId>parent</artifactId>
+                  <version>1.0</version>
+                  <packaging>pom</packaging>
+                  <modules>
+                      <module>app</module>
+                  </modules>
+                  <properties>
+                      <slf4j.version>1.7.36</slf4j.version>
+                  </properties>
+                  <dependencyManagement>
+                      <dependencies>
+                          <dependency>
+                              <groupId>org.slf4j</groupId>
+                              <artifactId>slf4j-api</artifactId>
+                              <version>${slf4j.version}</version>
+                          </dependency>
+                      </dependencies>
+                  </dependencyManagement>
+              </project>
+              """,
+            spec -> spec.markers(new JavaProject(Tree.randomId(), "parent", null))
+          ),
+          mavenProject(
+            "app",
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <parent>
+                        <groupId>example</groupId>
+                        <artifactId>parent</artifactId>
+                        <version>1.0</version>
+                    </parent>
+                    <artifactId>app</artifactId>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.slf4j</groupId>
+                            <artifactId>slf4j-api</artifactId>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              spec -> spec.after(after -> assertThat(after)
+                .containsPattern("<slf4j.version>2\\.0\\.\\d+</slf4j.version>")
+                .actual())
+            ),
+            fluentUsage()
+          )
+        );
+    }
+
+    @Test
+    void upgradesVersionDeclaredInRootSubprojectsBlock() {
+        rewriteRun(
+          spec -> spec.beforeRecipe(withToolingApi()),
+          settingsGradle(
+            """
+              rootProject.name = 'root'
+              include 'app'
+              """
+          ),
+          buildGradle(
+            """
+              subprojects {
+                  apply plugin: 'java'
+                  repositories { mavenCentral() }
+                  dependencies {
+                      implementation 'org.slf4j:slf4j-api:1.7.36'
+                  }
+              }
+              """,
+            spec -> spec.markers(new JavaProject(Tree.randomId(), "root", null))
+              .after(after -> assertThat(after)
+                .containsPattern("org.slf4j:slf4j-api:2\\.0\\.\\d+")
+                .actual())
+          ),
+          mavenProject(
+            "app",
+            buildGradle(
+              """
+                description = 'app'
+                """
+            ),
+            fluentUsage()
+          )
+        );
+    }
+
+    @Test
+    void upgradesVersionInRootGradleProperties() {
+        rewriteRun(
+          spec -> spec.beforeRecipe(withToolingApi()),
+          settingsGradle(
+            """
+              rootProject.name = 'root'
+              include 'app', 'other'
+              """
+          ),
+          properties(
+            """
+              slf4jVersion=1.7.36
+              """,
+            spec -> spec.path("gradle.properties")
+              .after(after -> assertThat(after)
+                .containsPattern("slf4jVersion=2\\.0\\.\\d+")
+                .actual())
+          ),
+          mavenProject(
+            "app",
+            buildGradle(
+              """
+                plugins { id 'java' }
+                repositories { mavenCentral() }
+                dependencies {
+                    implementation "org.slf4j:slf4j-api:$slf4jVersion"
+                }
+                """
+            ),
+            fluentUsage()
+          ),
+          mavenProject(
+            "other",
+            buildGradle(
+              """
+                plugins { id 'java' }
+                repositories { mavenCentral() }
+                dependencies {
+                    implementation 'org.slf4j:slf4j-api:1.7.36'
+                }
+                """
+            )
+          )
+        );
+    }
+
+    @Test
+    void upgradesVersionInVersionCatalog() {
+        rewriteRun(
+          spec -> spec.beforeRecipe(withToolingApi()),
+          settingsGradle(
+            """
+              rootProject.name = 'root'
+              include 'app'
+              """
+          ),
+          toml(
+            """
+              [versions]
+              slf4j = "1.7.36"
+
+              [libraries]
+              slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+              """,
+            spec -> spec.path("gradle/libs.versions.toml")
+              .after(after -> assertThat(after)
+                .containsPattern("slf4j = \"2\\.0\\.\\d+\"")
+                .actual())
+          ),
+          mavenProject(
+            "app",
+            buildGradle(
+              """
+                plugins { id 'java' }
+                repositories { mavenCentral() }
+                dependencies {
+                    implementation libs.slf4j.api
+                }
+                """
+            ),
+            fluentUsage()
+          )
+        );
+    }
+
+    private static SourceSpecs fluentUsage() {
+        return srcMainJava(
+          java(
+            """
+              import org.fissore.slf4j.FluentLogger;
+              class Example {
+                  void log(FluentLogger logger) {
+                      logger.info().log("message");
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class Example {
+                  void log(Logger logger) {
+                      logger.atInfo().log("message");
+                  }
+              }
+              """
           )
         );
     }
