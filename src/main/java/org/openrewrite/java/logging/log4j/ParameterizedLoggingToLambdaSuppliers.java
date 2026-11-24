@@ -86,10 +86,9 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
                 levels.add(level.trim().toLowerCase(Locale.ROOT));
             }
         }
-        TreeVisitor<?, ExecutionContext> preconditions = Preconditions.and(
+        return Preconditions.check(Preconditions.and(
                 new JavaFileChecker<>(),
-                new UsesMethod<>(LOG_METHODS));
-        return Preconditions.check(preconditions, new JavaIsoVisitor<ExecutionContext>() {
+                new UsesMethod<>(LOG_METHODS)), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
