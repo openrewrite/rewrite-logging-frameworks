@@ -17,6 +17,8 @@ package org.openrewrite.java.logging.slf4j;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -27,6 +29,10 @@ import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.SourceSpecs;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.java.Assertions.*;
@@ -634,6 +640,8 @@ class Slf4jFluentToSlf4jTest implements RewriteTest {
       "logger.info().log(\"{} {}\", org.fissore.slf4j.Util.lazy(() -> values[0]), values[0] = 1);",
       "java.util.function.Supplier<?> supplier = org.fissore.slf4j.Util.lazy(() -> 1);",
       "java.util.function.Supplier<org.fissore.slf4j.LoggerAtLevel> supplier = logger::info;",
+      "Object value = (java.util.function.Supplier<String>) () -> \"value\"; logger.info().log(\"{}\", value);",
+      "logger.info().log(\"{} {}\", values[0], 1);",
       "builder.log(\"{}\", 1);",
       "logger.info().log(\"{}\", null);"
     })
@@ -656,6 +664,32 @@ class Slf4jFluentToSlf4jTest implements RewriteTest {
               .contains("/*~~(This slf4j-fluent usage requires manual migration before rerunning the recipe)~~>*/")
               .doesNotContain("atInfo", "addMarker", "addArgument")
               .actual())
+          )
+        );
+    }
+
+    @Test
+    void typeVariableArgument() {
+        rewriteRun(
+          java(
+            """
+              import org.fissore.slf4j.FluentLogger;
+
+              class Example {
+                  <T> void log(FluentLogger logger, T value) {
+                      logger.info().log("{}", value);
+                  }
+              }
+              """,
+            """
+              import org.fissore.slf4j.FluentLogger;
+
+              class Example {
+                  <T> void log(FluentLogger logger, T value) {
+                      /*~~(This slf4j-fluent usage requires manual migration before rerunning the recipe)~~>*/logger.info().log("{}", value);
+                  }
+              }
+              """
           )
         );
     }
@@ -998,27 +1032,305 @@ class Slf4jFluentToSlf4jTest implements RewriteTest {
         );
     }
 
-    private static SourceSpecs fluentUsage() {
-        return srcMainJava(
-          java(
-            """
-              import org.fissore.slf4j.FluentLogger;
-              class Example {
-                  void log(FluentLogger logger) {
-                      logger.info().log("message");
-                  }
-              }
-              """,
-            """
-              import org.slf4j.Logger;
-
-              class Example {
-                  void log(Logger logger) {
-                      logger.atInfo().log("message");
-                  }
-              }
-              """
+    @Test
+    void upgradesSlf4jProviderAndBridges() {
+        rewriteRun(
+          mavenProject(
+            "example",
+            pomXml(
+              pom("example", FLUENT_DEPENDENCY + """
+                <dependency>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-simple</artifactId>
+                    <version>1.7.36</version>
+                    <scope>runtime</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>jul-to-slf4j</artifactId>
+                    <version>1.7.36</version>
+                </dependency>
+                """),
+              spec -> spec.after(after -> assertThat(after)
+                .containsPattern("<artifactId>slf4j-simple</artifactId>\\s*<version>2\\.0\\.\\d+</version>")
+                .containsPattern("<artifactId>jul-to-slf4j</artifactId>\\s*<version>2\\.0\\.\\d+</version>")
+                .doesNotContain("1.7.36")
+                .actual())
+            ),
+            fluentUsage()
           )
         );
+    }
+
+    @Test
+    void replacesSlf4jLog4j12WithReload4j() {
+        rewriteRun(
+          mavenProject(
+            "example",
+            pomXml(
+              pom("example", FLUENT_DEPENDENCY + """
+                <dependency>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                    <version>1.7.36</version>
+                    <scope>runtime</scope>
+                </dependency>
+                """),
+              spec -> spec.after(after -> assertThat(after)
+                .containsPattern("<artifactId>slf4j-reload4j</artifactId>\\s*<version>2\\.0\\.\\d+</version>")
+                .doesNotContain("slf4j-log4j12")
+                .actual())
+            ),
+            fluentUsage()
+          )
+        );
+    }
+
+    @Test
+    void replacesLog4jSlf4jBindingAndAlignsLog4j() {
+        rewriteRun(
+          mavenProject(
+            "example",
+            pomXml(
+              pom("example", FLUENT_DEPENDENCY + """
+                <dependency>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-slf4j-impl</artifactId>
+                    <version>2.17.1</version>
+                    <scope>runtime</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-core</artifactId>
+                    <version>2.17.1</version>
+                    <scope>runtime</scope>
+                </dependency>
+                """),
+              spec -> spec.after(after -> {
+                  Matcher binding = Pattern.compile("<artifactId>log4j-slf4j2-impl</artifactId>\\s*<version>(2\\.\\d+\\.\\d+)</version>").matcher(after);
+                  Matcher core = Pattern.compile("<artifactId>log4j-core</artifactId>\\s*<version>(2\\.\\d+\\.\\d+)</version>").matcher(after);
+                  assertThat(binding.find()).isTrue();
+                  assertThat(core.find()).isTrue();
+                  assertThat(core.group(1)).isEqualTo(binding.group(1));
+                  assertThat(after).doesNotContain("log4j-slf4j-impl", "2.17.1");
+                  return after;
+              })
+            ),
+            fluentUsage()
+          )
+        );
+    }
+
+    @Test
+    void upgradesLogbackToJava8Line() {
+        rewriteRun(
+          mavenProject(
+            "example",
+            pomXml(
+              pom("example", FLUENT_DEPENDENCY + """
+                <dependency>
+                    <groupId>ch.qos.logback</groupId>
+                    <artifactId>logback-classic</artifactId>
+                    <version>1.2.13</version>
+                    <scope>runtime</scope>
+                </dependency>
+                """),
+              spec -> spec.after(after -> assertThat(after)
+                .containsPattern("<artifactId>logback-classic</artifactId>\\s*<version>1\\.3\\.\\d+</version>")
+                .actual())
+            ),
+            srcMainJava(
+              java(FLUENT_BEFORE, FLUENT_AFTER, spec -> spec.markers(javaVersion(8)))
+            )
+          )
+        );
+    }
+
+    @Test
+    void upgradesLogbackToCurrentLine() {
+        rewriteRun(
+          mavenProject(
+            "example",
+            pomXml(
+              pom("example", FLUENT_DEPENDENCY + """
+                <dependency>
+                    <groupId>ch.qos.logback</groupId>
+                    <artifactId>logback-classic</artifactId>
+                    <version>1.2.13</version>
+                    <scope>runtime</scope>
+                </dependency>
+                """),
+              spec -> spec.after(after -> assertThat(after)
+                .containsPattern("<artifactId>logback-classic</artifactId>\\s*<version>1\\.5\\.\\d+</version>")
+                .actual())
+            ),
+            srcMainJava(
+              java(FLUENT_BEFORE, FLUENT_AFTER, spec -> spec.markers(javaVersion(17)))
+            )
+          )
+        );
+    }
+
+    @Test
+    void upgradesProviderInDependentModuleOnly() {
+        rewriteRun(
+          mavenProject(
+            "lib",
+            pomXml(
+              pom("lib", FLUENT_DEPENDENCY),
+              spec -> spec.after(after -> assertThat(after)
+                .containsPattern("<artifactId>slf4j-api</artifactId>\\s*<version>2\\.0\\.\\d+</version>")
+                .actual())
+            ),
+            fluentUsage()
+          ),
+          mavenProject(
+            "app",
+            pomXml(
+              pom("app", """
+                <dependency>
+                    <groupId>example</groupId>
+                    <artifactId>lib</artifactId>
+                    <version>1.0</version>
+                </dependency>
+                <dependency>
+                    <groupId>ch.qos.logback</groupId>
+                    <artifactId>logback-classic</artifactId>
+                    <version>1.2.13</version>
+                    <scope>runtime</scope>
+                </dependency>
+                """),
+              spec -> spec.after(after -> assertThat(after)
+                .containsPattern("<artifactId>logback-classic</artifactId>\\s*<version>1\\.3\\.\\d+</version>")
+                .actual())
+            )
+          ),
+          mavenProject(
+            "unrelated",
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>example</groupId>
+                    <artifactId>unrelated</artifactId>
+                    <version>1.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>ch.qos.logback</groupId>
+                            <artifactId>logback-classic</artifactId>
+                            <version>1.2.13</version>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """
+            )
+          )
+        );
+    }
+
+    static Stream<Arguments> unsupportedProviders() {
+        return Stream.of(
+          Arguments.of("org.springframework.boot", "spring-boot", "org.springframework.boot:spring-boot:2.7.18 requires SLF4J 1.x; upgrade to Spring Boot 3 first"),
+          Arguments.of("org.slf4j", "slf4j-jcl", "org.slf4j:slf4j-jcl:1.7.36 has no SLF4J 2.x release"),
+          Arguments.of("org.springframework.boot", "spring-boot-starter-logging", "ch.qos.logback:logback-classic:1.2.12 is a SLF4J 1.x provider whose version is not declared in this build file")
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("unsupportedProviders")
+    void unsupportedProviderWithholdsMigration(String groupId, String artifactId, String reason) {
+        String version = "slf4j-jcl".equals(artifactId) ? "1.7.36" : "2.7.18";
+        rewriteRun(
+          mavenProject(
+            "example",
+            pomXml(
+              pom("example", FLUENT_DEPENDENCY + """
+                <dependency>
+                    <groupId>%s</groupId>
+                    <artifactId>%s</artifactId>
+                    <version>%s</version>
+                </dependency>
+                """.formatted(groupId, artifactId, version)),
+              spec -> spec.after(after -> assertThat(after)
+                .contains("The slf4j-fluent migration requires SLF4J 2.x, but " + reason)
+                .contains("<artifactId>slf4j-fluent</artifactId>")
+                .actual())
+            ),
+            srcMainJava(
+              java(FLUENT_BEFORE)
+            )
+          )
+        );
+    }
+
+    @Test
+    void upgradesGradleProvider() {
+        rewriteRun(
+          spec -> spec.beforeRecipe(withToolingApi()),
+          mavenProject(
+            "example",
+            buildGradle(
+              """
+                plugins { id 'java' }
+                repositories { mavenCentral() }
+                dependencies {
+                    implementation 'org.fissore:slf4j-fluent:0.14.0'
+                    runtimeOnly 'ch.qos.logback:logback-classic:1.2.13'
+                }
+                """,
+              spec -> spec.after(after -> assertThat(after)
+                .containsPattern("ch.qos.logback:logback-classic:1\\.5\\.\\d+")
+                .containsPattern("org.slf4j:slf4j-api:2\\.0\\.\\d+")
+                .actual())
+            ),
+            srcMainJava(
+              java(FLUENT_BEFORE, FLUENT_AFTER, spec -> spec.markers(javaVersion(17)))
+            )
+          )
+        );
+    }
+
+    private static String pom(String artifactId, String dependencies) {
+        return """
+          <project>
+              <modelVersion>4.0.0</modelVersion>
+              <groupId>example</groupId>
+              <artifactId>%s</artifactId>
+              <version>1.0</version>
+              <dependencies>
+          %s    </dependencies>
+          </project>
+          """.formatted(artifactId, dependencies.indent(8));
+    }
+
+    private static final String FLUENT_DEPENDENCY = """
+      <dependency>
+          <groupId>org.fissore</groupId>
+          <artifactId>slf4j-fluent</artifactId>
+          <version>0.14.0</version>
+      </dependency>
+      """;
+
+    private static final String FLUENT_BEFORE = """
+      import org.fissore.slf4j.FluentLogger;
+      class Example {
+          void log(FluentLogger logger) {
+              logger.info().log("message");
+          }
+      }
+      """;
+
+    private static final String FLUENT_AFTER = """
+      import org.slf4j.Logger;
+
+      class Example {
+          void log(Logger logger) {
+              logger.atInfo().log("message");
+          }
+      }
+      """;
+
+    private static SourceSpecs fluentUsage() {
+        return srcMainJava(java(FLUENT_BEFORE, FLUENT_AFTER));
     }
 }

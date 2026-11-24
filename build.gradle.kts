@@ -32,6 +32,8 @@ dependencies {
     implementation("org.openrewrite:rewrite-java")
     implementation("org.openrewrite:rewrite-groovy")
     implementation("org.openrewrite:rewrite-xml")
+    implementation("org.openrewrite:rewrite-maven")
+    implementation("org.openrewrite:rewrite-gradle")
     implementation("org.openrewrite.recipe:rewrite-java-dependencies:${rewriteVersion}")
     implementation("org.openrewrite.recipe:rewrite-static-analysis:${rewriteVersion}")
     runtimeOnly("org.openrewrite:rewrite-java-21")

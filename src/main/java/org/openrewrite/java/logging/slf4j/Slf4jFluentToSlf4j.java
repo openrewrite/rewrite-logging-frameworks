@@ -22,17 +22,12 @@ import org.openrewrite.*;
 import org.openrewrite.java.*;
 import org.openrewrite.java.dependencies.AddDependency;
 import org.openrewrite.java.dependencies.ChangeDependency;
-import org.openrewrite.java.dependencies.UpgradeDependencyVersion;
 import org.openrewrite.java.marker.JavaProject;
 import org.openrewrite.java.logging.internal.LogArguments;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.SearchResult;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Value
@@ -51,10 +46,13 @@ public class Slf4jFluentToSlf4j extends ScanningRecipe<Slf4jFluentToSlf4j.Accumu
     String displayName = "Migrate Fissore SLF4J Fluent to SLF4J";
 
     String description = "Migrate `org.fissore:slf4j-fluent` to `org.slf4j:slf4j-api` 2.x, preserving lazy messages, " +
-            "lazy arguments and exception causes. Rate limiting, marker-specific level checks, reusable marker mutations, " +
-            "argument arrays, side effects around suppliers, subclasses and unsupported API usages are marked for manual migration. " +
-            "If any such usages are found, source and dependency migration is withheld for the entire recipe run. " +
-            "The logging backend must support SLF4J 2.x.";
+            "lazy arguments and exception causes. SLF4J 1.x providers in the migrated modules and in the modules depending on them " +
+            "are moved to their SLF4J 2.x counterparts: `org.slf4j` artifacts to 2.x, `slf4j-log4j12` to `slf4j-reload4j`, " +
+            "`log4j-slf4j-impl` to `log4j-slf4j2-impl` and Logback to 1.3.x (Java 8) or 1.5.x (Java 11+). " +
+            "Rate limiting, marker-specific level checks, reusable marker mutations, argument arrays, arguments that may hold " +
+            "a `Supplier` at runtime, side effects around suppliers, subclasses and unsupported API usages are marked for manual migration, " +
+            "as are Spring Boot 2.x, `slf4j-jcl` and SLF4J 1.x providers whose version is not declared in the module's own build file. " +
+            "If any such usages are found, source and dependency migration is withheld for the entire recipe run.";
 
     @Override
     public Accumulator getInitialValue(ExecutionContext ctx) {
@@ -66,7 +64,7 @@ public class Slf4jFluentToSlf4j extends ScanningRecipe<Slf4jFluentToSlf4j.Accumu
         List<TreeVisitor<?, ExecutionContext>> dependencies = Arrays.asList(
                 acc.dependency.getScanner(acc.dependencies),
                 acc.addition.getScanner(acc.additions),
-                acc.upgrade.getScanner(acc.upgrades));
+                acc.providers.scanner());
         JavaVisitor<ExecutionContext> unsupported = unsupported(() -> acc.unsupported = true);
         return new TreeVisitor<Tree, ExecutionContext>() {
             @Override
@@ -93,11 +91,17 @@ public class Slf4jFluentToSlf4j extends ScanningRecipe<Slf4jFluentToSlf4j.Accumu
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor(Accumulator acc) {
-        if (acc.unsupported) {
+        Set<JavaProject> affected = acc.providers.affected(acc.projects);
+        Map<JavaProject, String> problems = acc.providers.problems(affected);
+        if (acc.unsupported || !problems.isEmpty()) {
             JavaVisitor<ExecutionContext> unsupported = unsupported(() -> { });
             return new TreeVisitor<Tree, ExecutionContext>() {
                 @Override
                 public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
+                    if (tree instanceof SourceFile && Slf4jFluentProviders.isBuildFile((SourceFile) tree)) {
+                        String problem = ((SourceFile) tree).getMarkers().findFirst(JavaProject.class).map(problems::get).orElse(null);
+                        return problem == null ? tree : SearchResult.found(tree, problem);
+                    }
                     if (!(tree instanceof JavaSourceFile) || !usesFluent((JavaSourceFile) tree)) {
                         return tree;
                     }
@@ -108,7 +112,7 @@ public class Slf4jFluentToSlf4j extends ScanningRecipe<Slf4jFluentToSlf4j.Accumu
         List<TreeVisitor<?, ExecutionContext>> dependencies = new ArrayList<>();
         dependencies.add(acc.dependency.getVisitor(acc.dependencies));
         dependencies.add(acc.addition.getVisitor(acc.additions));
-        TreeVisitor<?, ExecutionContext> upgrade = acc.upgrade.getVisitor(acc.upgrades);
+        TreeVisitor<?, ExecutionContext> providers = acc.providers.visitor();
         JavaVisitor<ExecutionContext> java = migrate();
         return new TreeVisitor<Tree, ExecutionContext>() {
             @Override
@@ -122,9 +126,10 @@ public class Slf4jFluentToSlf4j extends ScanningRecipe<Slf4jFluentToSlf4j.Accumu
                             tree = dependency.visit(tree, ctx);
                         }
                     }
-                    if (((SourceFile) tree).getMarkers().findFirst(JavaProject.class).map(acc.projects::contains).orElse(false) &&
-                            upgrade.isAcceptable((SourceFile) tree, ctx)) {
-                        tree = upgrade.visit(tree, ctx);
+                    SourceFile sourceFile = (SourceFile) tree;
+                    if (Slf4jFluentProviders.isBuildFile(sourceFile) &&
+                            sourceFile.getMarkers().findFirst(JavaProject.class).map(affected::contains).orElse(false)) {
+                        tree = providers.visit(sourceFile, ctx);
                     }
                 }
                 return tree;
@@ -157,6 +162,9 @@ public class Slf4jFluentToSlf4j extends ScanningRecipe<Slf4jFluentToSlf4j.Accumu
                         supported = false;
                     }
                     if (args.size() > 1 && !freshBuilder(method.getSelect(), true)) {
+                        supported = false;
+                    }
+                    if (args.subList(1, args.size()).stream().anyMatch(Slf4jFluentToSlf4j::mayHoldSupplier)) {
                         supported = false;
                     }
                     for (int i = 0; i < args.size(); i++) {
@@ -248,6 +256,15 @@ public class Slf4jFluentToSlf4j extends ScanningRecipe<Slf4jFluentToSlf4j.Accumu
                 return n;
             }
         };
+    }
+
+    private static boolean mayHoldSupplier(Expression argument) {
+        if (argument instanceof J.MethodInvocation && LAZY.matches((J.MethodInvocation) argument)) {
+            return false;
+        }
+        JavaType type = argument.getType();
+        return type == null || type instanceof JavaType.Unknown || type instanceof JavaType.GenericTypeVariable ||
+                type instanceof JavaType.Intersection || TypeUtils.isOfClassType(type, "java.lang.Object");
     }
 
     private static boolean hasEagerEffects(Expression expression) {
@@ -387,15 +404,14 @@ public class Slf4jFluentToSlf4j extends ScanningRecipe<Slf4jFluentToSlf4j.Accumu
         final AddDependency addition = new AddDependency("org.slf4j", "slf4j-api", "2.x", null,
                 "org.fissore.slf4j.*", null, null, null, null, null, null, null, null, false);
         final AddDependency.Accumulator additions;
-        final UpgradeDependencyVersion upgrade = new UpgradeDependencyVersion("org.slf4j", "slf4j-api", "2.x", null, true, null);
-        final UpgradeDependencyVersion.Accumulator upgrades;
+        final Slf4jFluentProviders providers;
         final Set<JavaProject> projects = new HashSet<>();
         boolean unsupported;
 
         Accumulator(ExecutionContext ctx) {
             dependencies = dependency.getInitialValue(ctx);
             additions = addition.getInitialValue(ctx);
-            upgrades = upgrade.getInitialValue(ctx);
+            providers = new Slf4jFluentProviders(ctx);
         }
     }
 }
