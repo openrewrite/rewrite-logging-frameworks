@@ -21,6 +21,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -28,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.java.Assertions.*;
 import static org.openrewrite.gradle.Assertions.buildGradle;
 import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 import static org.openrewrite.maven.Assertions.pomXml;
 
 class Slf4jFluentToSlf4jTest implements RewriteTest {
@@ -149,7 +151,7 @@ class Slf4jFluentToSlf4jTest implements RewriteTest {
                   void log(FluentLogger logger, Throwable cause) {
                       LoggerAtLevel builder = logger.error();
                       builder.withCause(cause);
-                      builder.log("Value {}", 1);
+                      builder.log("failure");
                   }
               }
               """,
@@ -165,7 +167,7 @@ class Slf4jFluentToSlf4jTest implements RewriteTest {
                   void log(Logger logger, Throwable cause) {
                       LoggingEventBuilder builder = logger.atError();
                       builder.setCause(cause);
-                      builder.setMessage("Value {}").addArgument(1).log();
+                      builder.log("failure");
                   }
               }
               """
@@ -421,6 +423,172 @@ class Slf4jFluentToSlf4jTest implements RewriteTest {
     }
 
     @Test
+    void wrappedConditionalLoggerInConcatenation() {
+        rewriteRun(
+          java(
+            """
+              import org.fissore.slf4j.FluentLogger;
+              import org.slf4j.Logger;
+
+              class Example {
+                  String describe(boolean enabled, Logger first, Logger second) {
+                      return "logger: " + new FluentLogger(enabled ? first : second);
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class Example {
+                  String describe(boolean enabled, Logger first, Logger second) {
+                      return "logger: " + (enabled ? first : second);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void eagerCallBeforeLazyArgument() {
+        rewriteRun(
+          java(
+            """
+              import org.fissore.slf4j.FluentLogger;
+              import static org.fissore.slf4j.Util.lazy;
+
+              class Example {
+                  void log(FluentLogger logger) {
+                      logger.info().log("{} {}", value(), lazy(() -> 1));
+                  }
+
+                  String value() { return "value"; }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class Example {
+                  void log(Logger logger) {
+                      logger.atInfo().setMessage("{} {}").addArgument(value()).addArgument(() -> 1).log();
+                  }
+
+                  String value() { return "value"; }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void parenthesizedNullArgument() {
+        rewriteRun(
+          java(
+            """
+              import org.fissore.slf4j.FluentLogger;
+              class Example {
+                  void log(FluentLogger logger) {
+                      logger.info().log("{} {}", (null), 1);
+                  }
+              }
+              """,
+            """
+              import org.slf4j.Logger;
+
+              class Example {
+                  void log(Logger logger) {
+                      logger.atInfo().setMessage("{} {}").addArgument((Object) (null)).addArgument(1).log();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void kotlinUsageWithholdsMigration() {
+        rewriteRun(
+          spec -> spec.parser(KotlinParser.builder().classpathFromResources(new InMemoryExecutionContext(), "slf4j-fluent", "slf4j-api-2")),
+          kotlin(
+            """
+              import org.fissore.slf4j.FluentLogger
+
+              class Kt(val logger: FluentLogger) {
+                  fun log() {
+                      logger.info().log("message")
+                  }
+              }
+              """,
+            spec -> spec.after(after -> assertThat(after)
+              .contains("/*~~(This slf4j-fluent usage requires manual migration before rerunning the recipe)~~>*/")
+              .actual())
+          ),
+          java(
+            """
+              import org.fissore.slf4j.FluentLogger;
+              class Example {
+                  void log(FluentLogger logger) {
+                      logger.info().log("unchanged");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void directDependencyWithJavaSources() {
+        rewriteRun(
+          mavenProject(
+            "example",
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>example</groupId>
+                    <artifactId>example</artifactId>
+                    <version>1.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.fissore</groupId>
+                            <artifactId>slf4j-fluent</artifactId>
+                            <version>0.14.0</version>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              spec -> spec.after(after -> assertThat(after)
+                .containsOnlyOnce("<artifactId>slf4j-api</artifactId>")
+                .containsPattern("<version>2\\.0\\.\\d+</version>")
+                .doesNotContain("slf4j-fluent")
+                .actual())
+            ),
+            srcMainJava(
+              java(
+                """
+                  import org.fissore.slf4j.FluentLogger;
+                  class Example {
+                      void log(FluentLogger logger) {
+                          logger.info().log("message");
+                      }
+                  }
+                  """,
+                """
+                  import org.slf4j.Logger;
+
+                  class Example {
+                      void log(Logger logger) {
+                          logger.atInfo().log("message");
+                      }
+                  }
+                  """
+              )
+            )
+          )
+        );
+    }
+
+    @Test
     void manyArguments() {
         rewriteRun(
           java(
@@ -459,7 +627,9 @@ class Slf4jFluentToSlf4jTest implements RewriteTest {
       "logger.info().log(() -> \"{}\", values[0] = 1);",
       "logger.info().log(\"{} {}\", org.fissore.slf4j.Util.lazy(() -> values[0]), values[0] = 1);",
       "java.util.function.Supplier<?> supplier = org.fissore.slf4j.Util.lazy(() -> 1);",
-      "java.util.function.Supplier<org.fissore.slf4j.LoggerAtLevel> supplier = logger::info;"
+      "java.util.function.Supplier<org.fissore.slf4j.LoggerAtLevel> supplier = logger::info;",
+      "builder.log(\"{}\", 1);",
+      "logger.info().log(\"{}\", null);"
     })
     void unsupportedOperations(String statement) {
         String before = """

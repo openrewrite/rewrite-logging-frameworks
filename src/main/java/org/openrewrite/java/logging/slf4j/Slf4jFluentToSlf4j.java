@@ -43,6 +43,9 @@ public class Slf4jFluentToSlf4j extends ScanningRecipe<Slf4jFluentToSlf4j.Accumu
     private static final String BUILDER = "org.fissore.slf4j.LoggerAtLevel";
     private static final MethodMatcher LAZY = new MethodMatcher("org.fissore.slf4j.Util lazy(..)");
     private static final MethodMatcher LOG = new MethodMatcher(BUILDER + " log(..)");
+    private static final MethodMatcher LEVEL = new MethodMatcher(LOGGER + " *()");
+    private static final MethodMatcher WITH_CAUSE = new MethodMatcher(BUILDER + " withCause(..)");
+    private static final MethodMatcher WITH_MARKER = new MethodMatcher(BUILDER + " withMarker(..)");
     private static final String MANUAL = "This slf4j-fluent usage requires manual migration before rerunning the recipe";
 
     String displayName = "Migrate Fissore SLF4J Fluent to SLF4J";
@@ -75,12 +78,12 @@ public class Slf4jFluentToSlf4j extends ScanningRecipe<Slf4jFluentToSlf4j.Accumu
                         }
                     }
                 }
-                if (tree instanceof J.CompilationUnit) {
-                    unsupported.visit(tree, ctx);
-                    for (JavaType type : ((J.CompilationUnit) tree).getTypesInUse().getTypesInUse()) {
-                        if (TypeUtils.isOfClassType(type, LOGGER) || TypeUtils.isOfClassType(type, BUILDER)) {
-                            ((J.CompilationUnit) tree).getMarkers().findFirst(JavaProject.class).ifPresent(acc.projects::add);
-                        }
+                if (tree instanceof JavaSourceFile && usesFluent((JavaSourceFile) tree)) {
+                    if (tree instanceof J.CompilationUnit) {
+                        unsupported.visit(tree, ctx);
+                        ((J.CompilationUnit) tree).getMarkers().findFirst(JavaProject.class).ifPresent(acc.projects::add);
+                    } else {
+                        acc.unsupported = true;
                     }
                 }
                 return tree;
@@ -91,7 +94,16 @@ public class Slf4jFluentToSlf4j extends ScanningRecipe<Slf4jFluentToSlf4j.Accumu
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor(Accumulator acc) {
         if (acc.unsupported) {
-            return unsupported(() -> { });
+            JavaVisitor<ExecutionContext> unsupported = unsupported(() -> { });
+            return new TreeVisitor<Tree, ExecutionContext>() {
+                @Override
+                public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
+                    if (!(tree instanceof JavaSourceFile) || !usesFluent((JavaSourceFile) tree)) {
+                        return tree;
+                    }
+                    return tree instanceof J.CompilationUnit ? unsupported.visit(tree, ctx) : SearchResult.found(tree, MANUAL);
+                }
+            };
         }
         List<TreeVisitor<?, ExecutionContext>> dependencies = new ArrayList<>();
         dependencies.add(acc.dependency.getVisitor(acc.dependencies));
@@ -102,7 +114,7 @@ public class Slf4jFluentToSlf4j extends ScanningRecipe<Slf4jFluentToSlf4j.Accumu
             @Override
             public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
                 if (tree instanceof J.CompilationUnit) {
-                    return java.visit(tree, ctx);
+                    return usesFluent((J.CompilationUnit) tree) ? java.visit(tree, ctx) : tree;
                 }
                 if (tree instanceof SourceFile) {
                     for (TreeVisitor<?, ExecutionContext> dependency : dependencies) {
@@ -138,15 +150,23 @@ public class Slf4jFluentToSlf4j extends ScanningRecipe<Slf4jFluentToSlf4j.Accumu
                 boolean supported = FACTORY.equals(owner) && "getLogger".equals(method.getSimpleName()) ||
                         LOGGER.equals(owner) && isLevel(method.getSimpleName()) && method.getArguments().get(0) instanceof J.Empty ||
                         BUILDER.equals(owner) && ("withCause".equals(method.getSimpleName()) || LOG.matches(method)) ||
-                        BUILDER.equals(owner) && "withMarker".equals(method.getSimpleName()) && freshBuilder(method.getSelect());
-                if (LOG.matches(method) && method.getArguments().size() == 2 &&
-                        method.getArguments().get(1).getType() instanceof JavaType.Array) {
-                    supported = false;
-                }
-                if (LOG.matches(method) && method.getArguments().stream().anyMatch(arg ->
-                        TypeUtils.isAssignableTo("java.util.function.Supplier", arg.getType())) &&
-                        method.getArguments().stream().anyMatch(Slf4jFluentToSlf4j::hasEagerEffects)) {
-                    supported = false;
+                        BUILDER.equals(owner) && "withMarker".equals(method.getSimpleName()) && freshBuilder(method.getSelect(), false);
+                if (LOG.matches(method)) {
+                    List<Expression> args = method.getArguments();
+                    if (args.size() == 2 && (args.get(1).getType() instanceof JavaType.Array || isNull(args.get(1)))) {
+                        supported = false;
+                    }
+                    if (args.size() > 1 && !freshBuilder(method.getSelect(), true)) {
+                        supported = false;
+                    }
+                    for (int i = 0; i < args.size(); i++) {
+                        if (TypeUtils.isAssignableTo("java.util.function.Supplier", args.get(i).getType())) {
+                            if (args.subList(i + 1, args.size()).stream().anyMatch(Slf4jFluentToSlf4j::hasEagerEffects)) {
+                                supported = false;
+                            }
+                            break;
+                        }
+                    }
                 }
                 if (LAZY.matches(method)) {
                     Object parent = getCursor().getParentTreeCursor().getValue();
@@ -259,14 +279,32 @@ public class Slf4jFluentToSlf4j extends ScanningRecipe<Slf4jFluentToSlf4j.Accumu
         return "trace".equals(name) || "debug".equals(name) || "info".equals(name) || "warn".equals(name) || "error".equals(name);
     }
 
-    private static boolean freshBuilder(@Nullable Expression expression) {
+    private static boolean isNull(Expression expression) {
+        return expression.getType() == JavaType.Primitive.Null;
+    }
+
+    private static boolean usesFluent(JavaSourceFile sourceFile) {
+        for (JavaType type : sourceFile.getTypesInUse().getTypesInUse()) {
+            JavaType.FullyQualified fq = TypeUtils.asFullyQualified(type);
+            if (fq != null && fq.getFullyQualifiedName().startsWith("org.fissore.slf4j.")) {
+                return true;
+            }
+        }
+        for (J.Import anImport : sourceFile.getImports()) {
+            if (anImport.getTypeName().startsWith("org.fissore.slf4j.")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean freshBuilder(@Nullable Expression expression, boolean markers) {
         if (!(expression instanceof J.MethodInvocation)) {
             return false;
         }
         J.MethodInvocation m = (J.MethodInvocation) expression;
-        return new MethodMatcher(LOGGER + " *(..)").matches(m) && isLevel(m.getSimpleName()) &&
-                m.getArguments().get(0) instanceof J.Empty ||
-                new MethodMatcher(BUILDER + " withCause(..)").matches(m) && freshBuilder(m.getSelect());
+        return LEVEL.matches(m) && isLevel(m.getSimpleName()) ||
+                (WITH_CAUSE.matches(m) || markers && WITH_MARKER.matches(m)) && freshBuilder(m.getSelect(), markers);
     }
 
     private static JavaVisitor<ExecutionContext> migrate() {
@@ -285,8 +323,7 @@ public class Slf4jFluentToSlf4j extends ScanningRecipe<Slf4jFluentToSlf4j.Accumu
             public J visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
                 J.NewClass n = (J.NewClass) super.visitNewClass(newClass, ctx);
                 if (TypeUtils.isOfClassType(newClass.getType(), LOGGER)) {
-                    maybeRemoveImport(LOGGER);
-                    return n.getArguments().get(0).withPrefix(n.getPrefix());
+                    return ParenthesizeVisitor.maybeParenthesize(n.getArguments().get(0).withPrefix(n.getPrefix()), getCursor());
                 }
                 return n;
             }
@@ -323,10 +360,8 @@ public class Slf4jFluentToSlf4j extends ScanningRecipe<Slf4jFluentToSlf4j.Accumu
                         Expression arg = argument;
                         if (arg instanceof J.MethodInvocation && LAZY.matches((J.MethodInvocation) arg)) {
                             arg = ((J.MethodInvocation) arg).getArguments().get(0);
-                            maybeRemoveImport("org.fissore.slf4j.Util.lazy");
-                            maybeRemoveImport("org.fissore.slf4j.Util");
                             code.append(".addArgument(#{any(java.util.function.Supplier)})");
-                        } else if (arg instanceof J.Literal && ((J.Literal) arg).getValue() == null) {
+                        } else if (isNull(arg)) {
                             code.append(".addArgument((Object) #{any()})");
                         } else {
                             code.append(".addArgument(#{any()})");
