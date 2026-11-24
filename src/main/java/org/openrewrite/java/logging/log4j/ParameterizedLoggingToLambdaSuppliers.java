@@ -86,72 +86,72 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
                 levels.add(level.trim().toLowerCase(Locale.ROOT));
             }
         }
-        return Preconditions.check(Preconditions.and(
-                new JavaFileChecker<>(),
-                new UsesMethod<>(LOG_METHODS)), new JavaIsoVisitor<ExecutionContext>() {
-            @Override
-            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
-                JavaType.Method methodType = m.getMethodType();
-                if (m.getSelect() == null || methodType == null || !LOG_METHODS.matches(m)) {
-                    return m;
-                }
+        return Preconditions.check(
+                Preconditions.and(new JavaFileChecker<>(), new UsesMethod<>(LOG_METHODS)),
+                new JavaIsoVisitor<ExecutionContext>() {
+                    @Override
+                    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                        J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
+                        JavaType.Method methodType = m.getMethodType();
+                        if (m.getSelect() == null || methodType == null || !LOG_METHODS.matches(m)) {
+                            return m;
+                        }
 
-                List<Expression> args = m.getArguments();
-                int messageIndex = messageIndex(methodType, args, levels);
-                if (messageIndex < 0) {
-                    return m;
-                }
-                List<Expression> params = args.subList(messageIndex + 1, args.size());
-                boolean messageOnly = isComposedMessageOnly(methodType, messageIndex, args);
-                if (messageOnly) {
-                    if (!lambdasCanCapture(args.subList(messageIndex, messageIndex + 1), updateCursor(m))) {
-                        return m;
-                    }
-                } else if (!isConvertible(methodType, messageIndex, params) ||
-                           params.stream().noneMatch(LogArguments::isExpensive) ||
-                           !lambdasCanCapture(params, updateCursor(m))) {
-                    return m;
-                }
+                        List<Expression> args = m.getArguments();
+                        int messageIndex = messageIndex(methodType, args, levels);
+                        if (messageIndex < 0) {
+                            return m;
+                        }
+                        List<Expression> params = args.subList(messageIndex + 1, args.size());
+                        boolean messageOnly = isComposedMessageOnly(methodType, messageIndex, args);
+                        if (messageOnly) {
+                            if (!lambdasCanCapture(args.subList(messageIndex, messageIndex + 1), updateCursor(m))) {
+                                return m;
+                            }
+                        } else if (!isConvertible(methodType, messageIndex, params) ||
+                                   params.stream().noneMatch(LogArguments::isExpensive) ||
+                                   !lambdasCanCapture(params, updateCursor(m))) {
+                            return m;
+                        }
 
-                StringJoiner template = new StringJoiner(", ", "#{any(" + LOGGER + ")}." + m.getSimpleName() + "(", ")");
-                for (int i = 0; i < messageIndex; i++) {
-                    template.add("#{any(" + (isType(args.get(i), LEVEL) ? LEVEL : MARKER) + ")}");
-                }
-                if (messageOnly) {
-                    template.add("() -> #{any(java.lang.String)}");
-                    if (!params.isEmpty()) {
-                        template.add("#{any(java.lang.Throwable)}");
+                        StringJoiner template = new StringJoiner(", ", "#{any(" + LOGGER + ")}." + m.getSimpleName() + "(", ")");
+                        for (int i = 0; i < messageIndex; i++) {
+                            template.add("#{any(" + (isType(args.get(i), LEVEL) ? LEVEL : MARKER) + ")}");
+                        }
+                        if (messageOnly) {
+                            template.add("() -> #{any(java.lang.String)}");
+                            if (!params.isEmpty()) {
+                                template.add("#{any(java.lang.Throwable)}");
+                            }
+                        } else {
+                            template.add("#{any(java.lang.String)}");
+                            for (int i = 0; i < params.size(); i++) {
+                                template.add("() -> #{any()}");
+                            }
+                        }
+                        List<Object> templateArgs = new ArrayList<>(args.size() + 1);
+                        templateArgs.add(m.getSelect());
+                        templateArgs.addAll(args);
+                        J.MethodInvocation converted = JavaTemplate.builder(template.toString())
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "log4j-api"))
+                                .build()
+                                .apply(getCursor(), m.getCoordinates().replace(), templateArgs.toArray());
+                        // Keep the line breaks and comments around the arguments of the original call
+                        JContainer<Expression> originalArgs = m.getPadding().getArguments();
+                        return m.withMethodType(converted.getMethodType())
+                                .withName(m.getName().withType(converted.getMethodType()))
+                                .getPadding().withArguments(originalArgs.getPadding().withElements(
+                                        ListUtils.map(originalArgs.getPadding().getElements(), (i, original) -> {
+                                            Expression arg = converted.getArguments().get(i);
+                                            Space prefix = original.getElement().getPrefix();
+                                            if (arg instanceof J.Lambda) {
+                                                J.Lambda lambda = (J.Lambda) arg;
+                                                return original.withElement(lambda.withPrefix(prefix).withBody(lambda.getBody().withPrefix(Space.SINGLE_SPACE)));
+                                            }
+                                            return original.withElement(arg.withPrefix(prefix));
+                                        })));
                     }
-                } else {
-                    template.add("#{any(java.lang.String)}");
-                    for (int i = 0; i < params.size(); i++) {
-                        template.add("() -> #{any()}");
-                    }
-                }
-                List<Object> templateArgs = new ArrayList<>(args.size() + 1);
-                templateArgs.add(m.getSelect());
-                templateArgs.addAll(args);
-                J.MethodInvocation converted = JavaTemplate.builder(template.toString())
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "log4j-api"))
-                        .build()
-                        .apply(getCursor(), m.getCoordinates().replace(), templateArgs.toArray());
-                // Keep the line breaks and comments around the arguments of the original call
-                JContainer<Expression> originalArgs = m.getPadding().getArguments();
-                return m.withMethodType(converted.getMethodType())
-                        .withName(m.getName().withType(converted.getMethodType()))
-                        .getPadding().withArguments(originalArgs.getPadding().withElements(
-                                ListUtils.map(originalArgs.getPadding().getElements(), (i, original) -> {
-                                    Expression arg = converted.getArguments().get(i);
-                                    Space prefix = original.getElement().getPrefix();
-                                    if (arg instanceof J.Lambda) {
-                                        J.Lambda lambda = (J.Lambda) arg;
-                                        return original.withElement(lambda.withPrefix(prefix).withBody(lambda.getBody().withPrefix(Space.SINGLE_SPACE)));
-                                    }
-                                    return original.withElement(arg.withPrefix(prefix));
-                                })));
-            }
-        });
+                });
     }
 
     private static int messageIndex(JavaType.Method methodType, List<Expression> args, Set<String> levels) {
