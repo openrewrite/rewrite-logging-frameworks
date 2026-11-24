@@ -9,6 +9,7 @@ description = "Enforce logging best practices and migrate between logging framew
 val rewriteVersion = rewriteRecipe.rewriteVersion.get()
 
 recipeDependencies {
+    testParserClasspath("org.fissore:slf4j-fluent:0.14.0")
     parserClasspath("org.slf4j:slf4j-api:2.+")
     parserClasspath("org.slf4j:slf4j-api:1.7.+")
     parserClasspath("log4j:log4j:1.+")

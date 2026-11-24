@@ -1,0 +1,366 @@
+/*
+ * Copyright 2026 the original author or authors.
+ * <p>
+ * Licensed under the Moderne Source Available License (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * https://docs.moderne.io/licensing/moderne-source-available-license
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.openrewrite.java.logging.slf4j;
+
+import lombok.EqualsAndHashCode;
+import lombok.Value;
+import org.jspecify.annotations.Nullable;
+import org.openrewrite.*;
+import org.openrewrite.java.*;
+import org.openrewrite.java.dependencies.AddDependency;
+import org.openrewrite.java.dependencies.ChangeDependency;
+import org.openrewrite.java.dependencies.UpgradeDependencyVersion;
+import org.openrewrite.java.marker.JavaProject;
+import org.openrewrite.java.logging.internal.LogArguments;
+import org.openrewrite.java.tree.*;
+import org.openrewrite.marker.SearchResult;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+@Value
+@EqualsAndHashCode(callSuper = false)
+public class Slf4jFluentToSlf4j extends ScanningRecipe<Slf4jFluentToSlf4j.Accumulator> {
+    private static final String LOGGER = "org.fissore.slf4j.FluentLogger";
+    private static final String FACTORY = "org.fissore.slf4j.FluentLoggerFactory";
+    private static final String BUILDER = "org.fissore.slf4j.LoggerAtLevel";
+    private static final MethodMatcher LAZY = new MethodMatcher("org.fissore.slf4j.Util lazy(..)");
+    private static final MethodMatcher LOG = new MethodMatcher(BUILDER + " log(..)");
+    private static final String MANUAL = "This slf4j-fluent usage requires manual migration before rerunning the recipe";
+
+    String displayName = "Migrate Fissore SLF4J Fluent to SLF4J";
+
+    String description = "Migrate `org.fissore:slf4j-fluent` to `org.slf4j:slf4j-api` 2.x, preserving lazy messages, " +
+            "lazy arguments and exception causes. Rate limiting, marker-specific level checks, reusable marker mutations, " +
+            "argument arrays, side effects around suppliers, subclasses and unsupported API usages are marked for manual migration. " +
+            "If any such usages are found, source and dependency migration is withheld for the entire recipe run. " +
+            "The logging backend must support SLF4J 2.x.";
+
+    @Override
+    public Accumulator getInitialValue(ExecutionContext ctx) {
+        return new Accumulator(ctx);
+    }
+
+    @Override
+    public TreeVisitor<?, ExecutionContext> getScanner(Accumulator acc) {
+        List<TreeVisitor<?, ExecutionContext>> dependencies = Arrays.asList(
+                acc.dependency.getScanner(acc.dependencies),
+                acc.addition.getScanner(acc.additions),
+                acc.upgrade.getScanner(acc.upgrades));
+        JavaVisitor<ExecutionContext> unsupported = unsupported(() -> acc.unsupported = true);
+        return new TreeVisitor<Tree, ExecutionContext>() {
+            @Override
+            public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
+                if (tree instanceof SourceFile) {
+                    for (TreeVisitor<?, ExecutionContext> dependency : dependencies) {
+                        if (dependency.isAcceptable((SourceFile) tree, ctx)) {
+                            dependency.visit(tree, ctx);
+                        }
+                    }
+                }
+                if (tree instanceof J.CompilationUnit) {
+                    unsupported.visit(tree, ctx);
+                    for (JavaType type : ((J.CompilationUnit) tree).getTypesInUse().getTypesInUse()) {
+                        if (TypeUtils.isOfClassType(type, LOGGER) || TypeUtils.isOfClassType(type, BUILDER)) {
+                            ((J.CompilationUnit) tree).getMarkers().findFirst(JavaProject.class).ifPresent(acc.projects::add);
+                        }
+                    }
+                }
+                return tree;
+            }
+        };
+    }
+
+    @Override
+    public TreeVisitor<?, ExecutionContext> getVisitor(Accumulator acc) {
+        if (acc.unsupported) {
+            return unsupported(() -> { });
+        }
+        List<TreeVisitor<?, ExecutionContext>> dependencies = new ArrayList<>();
+        dependencies.add(acc.dependency.getVisitor(acc.dependencies));
+        dependencies.add(acc.addition.getVisitor(acc.additions));
+        TreeVisitor<?, ExecutionContext> upgrade = acc.upgrade.getVisitor(acc.upgrades);
+        JavaVisitor<ExecutionContext> java = migrate();
+        return new TreeVisitor<Tree, ExecutionContext>() {
+            @Override
+            public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
+                if (tree instanceof J.CompilationUnit) {
+                    return java.visit(tree, ctx);
+                }
+                if (tree instanceof SourceFile) {
+                    for (TreeVisitor<?, ExecutionContext> dependency : dependencies) {
+                        if (dependency.isAcceptable((SourceFile) tree, ctx)) {
+                            tree = dependency.visit(tree, ctx);
+                        }
+                    }
+                    if (((SourceFile) tree).getMarkers().findFirst(JavaProject.class).map(acc.projects::contains).orElse(false) &&
+                            upgrade.isAcceptable((SourceFile) tree, ctx)) {
+                        tree = upgrade.visit(tree, ctx);
+                    }
+                }
+                return tree;
+            }
+        };
+    }
+
+    private static JavaVisitor<ExecutionContext> unsupported(Runnable found) {
+        return new JavaVisitor<ExecutionContext>() {
+            private <T extends Tree> T mark(T tree) {
+                found.run();
+                return SearchResult.found(tree, MANUAL);
+            }
+
+            @Override
+            public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                J.MethodInvocation m = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
+                JavaType.Method type = method.getMethodType();
+                if (type == null || !type.getDeclaringType().getFullyQualifiedName().startsWith("org.fissore.slf4j.")) {
+                    return m;
+                }
+                String owner = type.getDeclaringType().getFullyQualifiedName();
+                boolean supported = FACTORY.equals(owner) && "getLogger".equals(method.getSimpleName()) ||
+                        LOGGER.equals(owner) && isLevel(method.getSimpleName()) && method.getArguments().get(0) instanceof J.Empty ||
+                        BUILDER.equals(owner) && ("withCause".equals(method.getSimpleName()) || LOG.matches(method)) ||
+                        BUILDER.equals(owner) && "withMarker".equals(method.getSimpleName()) && freshBuilder(method.getSelect());
+                if (LOG.matches(method) && method.getArguments().size() == 2 &&
+                        method.getArguments().get(1).getType() instanceof JavaType.Array) {
+                    supported = false;
+                }
+                if (LOG.matches(method) && method.getArguments().stream().anyMatch(arg ->
+                        TypeUtils.isAssignableTo("java.util.function.Supplier", arg.getType())) &&
+                        method.getArguments().stream().anyMatch(Slf4jFluentToSlf4j::hasEagerEffects)) {
+                    supported = false;
+                }
+                if (LAZY.matches(method)) {
+                    Object parent = getCursor().getParentTreeCursor().getValue();
+                    supported = parent instanceof J.MethodInvocation && LOG.matches((J.MethodInvocation) parent) &&
+                            ((J.MethodInvocation) parent).getArguments().indexOf(method) > 0;
+                }
+                return supported ? m : mark(m);
+            }
+
+            private boolean isUnsupportedUtilReference(TypedTree tree) {
+                if (!TypeUtils.isOfClassType(tree.getType(), "org.fissore.slf4j.Util") ||
+                        getCursor().firstEnclosing(J.Import.class) != null) {
+                    return false;
+                }
+                Object parent = getCursor().getParentTreeCursor().getValue();
+                if (parent instanceof J.FieldAccess && tree == ((J.FieldAccess) parent).getName()) {
+                    return false;
+                }
+                return !(parent instanceof J.MethodInvocation && LAZY.matches((J.MethodInvocation) parent) &&
+                        tree == ((J.MethodInvocation) parent).getSelect());
+            }
+
+            @Override
+            public J visitIdentifier(J.Identifier identifier, ExecutionContext ctx) {
+                J.Identifier i = (J.Identifier) super.visitIdentifier(identifier, ctx);
+                return isUnsupportedUtilReference(identifier) ? mark(i) : i;
+            }
+
+            @Override
+            public J visitFieldAccess(J.FieldAccess fieldAccess, ExecutionContext ctx) {
+                J.FieldAccess f = (J.FieldAccess) super.visitFieldAccess(fieldAccess, ctx);
+                return isUnsupportedUtilReference(fieldAccess) ? mark(f) : f;
+            }
+
+            @Override
+            public J visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
+                J.NewClass n = (J.NewClass) super.visitNewClass(newClass, ctx);
+                JavaType.FullyQualified type = TypeUtils.asFullyQualified(newClass.getClazz() == null ?
+                        newClass.getType() : newClass.getClazz().getType());
+                if (type != null && (type.getFullyQualifiedName().startsWith("org.fissore.slf4j.") ||
+                        TypeUtils.isAssignableTo(LOGGER, type) || TypeUtils.isAssignableTo(BUILDER, type)) &&
+                        (!LOGGER.equals(type.getFullyQualifiedName()) || newClass.getBody() != null)) {
+                    return mark(n);
+                }
+                return n;
+            }
+
+            @Override
+            public J visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+                J.ClassDeclaration c = (J.ClassDeclaration) super.visitClassDeclaration(classDecl, ctx);
+                if (classDecl.getExtends() != null &&
+                        (TypeUtils.isAssignableTo(LOGGER, classDecl.getExtends().getType()) ||
+                         TypeUtils.isAssignableTo(BUILDER, classDecl.getExtends().getType()))) {
+                    return mark(c);
+                }
+                return c;
+            }
+
+            @Override
+            public J visitMemberReference(J.MemberReference memberRef, ExecutionContext ctx) {
+                J.MemberReference m = (J.MemberReference) super.visitMemberReference(memberRef, ctx);
+                JavaType.Method type = memberRef.getMethodType();
+                if (type != null && type.getDeclaringType().getFullyQualifiedName().startsWith("org.fissore.slf4j.") &&
+                        !(FACTORY.equals(type.getDeclaringType().getFullyQualifiedName()) && "getLogger".equals(type.getName()))) {
+                    return mark(m);
+                }
+                return m;
+            }
+
+            @Override
+            public NameTree visitTypeName(NameTree name, ExecutionContext ctx) {
+                NameTree n = super.visitTypeName(name, ctx);
+                JavaType.FullyQualified type = TypeUtils.asFullyQualified(name.getType());
+                if (type != null && type.getFullyQualifiedName().startsWith("org.fissore.slf4j.") &&
+                        !LOGGER.equals(type.getFullyQualifiedName()) && !FACTORY.equals(type.getFullyQualifiedName()) &&
+                        !BUILDER.equals(type.getFullyQualifiedName()) && !"org.fissore.slf4j.Util".equals(type.getFullyQualifiedName())) {
+                    return mark(n);
+                }
+                return n;
+            }
+        };
+    }
+
+    private static boolean hasEagerEffects(Expression expression) {
+        AtomicBoolean effects = new AtomicBoolean(LogArguments.hasSideEffects(expression));
+        new JavaIsoVisitor<AtomicBoolean>() {
+            @Override
+            public J.Lambda visitLambda(J.Lambda lambda, AtomicBoolean found) {
+                return lambda;
+            }
+
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean found) {
+                if (!LAZY.matches(method)) {
+                    found.set(true);
+                }
+                return super.visitMethodInvocation(method, found);
+            }
+
+            @Override
+            public J.NewClass visitNewClass(J.NewClass newClass, AtomicBoolean found) {
+                found.set(true);
+                return newClass;
+            }
+        }.visit(expression, effects);
+        return effects.get();
+    }
+
+    private static boolean isLevel(String name) {
+        return "trace".equals(name) || "debug".equals(name) || "info".equals(name) || "warn".equals(name) || "error".equals(name);
+    }
+
+    private static boolean freshBuilder(@Nullable Expression expression) {
+        if (!(expression instanceof J.MethodInvocation)) {
+            return false;
+        }
+        J.MethodInvocation m = (J.MethodInvocation) expression;
+        return new MethodMatcher(LOGGER + " *(..)").matches(m) && isLevel(m.getSimpleName()) &&
+                m.getArguments().get(0) instanceof J.Empty ||
+                new MethodMatcher(BUILDER + " withCause(..)").matches(m) && freshBuilder(m.getSelect());
+    }
+
+    private static JavaVisitor<ExecutionContext> migrate() {
+        return new JavaVisitor<ExecutionContext>() {
+            @Override
+            public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+                maybeRemoveImport("org.fissore.slf4j.Util");
+                maybeRemoveImport("org.fissore.slf4j.Util.lazy");
+                doAfterVisit(new ChangeType(LOGGER, "org.slf4j.Logger", false).getVisitor());
+                doAfterVisit(new ChangeType(FACTORY, "org.slf4j.LoggerFactory", false).getVisitor());
+                doAfterVisit(new ChangeType(BUILDER, "org.slf4j.spi.LoggingEventBuilder", false).getVisitor());
+                return super.visitCompilationUnit(cu, ctx);
+            }
+
+            @Override
+            public J visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
+                J.NewClass n = (J.NewClass) super.visitNewClass(newClass, ctx);
+                if (TypeUtils.isOfClassType(newClass.getType(), LOGGER)) {
+                    maybeRemoveImport(LOGGER);
+                    return n.getArguments().get(0).withPrefix(n.getPrefix());
+                }
+                return n;
+            }
+
+            @Override
+            public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                J.MethodInvocation m = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
+                if (method.getSelect() == null || method.getMethodType() == null) {
+                    return m;
+                }
+                String owner = method.getMethodType().getDeclaringType().getFullyQualifiedName();
+                if (LOGGER.equals(owner) && isLevel(method.getSimpleName())) {
+                    String name = method.getSimpleName();
+                    return template("#{any(org.slf4j.Logger)}.at" + Character.toUpperCase(name.charAt(0)) + name.substring(1) + "()", ctx)
+                            .apply(updateCursor(m), m.getCoordinates().replace(), m.getSelect());
+                }
+                if (BUILDER.equals(owner) && ("withCause".equals(method.getSimpleName()) || "withMarker".equals(method.getSimpleName()))) {
+                    String name = "withCause".equals(method.getSimpleName()) ? "setCause" : "addMarker";
+                    return template("#{any(org.slf4j.spi.LoggingEventBuilder)}." + name + "(#{any()})", ctx)
+                            .apply(updateCursor(m), m.getCoordinates().replace(), m.getSelect(), m.getArguments().get(0));
+                }
+                if (!LOG.matches(method)) {
+                    return m;
+                }
+                List<Object> parameters = new ArrayList<>();
+                parameters.add(m.getSelect());
+                parameters.add(m.getArguments().get(0));
+                StringBuilder code = new StringBuilder("#{any(org.slf4j.spi.LoggingEventBuilder)}");
+                if (m.getArguments().size() == 1) {
+                    code.append(".log(#{any()})");
+                } else {
+                    code.append(".setMessage(#{any()})");
+                    for (Expression argument : m.getArguments().subList(1, m.getArguments().size())) {
+                        Expression arg = argument;
+                        if (arg instanceof J.MethodInvocation && LAZY.matches((J.MethodInvocation) arg)) {
+                            arg = ((J.MethodInvocation) arg).getArguments().get(0);
+                            maybeRemoveImport("org.fissore.slf4j.Util.lazy");
+                            maybeRemoveImport("org.fissore.slf4j.Util");
+                            code.append(".addArgument(#{any(java.util.function.Supplier)})");
+                        } else if (arg instanceof J.Literal && ((J.Literal) arg).getValue() == null) {
+                            code.append(".addArgument((Object) #{any()})");
+                        } else {
+                            code.append(".addArgument(#{any()})");
+                        }
+                        parameters.add(arg);
+                    }
+                    code.append(".log()");
+                }
+                return template(code.toString(), ctx).apply(updateCursor(m), m.getCoordinates().replace(), parameters.toArray());
+            }
+
+            private JavaTemplate template(String code, ExecutionContext ctx) {
+                return JavaTemplate.builder(code)
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "slf4j-api-2"))
+                        .build();
+            }
+        };
+    }
+
+    static class Accumulator {
+        final ChangeDependency dependency = new ChangeDependency("org.fissore", "slf4j-fluent", "org.slf4j", "slf4j-api", "2.x", null, true, true);
+        final ChangeDependency.Accumulator dependencies;
+        final AddDependency addition = new AddDependency("org.slf4j", "slf4j-api", "2.x", null,
+                "org.fissore.slf4j.*", null, null, null, null, null, null, null, null, false);
+        final AddDependency.Accumulator additions;
+        final UpgradeDependencyVersion upgrade = new UpgradeDependencyVersion("org.slf4j", "slf4j-api", "2.x", null, true, null);
+        final UpgradeDependencyVersion.Accumulator upgrades;
+        final Set<JavaProject> projects = new HashSet<>();
+        boolean unsupported;
+
+        Accumulator(ExecutionContext ctx) {
+            dependencies = dependency.getInitialValue(ctx);
+            additions = addition.getInitialValue(ctx);
+            upgrades = upgrade.getInitialValue(ctx);
+        }
+    }
+}
