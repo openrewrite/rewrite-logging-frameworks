@@ -116,7 +116,7 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
 
                         StringJoiner template = new StringJoiner(", ", "#{any(" + LOGGER + ")}." + m.getSimpleName() + "(", ")");
                         for (int i = 0; i < messageIndex; i++) {
-                            template.add("#{any(" + (isType(args.get(i), LEVEL) ? LEVEL : MARKER) + ")}");
+                            template.add("#{any(" + (TypeUtils.isAssignableTo(LEVEL, args.get(i).getType()) ? LEVEL : MARKER) + ")}");
                         }
                         if (messageOnly) {
                             template.add("() -> #{any(java.lang.String)}");
@@ -157,7 +157,7 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
     private static int messageIndex(JavaType.Method methodType, List<Expression> args, Set<String> levels) {
         int index = 0;
         if ("log".equals(methodType.getName())) {
-            if (args.isEmpty() || !isType(args.get(0), LEVEL) ||
+            if (args.isEmpty() || !TypeUtils.isAssignableTo(LEVEL, args.get(0).getType()) ||
                 !levels.isEmpty() && !levels.contains(levelName(args.get(0)))) {
                 return -1;
             }
@@ -165,7 +165,7 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
         } else if (!(levels.isEmpty() ? ALL_LEVELS : levels).contains(methodType.getName())) {
             return -1;
         }
-        if (args.size() > index && isType(args.get(index), MARKER)) {
+        if (args.size() > index && TypeUtils.isAssignableTo(MARKER, args.get(index).getType())) {
             index++;
         }
         List<JavaType> parameterTypes = methodType.getParameterTypes();
@@ -184,7 +184,8 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
             return false;
         }
         Expression message = args.get(messageIndex);
-        return TypeUtils.isString(message.getType()) && isExpensive(message) && !hasSideEffectsOrCheckedExceptions(message);
+        return TypeUtils.isString(message.getType()) && isExpensive(message) &&
+               !hasSideEffects(message) && !mayThrowCheckedException(message);
     }
 
     private static boolean isConvertible(JavaType.Method methodType, int messageIndex, List<Expression> params) {
@@ -207,16 +208,12 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
                 // A supplier is logged as an object; wrapping it in another supplier gains nothing
                 TypeUtils.isAssignableTo(LOG4J_SUPPLIER, type) || TypeUtils.isAssignableTo(JAVA_SUPPLIER, type) ||
                 param instanceof J.Literal && ((J.Literal) param).getValue() == null ||
-                hasSideEffectsOrCheckedExceptions(param)) {
+                hasSideEffects(param) || mayThrowCheckedException(param)) {
                 return false;
             }
         }
         // Log4j logs a trailing Throwable with its stack trace; such calls are kept as they are
         return !TypeUtils.isAssignableTo("java.lang.Throwable", params.get(params.size() - 1).getType());
-    }
-
-    private static boolean isType(Expression expression, String fqn) {
-        return TypeUtils.isAssignableTo(fqn, expression.getType());
     }
 
     private static @Nullable String levelName(Expression level) {
@@ -228,10 +225,6 @@ public class ParameterizedLoggingToLambdaSuppliers extends Recipe {
             return ((J.Identifier) level).getSimpleName().toLowerCase(Locale.ROOT);
         }
         return null;
-    }
-
-    private static boolean hasSideEffectsOrCheckedExceptions(Expression argument) {
-        return hasSideEffects(argument) || mayThrowCheckedException(argument);
     }
 
     private static boolean lambdasCanCapture(List<Expression> arguments, Cursor cursor) {
