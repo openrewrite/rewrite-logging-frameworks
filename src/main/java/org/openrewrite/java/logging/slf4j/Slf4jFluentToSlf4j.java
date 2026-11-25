@@ -263,8 +263,13 @@ public class Slf4jFluentToSlf4j extends ScanningRecipe<Slf4jFluentToSlf4j.Accumu
             return false;
         }
         JavaType type = argument.getType();
-        return type == null || type instanceof JavaType.Unknown || type instanceof JavaType.GenericTypeVariable ||
-                type instanceof JavaType.Intersection || TypeUtils.isOfClassType(type, "java.lang.Object");
+        if (type instanceof JavaType.Primitive || type instanceof JavaType.Array) {
+            return false;
+        }
+        JavaType.FullyQualified declared = TypeUtils.asFullyQualified(type);
+        return declared == null || declared instanceof JavaType.Unknown ||
+                TypeUtils.isAssignableTo("java.util.function.Supplier", declared) ||
+                !declared.hasFlags(Flag.Final) && declared.getKind() != JavaType.FullyQualified.Kind.Enum;
     }
 
     private static boolean hasEagerEffects(Expression expression) {

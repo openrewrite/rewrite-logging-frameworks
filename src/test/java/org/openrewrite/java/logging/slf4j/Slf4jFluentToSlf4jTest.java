@@ -107,11 +107,10 @@ class Slf4jFluentToSlf4jTest implements RewriteTest {
               class Example {
                   FluentLogger log = FluentLoggerFactory.getLogger("example");
 
-                  void log(Throwable cause, Supplier<String> message, Supplier<?> value) {
+                  void log(Throwable cause, Supplier<String> message) {
                       log.debug().log("Value {} {}", 1, lazy(() -> "expensive"));
                       log.info().log("{}", Util.lazy(() -> 1));
                       log.info().log("{}", org.fissore.slf4j.Util.lazy(() -> 2));
-                      log.info().log("Value {}", value);
                       log.warn().log(message);
                       log.error().withCause(cause).log(() -> "Value {}", lazy(this::value));
                       log.error().withCause(cause).log("failure");
@@ -129,11 +128,10 @@ class Slf4jFluentToSlf4jTest implements RewriteTest {
               class Example {
                   Logger log = LoggerFactory.getLogger("example");
 
-                  void log(Throwable cause, Supplier<String> message, Supplier<?> value) {
+                  void log(Throwable cause, Supplier<String> message) {
                       log.atDebug().setMessage("Value {} {}").addArgument(1).addArgument(() -> "expensive").log();
                       log.atInfo().setMessage("{}").addArgument(() -> 1).log();
                       log.atInfo().setMessage("{}").addArgument(() -> 2).log();
-                      log.atInfo().setMessage("Value {}").addArgument(value).log();
                       log.atWarn().log(message);
                       log.atError().setCause(cause).setMessage(() -> "Value {}").addArgument(this::value).log();
                       log.atError().setCause(cause).log("failure");
@@ -641,6 +639,18 @@ class Slf4jFluentToSlf4jTest implements RewriteTest {
       "java.util.function.Supplier<?> supplier = org.fissore.slf4j.Util.lazy(() -> 1);",
       "java.util.function.Supplier<org.fissore.slf4j.LoggerAtLevel> supplier = logger::info;",
       "Object value = (java.util.function.Supplier<String>) () -> \"value\"; logger.info().log(\"{}\", value);",
+      "java.util.function.Supplier<?> nested = () -> (java.util.function.Supplier<String>) () -> \"value\"; logger.info().log(\"{}\", nested);",
+      """
+      class DeferredNumber extends Number implements java.util.function.Supplier<String> {
+          public int intValue() { return 0; }
+          public long longValue() { return 0; }
+          public float floatValue() { return 0; }
+          public double doubleValue() { return 0; }
+          public String get() { return "value"; }
+      }
+      Number value = new DeferredNumber();
+      logger.info().log("{}", value);
+      """,
       "logger.info().log(\"{} {}\", values[0], 1);",
       "builder.log(\"{}\", 1);",
       "logger.info().log(\"{}\", null);"
@@ -664,6 +674,42 @@ class Slf4jFluentToSlf4jTest implements RewriteTest {
               .contains("/*~~(This slf4j-fluent usage requires manual migration before rerunning the recipe)~~>*/")
               .doesNotContain("atInfo", "addMarker", "addArgument")
               .actual())
+          )
+        );
+    }
+
+    @Test
+    void supplierHeldAsSerializableWithholdsMigration() {
+        rewriteRun(
+          mavenProject(
+            "example",
+            pomXml(pom("example", FLUENT_DEPENDENCY)),
+            srcMainJava(java(
+              """
+                import java.io.Serializable;
+                import java.util.function.Supplier;
+                import org.fissore.slf4j.FluentLogger;
+
+                class Example {
+                    void log(FluentLogger logger) {
+                        Serializable value = (Supplier<String> & Serializable) () -> "evaluated";
+                        logger.info().log("value: {}", value);
+                    }
+                }
+                """,
+              """
+                import java.io.Serializable;
+                import java.util.function.Supplier;
+                import org.fissore.slf4j.FluentLogger;
+
+                class Example {
+                    void log(FluentLogger logger) {
+                        Serializable value = (Supplier<String> & Serializable) () -> "evaluated";
+                        /*~~(This slf4j-fluent usage requires manual migration before rerunning the recipe)~~>*/logger.info().log("value: {}", value);
+                    }
+                }
+                """
+            ))
           )
         );
     }
