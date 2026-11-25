@@ -109,7 +109,9 @@ class Slf4jFluentToSlf4jTest implements RewriteTest {
 
                   void log(Throwable cause, Supplier<String> message) {
                       log.debug().log("Value {} {}", 1, lazy(() -> "expensive"));
-                      log.info().log("{}", Util.lazy(() -> 1));
+                      log.info().log("{}", Util.lazy(() -> {
+                          return 1;
+                      }));
                       log.info().log("{}", org.fissore.slf4j.Util.lazy(() -> 2));
                       log.warn().log(message);
                       log.error().withCause(cause).log(() -> "Value {}", lazy(this::value));
@@ -130,7 +132,9 @@ class Slf4jFluentToSlf4jTest implements RewriteTest {
 
                   void log(Throwable cause, Supplier<String> message) {
                       log.atDebug().setMessage("Value {} {}").addArgument(1).addArgument(() -> "expensive").log();
-                      log.atInfo().setMessage("{}").addArgument(() -> 1).log();
+                      log.atInfo().setMessage("{}").addArgument(() -> {
+                          return 1;
+                      }).log();
                       log.atInfo().setMessage("{}").addArgument(() -> 2).log();
                       log.atWarn().log(message);
                       log.atError().setCause(cause).setMessage(() -> "Value {}").addArgument(this::value).log();
@@ -636,6 +640,22 @@ class Slf4jFluentToSlf4jTest implements RewriteTest {
       "logger.info().log(\"{}\", values);",
       "logger.info().log(() -> \"{}\", values[0] = 1);",
       "logger.info().log(\"{} {}\", org.fissore.slf4j.Util.lazy(() -> values[0]), values[0] = 1);",
+      """
+      logger.info().log("{}", org.fissore.slf4j.Util.lazy(
+          () -> (java.util.function.Supplier<String>) () -> "value"));
+      """,
+      """
+      logger.info().log("{}", org.fissore.slf4j.Util.lazy(() -> {
+          if (values.length == 0) {
+              return "value";
+          }
+          return (java.util.function.Supplier<String>) () -> "nested";
+      }));
+      """,
+      """
+      java.util.function.Supplier<java.util.function.Supplier<String>> nested = () -> () -> "value";
+      logger.info().log("{}", org.fissore.slf4j.Util.lazy(nested::get));
+      """,
       "java.util.function.Supplier<?> supplier = org.fissore.slf4j.Util.lazy(() -> 1);",
       "java.util.function.Supplier<org.fissore.slf4j.LoggerAtLevel> supplier = logger::info;",
       "Object value = (java.util.function.Supplier<String>) () -> \"value\"; logger.info().log(\"{}\", value);",

@@ -260,9 +260,56 @@ public class Slf4jFluentToSlf4j extends ScanningRecipe<Slf4jFluentToSlf4j.Accumu
 
     private static boolean mayHoldSupplier(Expression argument) {
         if (argument instanceof J.MethodInvocation && LAZY.matches((J.MethodInvocation) argument)) {
-            return false;
+            // Fissore unwraps nested suppliers, while SLF4J evaluates only the outer supplier.
+            return mayReturnSupplier(((J.MethodInvocation) argument).getArguments().get(0));
         }
-        JavaType type = argument.getType();
+        return mayHoldSupplier(argument.getType());
+    }
+
+    private static boolean mayReturnSupplier(Expression supplier) {
+        if (supplier instanceof J.MemberReference) {
+            J.MemberReference reference = (J.MemberReference) supplier;
+            JavaType.Method method = reference.getMethodType();
+            return method == null || "new".equals(reference.getReference().getSimpleName()) ||
+                    mayHoldSupplier(method.getReturnType());
+        }
+        if (!(supplier instanceof J.Lambda)) {
+            return true;
+        }
+        J body = ((J.Lambda) supplier).getBody();
+        if (body instanceof Expression) {
+            return mayHoldSupplier(((Expression) body).getType());
+        }
+        AtomicBoolean nestedSupplier = new AtomicBoolean();
+        new JavaIsoVisitor<AtomicBoolean>() {
+            @Override
+            public J.Return visitReturn(J.Return statement, AtomicBoolean found) {
+                Expression value = statement.getExpression();
+                if (value == null || mayHoldSupplier(value.getType())) {
+                    found.set(true);
+                }
+                return statement;
+            }
+
+            @Override
+            public J.Lambda visitLambda(J.Lambda lambda, AtomicBoolean found) {
+                return lambda;
+            }
+
+            @Override
+            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration declaration, AtomicBoolean found) {
+                return declaration;
+            }
+
+            @Override
+            public J.NewClass visitNewClass(J.NewClass newClass, AtomicBoolean found) {
+                return newClass;
+            }
+        }.visit(body, nestedSupplier);
+        return nestedSupplier.get();
+    }
+
+    private static boolean mayHoldSupplier(@Nullable JavaType type) {
         if (type instanceof JavaType.Primitive || type instanceof JavaType.Array) {
             return false;
         }
