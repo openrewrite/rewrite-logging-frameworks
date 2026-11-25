@@ -9,6 +9,7 @@ description = "Enforce logging best practices and migrate between logging framew
 val rewriteVersion = rewriteRecipe.rewriteVersion.get()
 
 recipeDependencies {
+    testParserClasspath("org.fissore:slf4j-fluent:0.14.0")
     parserClasspath("org.slf4j:slf4j-api:2.+")
     parserClasspath("org.slf4j:slf4j-api:1.7.+")
     parserClasspath("log4j:log4j:1.+")
@@ -31,6 +32,8 @@ dependencies {
     implementation("org.openrewrite:rewrite-java")
     implementation("org.openrewrite:rewrite-groovy")
     implementation("org.openrewrite:rewrite-xml")
+    implementation("org.openrewrite:rewrite-maven")
+    implementation("org.openrewrite:rewrite-gradle")
     implementation("org.openrewrite.recipe:rewrite-java-dependencies:${rewriteVersion}")
     implementation("org.openrewrite.recipe:rewrite-static-analysis:${rewriteVersion}")
     runtimeOnly("org.openrewrite:rewrite-java-21")
@@ -48,6 +51,7 @@ dependencies {
 
     testImplementation("org.openrewrite:rewrite-kotlin")
     testImplementation("org.openrewrite:rewrite-maven")
+    testImplementation("org.openrewrite:rewrite-properties")
     testImplementation("org.openrewrite:rewrite-gradle")
     testImplementation("org.openrewrite.gradle.tooling:model:${rewriteVersion}")
     testImplementation("org.openrewrite:rewrite-test")
